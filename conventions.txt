@@ -1,0 +1,2 @@
+use PIXELFORGE_ prefix for macro definitions which control compilation
+use PF_ prefix for other macros
