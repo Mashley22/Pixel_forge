@@ -1,2 +1,7 @@
+__PREPROCESSOR
 use PIXELFORGE_ prefix for macro definitions which control compilation
 use PF_ prefix for other macros
+
+__T_templates
+use T_ prefix for template parameters
+use ..._c postfix for concepts
