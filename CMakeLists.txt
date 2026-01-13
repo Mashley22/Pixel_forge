@@ -18,7 +18,7 @@ include(cmake/utils.cmake)
 add_subdirectory(libs)
 
 if(PIXELFORGE_TEST)
-  add_compile_definitions(PIXEL_FORGE_TEST)
+  add_compile_definitions(PIXELFORGE_TEST)
   enable_testing()
   include(CTest)
 
