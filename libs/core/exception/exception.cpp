@@ -8,7 +8,7 @@ module;
 
 module PixelForge.core.exception;
 
-import PixelForge.core.assert;
+import PixelForge.core.require;
 import PixelForge.core.status;
 
 namespace pf {
@@ -17,7 +17,7 @@ namespace {
 
 void
 M_excepting(void) {
-  assert(currentStatus().load() == Status::OK);
+  require(currentStatus().load() == Status::OK);
   auto expected = Status::OK;
   currentStatus().compare_exchange_strong(expected,
                                           Status::EXCEPT,

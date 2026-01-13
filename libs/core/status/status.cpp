@@ -6,8 +6,6 @@ module;
 
 module PixelForge.core.status;
 
-import PixelForge.core.assert;
-
 namespace pf {
 
 // ugh no anonymous structs ...
