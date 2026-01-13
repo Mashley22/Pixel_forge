@@ -1,0 +1,7 @@
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+echo $SCRIPT_DIR
+source $SCRIPT_DIR/../build_utils.sh
+
+TEST_ARGS="-DPIXELFORGE_TEST=ON"
+
+eval $BASE_CMAKE_BUILD_COMMAND $TEST_ARGS $@ $CMAKE_PEDANTIC_COMPILE_OPTIONS
