@@ -1,6 +1,7 @@
 module;
 
 #include <source_location>
+#include <string_view>
 
 export module PixelForge.core.assert;
 

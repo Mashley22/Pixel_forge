@@ -1,8 +1,13 @@
-module PixelForge.
+module;
 
 #ifndef PIXELFORGE_ASSERT_THROW
 #include <exception>
 #endif
+
+#include <source_location>
+#include <string_view>
+
+module PixelForge.core.assert;
 
 namespace pf {
 

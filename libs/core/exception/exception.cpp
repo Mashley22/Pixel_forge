@@ -1,8 +1,15 @@
-module PixelForge.core.exception;
-
-import PixelForge.core.status;
+module;
 
 #include <atomic>
+#include <string>
+#include <string_view>
+
+#include <PixelForge/core/macros.hpp>
+
+module PixelForge.core.exception;
+
+import PixelForge.core.assert;
+import PixelForge.core.status;
 
 namespace pf {
 
@@ -10,7 +17,9 @@ namespace {
 
 void
 M_excepting(void) {
-  currentStatus().compare_exchange_strong(Status::OK,
+  assert(currentStatus().load() == Status::OK);
+  auto expected = Status::OK;
+  currentStatus().compare_exchange_strong(expected,
                                           Status::EXCEPT,
                                           std::memory_order_seq_cst,
                                           std::memory_order_seq_cst);
@@ -20,14 +29,14 @@ M_excepting(void) {
 
 namespace priv {
 
-ExceptionImpl::ExceptionImpl(void) { M_excepting(); }
+ExceptionImpl::ExceptionImpl(void) PF_NOEXCEPT { M_excepting(); }
 
 }
 
-Exception(void) : m_msg{} {}
+Exception::Exception(void) {}
 
-Exception(const std::string_view msg) : m_msg(msg) {}
+Exception::Exception(const std::string_view msg) : m_msg(msg) {}
 
-Exception(std::string&& msg) : m_msg(msg) {}
+Exception::Exception(std::string&& msg) PF_NOEXCEPT : m_msg(msg) {}
 
 }

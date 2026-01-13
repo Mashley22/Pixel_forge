@@ -1,10 +1,12 @@
-module PixelForge.core.status;
-
-import PixelForge.core.assert;
+module;
 
 #include <atomic>
 #include <cstddef>
 #include <new>
+
+module PixelForge.core.status;
+
+import PixelForge.core.assert;
 
 namespace pf {
 

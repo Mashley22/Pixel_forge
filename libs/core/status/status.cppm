@@ -16,7 +16,7 @@ enum Status : StatusUnderlying_t {
   OK,
   TERMINATE,
   EXCEPT
-}
+};
 
 export [[nodiscard]]
 std::atomic<Status>&

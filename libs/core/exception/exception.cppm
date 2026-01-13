@@ -1,10 +1,11 @@
 module;
 
-#include <type_traits>
+#include <string_view>
+#include <string>
 
-#include <PixelForge/core/macro.hpp>
+#include <PixelForge/core/macros.hpp>
 
-export module PixelForge.exception;
+export module PixelForge.core.exception;
 
 namespace pf {
 
@@ -12,13 +13,13 @@ namespace priv {
 
 class ExceptionImpl {
 public:
-  ExpceptionImpl(void) PF_NOEXCEPT;
+  ExceptionImpl(void) PF_NOEXCEPT;
 };
 
 }
 
 export
-class Exception : private ExceptionImpl {
+class Exception : private priv::ExceptionImpl {
 public:
   Exception(void);
 
