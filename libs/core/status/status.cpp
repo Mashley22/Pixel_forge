@@ -11,7 +11,7 @@ namespace pf {
 // ugh no anonymous structs ...
 struct alignas(std::hardware_destructive_interference_size) PaddedStatus {
   std::atomic<Status> status;
-  std::byte __padding[std::hardware_destructive_interference_size - sizeof(Status)];
+  std::byte __padding[std::hardware_destructive_interference_size - sizeof(Status)] = {};
 };
 
 static_assert(sizeof(PaddedStatus) == std::hardware_destructive_interference_size);

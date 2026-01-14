@@ -17,10 +17,16 @@ require(const bool expr,
         const std::source_location location) {
 
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
-  throw RequireFail{.msg = msg,
-                    .loc = location}
+  if (!expr) {
+    throw RequireFail{.msg = msg,
+                      .loc = location}
+  }
 #else
-  std::terminate();
+  (void)msg;
+  (void)location;
+  if(!expr) {
+    std::terminate();
+  }
 #endif
 }
 
