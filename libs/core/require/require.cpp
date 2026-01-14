@@ -19,7 +19,7 @@ require(const bool expr,
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
   if (!expr) {
     throw RequireFail{.msg = msg,
-                      .loc = location}
+                      .loc = location};
   }
 #else
   (void)msg;

@@ -9,7 +9,7 @@ namespace pf {
 
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
 export
-class RequireFail {
+struct RequireFail {
   std::string_view msg;
   std::source_location loc;
 };

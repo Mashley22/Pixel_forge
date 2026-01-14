@@ -11,5 +11,8 @@ target_sources(PixelForge_core
 )
   
 if(PIXELFORGE_TEST)
-  add_compile_definitions(PIXELFORGE_REQUIRE_THROWS_ON_FAILURE)
+  target_compile_definitions(PixelForge_core
+    PUBLIC
+      PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
+  )
 endif()
