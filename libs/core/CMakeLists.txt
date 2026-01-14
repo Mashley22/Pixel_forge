@@ -15,3 +15,5 @@ target_include_directories(PixelForge_core
 add_subdirectory(require)
 add_subdirectory(status)
 add_subdirectory(exception)
+add_subdirectory(meta)
+add_subdirectory(mem)
