@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.28)
 
 project(PixelForge VERSION 0.0.1 LANGUAGES CXX)
 
-set(PIXELFORGE_MINIMUM_CXX_STANDARD 20)
+set(PIXELFORGE_MINIMUM_CXX_STANDARD 23)
 
 if(NOT DEFINED CMAKE_CXX_STANDARD)
   message(STATUS "No c++ standard found, defaulting to ${PIXELFORGE_MINIMUM_CXX_STANDARD}")
