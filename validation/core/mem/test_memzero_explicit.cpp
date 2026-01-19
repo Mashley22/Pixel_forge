@@ -1,11 +1,10 @@
-import PixelForge.core.mem.memzero;
-
 #include <catch2/catch_test_macros.hpp>
 
 #include <cstring>
 
 #define SECRET_LEN 64
-#define DUMMY_BYTE 0xAA
+#define BUFFER_SIZE 256
+#define SECRET_OFFSET 128
 
 #ifndef BUILD_OPTS
 #define BUILD_OPTS
@@ -15,17 +14,21 @@ namespace pf {
 
 namespace mem {
 
-TEST_CASE( "memzero_explicit_explicit " BUILD_OPTS , "[mem][basic][optimise][hacky]" ) {
+extern
+void
+stupidDeadBufferFunction(char * buf, std::size_t offset, std::size_t len);
 
-  // I couldnt get it to work properly with a dead variable :( well just have to see
-  SECTION( "see how explicit this really is" ) {
-    unsigned char secret[SECRET_LEN]; 
-    std::strcpy((char*)secret, "BIG SECRET PASSWORD123");
-    
-    memzero_explicit(secret, SECRET_LEN);
+TEST_CASE( "memzero_explicit_explicit " BUILD_OPTS , "[mem][basic][optimise][hacky]" ) {
+  // stupid idea
+  SECTION( "stupid idea" ) {
+    char buf[BUFFER_SIZE];
+
+    std::strcpy(buf + SECRET_OFFSET, "BIG SECRET PASSWORD123"); // I dont think it can ignore this anymore
+
+    stupidDeadBufferFunction(buf, SECRET_OFFSET, SECRET_LEN);
 
     for (std::size_t i = 0; i < SECRET_LEN; i++) {
-      REQUIRE(secret[i] == 0x00);
+      REQUIRE(buf[i + SECRET_OFFSET] == 0x00);
     }
   }
 }

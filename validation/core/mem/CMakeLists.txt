@@ -8,6 +8,7 @@ function(add_memzero_explicit_test TEST_NAME)
 
 add_executable(${TEST_NAME}
   test_memzero_explicit.cpp
+  stupid_memzero_explicit_dead_var.cpp
 )
 
 add_core_unit_test(${TEST_NAME})
