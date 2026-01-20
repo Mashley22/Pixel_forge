@@ -16,30 +16,42 @@ template<std::string_view const&... V_strs>
 struct ConcatStrings {
 private:
 
-static constexpr auto impl(void) noexcept {
-  constexpr std::size_t total_len = (V_strs.size() + ...);
-  std::array<char, total_len + 1> res{}; // for null terminator
+[[nodiscard]]
+static consteval
+std::size_t
+total_len(void) { // including null terminator
+  return (V_strs.size() + ...) + 1;
+}
+
+[[nodiscard]]
+static consteval 
+std::array<char, total_len()>
+impl(void) {
+  std::array<char, total_len()> retVal{}; // for null terminator
   std::size_t pos = 0;
 
   auto copy = [&](std::string_view str) {
-      std::copy(str.begin(), str.end(), res.begin() + pos);
+      std::copy(str.begin(), str.end(), retVal.begin() + pos);
       pos += str.size();
   };
   
   (copy(V_strs), ...);
-  res[total_len] = '\0';
-  return res;
+
+  retVal.back() = '\0';
+  return retVal;
 }
 
 public:
 
 static constexpr
-auto arr = impl();
+std::array<char, total_len()> arr = impl();
 
-static constexpr
-std::string_view sv() { return {arr.data(), arr.size() - 1}; }
+[[nodiscard]]
+static consteval // constevals unneccesary but oh well
+std::string_view sv(void) { return {arr.data(), arr.size() - 1}; }
 
-static constexpr
+[[nodiscard]]
+static consteval
 const char* c_str(void) noexcept { return arr.data(); }
 
 };
