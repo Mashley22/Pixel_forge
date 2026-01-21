@@ -3,7 +3,7 @@ module;
 #include <concepts>
 #include <string_view>
 
-export module PixelForge.core.meta.intToSv;
+export module PixelForge.core.meta.intToStr;
 
 import PixelForge.core.utils.charEncoding;
 
@@ -20,7 +20,7 @@ template<
   std::size_t T_base = 10,
   const std::string_view& T_digitSet = digitSetUpper
 >
-struct UintToSv {
+struct UintToStr {
 private:
 
 [[nodiscard]]
@@ -39,12 +39,18 @@ digits(void) {
 
 [[nodiscard]]
 static consteval
+std::size_t
+len(void) {
+  return digits() + 1;
+}
+
+[[nodiscard]]
+static consteval
 T
 maxBaseScale(void) {
-  T val = 1;
-  while ( static_cast<T>(val * T_base) < T_val) {
+  T val = T_base;
+  while (static_cast<T>(val * T_base) < T_val) {
     val *= T_base;
-    static_assert(std::numeric_limits<T>::max() / T_base >= val, "Overflow!");
   }
 
   return val;
@@ -52,17 +58,20 @@ maxBaseScale(void) {
 
 [[nodiscard]]
 static consteval
-std::array<char, digits()>
+std::array<char, len()>
 impl(void) {
-  std::array<char, digits()> retVal{};
+  std::array<char, len()> retVal{};
   T val = T_val;
   T scale = maxBaseScale();
   
   for (std::size_t i = 0; i < digits(); i++) {
     val %= scale;
     retVal[i] = T_digitSet[val];
-    scale / T_base;
+    scale /= T_base;
+    (void)scale;
   }
+
+  retVal.back() = '\0';
 
   return retVal;
 }
@@ -70,7 +79,7 @@ impl(void) {
 public:
 
 static constexpr
-std::array<char, digits()>
+std::array<char, len()>
 arr = impl();
 
 [[nodiscard]]
@@ -83,6 +92,11 @@ static consteval
 const char *
 c_str(void) { return arr.data(); }
 
+[[nodiscard]]
+static consteval
+std::string_view
+str(void) { return {arr.data(), arr.size() - 1}; }
+
 };
 
 export
@@ -92,23 +106,34 @@ template<
   std::size_t T_base = 10,
   const std::string_view& T_digitSet = digitSetUpper
 >
-struct IntToSv {
+struct IntToStr {
 private:
+
+using unsigned_t = std::make_unsigned_t<T>;
+
+static constexpr auto UintArr = UintToStr<unsigned_t, static_cast<unsigned_t>(T_val), T_base, T_digitSet>::arr;
 
 [[nodiscard]]
 static consteval
-auto
-impl(void) {
-  using unsigned_t = std::make_unsigned<T>;
-  auto UintArr = UintToSv<unsigned_t, static_cast<unsigned_t>(T_val), T_base, T_digitSet>::arr;
+std::size_t len(void) {
   if constexpr (T_val > 0) {
-    return UintArr;
+    return UintArr.size();
+  }
+  return UintArr.size() + 1;
+}
+
+[[nodiscard]]
+static consteval
+std::array<char, len()>
+impl(void) {
+  std::array<char, len()> retVal;
+  if constexpr (T_val > 0) {
+    std::copy(UintArr.begin(), UintArr.end(), retVal.begin());
+    return retVal;
   }
   
-  std::array<char, UintArr.size() + 1> retVal{};
-  retVal[0] = "-";
+  retVal[0] = '-';
   std::copy(UintArr.begin(), UintArr.end(), retVal.begin() + 1);
-
   return retVal;
 }
 

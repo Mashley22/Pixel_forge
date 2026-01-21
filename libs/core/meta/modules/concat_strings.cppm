@@ -53,6 +53,10 @@ std::string_view sv(void) { return {arr.data(), arr.size() - 1}; }
 
 [[nodiscard]]
 static consteval
+std::string_view str(void) { return {arr.data(), arr.size() - 1}; }
+
+[[nodiscard]]
+static consteval
 const char* c_str(void) noexcept { return arr.data(); }
 
 };

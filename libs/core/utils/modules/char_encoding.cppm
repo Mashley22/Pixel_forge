@@ -8,11 +8,13 @@ import PixelForge.core.exception;
 
 namespace pf {
 
+export
 class InvalidCharToHexError : public Exception {
 public:
   InvalidCharToHexError(char chr);
 };
 
+export 
 class InvalidHexToCharError : public Exception {
 public:
   InvalidHexToCharError(int val);
@@ -24,6 +26,7 @@ constexpr std::string_view digitSetUpper = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
 export 
 constexpr std::string_view digitSetLower = "0123456789abcdefghijklmnopqrstuvwxyz";
 
+export 
 template<
   std::size_t T_base = 10,
   const std::string_view& T_digitSet = digitSetUpper
@@ -42,6 +45,7 @@ charToInt(char chr) {
   return static_cast<int>(pos);
 }
 
+export
 template<
   std::size_t T_base = 10,
   const std::string_view& T_digitSet = digitSetUpper
