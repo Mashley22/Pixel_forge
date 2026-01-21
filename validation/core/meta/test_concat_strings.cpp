@@ -1,8 +1,6 @@
 import PixelForge.core.meta;
 
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_string.hpp>
-#include <catch2/catch_case_sensitive.hpp>
 
 #include <string_view>
 
