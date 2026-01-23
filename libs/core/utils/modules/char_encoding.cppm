@@ -2,6 +2,8 @@ module;
 
 #include <string_view>
 
+#include <PixelForge/core/macros.hpp>
+
 export module PixelForge.core.utils.charEncoding;
 
 import PixelForge.core.exception;
@@ -11,13 +13,26 @@ namespace pf {
 export
 class InvalidCharToHexError : public Exception {
 public:
-  InvalidCharToHexError(char chr);
+  InvalidCharToHexError(char chr) PF_NOEXCEPT;
+
+  [[nodiscard]]
+  char
+  inputChar(void) const PF_NOEXCEPT;
+private:
+  const char m_chr;
 };
 
 export 
 class InvalidHexToCharError : public Exception {
 public:
-  InvalidHexToCharError(int val);
+  InvalidHexToCharError(int val) PF_NOEXCEPT;
+
+  [[nodiscard]]
+  int
+  inputVal(void) const PF_NOEXCEPT;
+
+private:
+  const int m_val;
 };
 
 export

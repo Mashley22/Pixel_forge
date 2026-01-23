@@ -33,10 +33,6 @@ ExceptionImpl::ExceptionImpl(void) PF_NOEXCEPT { M_excepting(); }
 
 }
 
-Exception::Exception(void) {}
-
-Exception::Exception(const std::string_view msg) : m_msg(msg) {}
-
-Exception::Exception(std::string&& msg) PF_NOEXCEPT : m_msg(msg) {}
+Exception::Exception(void) PF_NOEXCEPT {}
 
 }
