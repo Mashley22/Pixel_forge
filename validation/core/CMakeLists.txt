@@ -11,4 +11,5 @@ endfunction()
 
 add_subdirectory(require)
 add_subdirectory(meta)
+add_subdirectory(math)
 add_subdirectory(mem)

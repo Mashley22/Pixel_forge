@@ -1,7 +1,6 @@
 module;
 
 #include <concepts>
-#include <bit>
 
 #include <PixelForge/core/macros.hpp>
 
@@ -15,7 +14,7 @@ template<std::unsigned_integral T>
 [[nodiscard]]
 constexpr bool
 isPowerOfTwo(T val) PF_NOEXCEPT {
-  return std::has_single_bit(val);
+  return (val != 0) && ((val & (val - 1)) == 0);
 }
 
 }
