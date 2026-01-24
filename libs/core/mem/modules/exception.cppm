@@ -8,7 +8,7 @@ import PixelForge.core.exception;
 
 namespace pf {
 
-namespace mem {
+export namespace mem {
 
 class AlignmentError : Exception {
 public:
@@ -30,32 +30,27 @@ private:
 // available should be adjusted for the given alignment!!
 class OOMError : Exception {
 public:
-  struct AlignmentInfo {
-    std::size_t requested;
-    std::size_t min;
-    std::size_t given;
-  };
+
+  OOMError(std::size_t requested, 
+           std::size_t needed,
+           std::size_t available) PF_NOEXCEPT;
   
-  struct SizeInfo {
-    std::size_t requested;
-    std::size_t available;
-  };
+  [[nodiscard]]
+  std::size_t
+  requested(void) const PF_NOEXCEPT;
 
-  OOMError(std::size_t requestedAlignment, 
-           std::size_t minAlignment,
-           std::size_t givenAlignment,
-           std::size_t requestedSize,
-           std::size_t availableSize) PF_NOEXCEPT;
+  [[nodiscard]]
+  std::size_t 
+  needed(void) const PF_NOEXCEPT;
 
-  OOMError(const AlignmentInfo& alignInfo, const SizeInfo& sizeInfo) PF_NOEXCEPT;
+  [[nodiscard]]
+  std::size_t 
+  available(void) const PF_NOEXCEPT;
 
-  const SizeInfo& size(void) const PF_NOEXCEPT;
-
-  const AlignmentInfo& alignment(void) const PF_NOEXCEPT;
-  
 private:
-  const AlignmentInfo m_align;
-  const SizeInfo m_size;
+  const std::size_t m_requested;
+  const std::size_t m_needed;
+  const std::size_t m_available;
 };
 
 }
