@@ -30,7 +30,7 @@ private:
 // available should be adjusted for the given alignment!!
 class OOMError : Exception {
 public:
-
+  
   OOMError(std::size_t requested, 
            std::size_t needed,
            std::size_t available) PF_NOEXCEPT;
