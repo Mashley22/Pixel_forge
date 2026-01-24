@@ -1,4 +1,4 @@
-import PixelForge.core.mem;
+import PixelForge.mem;
 import PixelForge.core.require;
 
 #include <cstddef>

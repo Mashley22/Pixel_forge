@@ -1,4 +1,4 @@
-import PixelForge.core.mem.memzero;
+import PixelForge.mem.memzero;
 
 #include <cstddef>
 

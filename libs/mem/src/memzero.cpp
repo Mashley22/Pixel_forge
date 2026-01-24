@@ -3,7 +3,7 @@ module;
 #include <cstddef>
 #include <cstring>
 
-module PixelForge.core.mem.memzero;
+module PixelForge.mem.memzero;
 
 import PixelForge.core.require;
 

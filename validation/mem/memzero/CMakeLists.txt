@@ -2,7 +2,7 @@ add_executable(test_memzero
   test_memzero.cpp
 )
 
-add_core_unit_test(test_memzero)
+add_mem_unit_test(test_memzero)
 
 function(add_memzero_explicit_test TEST_NAME)
 
@@ -11,7 +11,7 @@ add_executable(${TEST_NAME}
   stupid_memzero_explicit_dead_var.cpp
 )
 
-add_core_unit_test(${TEST_NAME})
+add_mem_unit_test(${TEST_NAME})
 
 target_compile_options(${TEST_NAME}
   PRIVATE

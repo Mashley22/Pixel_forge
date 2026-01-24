@@ -2,7 +2,7 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-module PixelForge.core.mem.exception;
+module PixelForge.mem.exception;
 
 namespace pf {
 

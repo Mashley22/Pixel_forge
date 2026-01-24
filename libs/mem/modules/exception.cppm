@@ -2,7 +2,7 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.core.mem.exception;
+export module PixelForge.mem.exception;
 
 import PixelForge.core.exception;
 

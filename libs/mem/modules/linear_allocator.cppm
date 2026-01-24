@@ -4,10 +4,10 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.core.mem.linearAllocator;
+export module PixelForge.mem.linearAllocator;
 
-import PixelForge.core.mem.exception;
-import PixelForge.core.mem.align;
+import PixelForge.mem.exception;
+import PixelForge.mem.align;
 import PixelForge.core.math;
 
 namespace pf {

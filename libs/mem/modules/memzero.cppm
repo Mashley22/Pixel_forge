@@ -2,9 +2,7 @@ module;
 
 #include <cstddef>
 
-export module PixelForge.core.mem.memzero;
-
-import PixelForge.core.meta.enumBits;
+export module PixelForge.mem.memzero;
 
 namespace pf {
 

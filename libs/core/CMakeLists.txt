@@ -18,4 +18,7 @@ add_subdirectory(math)
 add_subdirectory(exception)
 add_subdirectory(utils)
 add_subdirectory(meta)
-add_subdirectory(mem)
+
+target_cxx_modules_public(PixelForge_core
+  core.cppm
+)

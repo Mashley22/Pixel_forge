@@ -5,7 +5,7 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.core.mem.align;
+export module PixelForge.mem.align;
 
 import PixelForge.core.require;
 import PixelForge.core.math;
