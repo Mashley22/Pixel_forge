@@ -3,7 +3,7 @@
 
 #include <new>
 
-#ifdef PIXELFORGE_ASSERT_THROW
+#ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
 #define PF_NOEXCEPT 
 #else
 #define PF_NOEXCEPT noexcept

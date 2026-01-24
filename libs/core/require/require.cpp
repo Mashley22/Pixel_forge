@@ -1,9 +1,5 @@
 module;
 
-#ifndef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
-#include <exception>
-#endif
-
 #include <source_location>
 #include <string_view>
 
