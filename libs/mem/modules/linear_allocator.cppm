@@ -14,16 +14,18 @@ namespace pf {
 
 namespace mem {
 
+namespace views {
+
 namespace detail {
 
-class LinearAllocatorView_impl {
+class LinearAllocator_impl {
 public:
   constexpr
-  LinearAllocatorView_impl(void* buffer, std::size_t size) PF_NOEXCEPT
+  LinearAllocator_impl(void* buffer, std::size_t size) PF_NOEXCEPT
     : m_capacity(size), m_start(static_cast<std::byte*>(buffer)), m_current(m_start) {}
 
   constexpr
-  LinearAllocatorView_impl(std::byte* buffer, std::size_t size) PF_NOEXCEPT
+  LinearAllocator_impl(std::byte* buffer, std::size_t size) PF_NOEXCEPT
     : m_capacity(size), m_start(buffer), m_current(m_start) {}
 
   [[nodiscard]] constexpr
@@ -40,7 +42,7 @@ public:
 
   void constexpr 
   clear(void) PF_NOEXCEPT { m_current = 0; }
-  
+
 protected:
   
   /*
@@ -55,7 +57,7 @@ protected:
       throw AlignmentError(alignment, minAlignment);
     }
 
-    LinearAllocatorView_impl temp = *this;
+    LinearAllocator_impl temp = *this;
 
     temp.m_current = align(m_current, alignment);
     
@@ -92,6 +94,8 @@ private:
   std::byte * m_start;
   std::byte * m_current;
 };
+
+}
 
 }
 
