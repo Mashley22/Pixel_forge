@@ -1,7 +1,8 @@
-add_library(PixelForge_mem)
+add_library(PixelForge_mem OBJECT)
 
 target_link_libraries(PixelForge_mem
   PRIVATE
+    PixelForge_logging
     PixelForge_core
 )
 
