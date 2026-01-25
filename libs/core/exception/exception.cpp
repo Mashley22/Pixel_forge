@@ -1,8 +1,6 @@
 module;
 
 #include <atomic>
-#include <string>
-#include <string_view>
 
 #include <PixelForge/core/macros.hpp>
 
@@ -17,7 +15,7 @@ namespace {
 
 void
 M_excepting(void) {
-  require(currentStatus().load() == Status::OK);
+  PF_REQUIRE(currentStatus().load() == Status::OK);
   auto expected = Status::OK;
   currentStatus().compare_exchange_strong(expected,
                                           Status::EXCEPT,

@@ -3,6 +3,8 @@ module;
 #include <cstddef>
 #include <cstring>
 
+#include <PixelForge/core/macros.hpp>
+
 module PixelForge.mem.memzero;
 
 import PixelForge.core.require;
@@ -13,16 +15,16 @@ namespace mem {
 
 void
 memzero(void* dest, std::size_t count) {
-  require(dest != nullptr);
-  require(count != 0);
+  PF_REQUIRE(dest != nullptr);
+  PF_REQUIRE(count != 0);
 
   std::memset(dest, 0, count);
 }
 
 void
 memzero_explicit(void* dest, std::size_t count) {
-  require(dest != nullptr);
-  require(count != 0);
+  PF_REQUIRE(dest != nullptr);
+  PF_REQUIRE(count != 0);
   
   volatile std::byte* p = static_cast<volatile std::byte*>(dest);
 

@@ -20,8 +20,8 @@ export namespace mem {
 constexpr std::byte*
 align(std::byte* ptr,
       std::size_t alignment) PF_NOEXCEPT {
-  require(ptr != nullptr, "nullptr is not valid here!");
-  require(math::isPowerOfTwo(alignment));
+  PF_REQUIRE_ASSUME(ptr != nullptr, "nullptr is not valid here!");
+  PF_REQUIRE(math::isPowerOfTwo(alignment));
   
   const auto addr = reinterpret_cast<std::uintptr_t>(ptr);
   
