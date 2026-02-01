@@ -17,6 +17,7 @@ target_include_directories(PixelForge_views
     ${CMAKE_CURRENT_LIST_DIR}/include
 )
 
+add_subdirectory(utils)
 add_subdirectory(ring_queue)
 
 target_cxx_modules_public(PixelForge_views
