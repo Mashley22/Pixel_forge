@@ -3,11 +3,11 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-import PixelForge.views.ringQueue;
+import PixelForge.adapters.ringQueue;
 
 #define BUF_SIZE 128
 
-namespace pf::views {
+namespace pf::adapters {
 
   TEST_CASE( "RingQueue basic" , "[views][RingQueue]" ) {
       

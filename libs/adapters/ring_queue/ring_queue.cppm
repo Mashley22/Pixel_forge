@@ -7,11 +7,11 @@ module;
 #include <ranges>
 
 #include <PixelForge/core/macros.hpp>
-#include <PixelForge/views/macros.hpp>
+#include <PixelForge/adapters/macros.hpp>
 
-export module PixelForge.views.ringQueue;
+export module PixelForge.adapters.ringQueue;
 
-import PixelForge.views.utils.traits;
+import PixelForge.adapters.utils.traits;
 
 import PixelForge.core;
 
@@ -30,7 +30,7 @@ std::is_nothrow_copy_constructible_v<typename Tp>
 #define NOEXCEPT_CONSTRUCT(...) PF_NOEXCEPT(Traits::is_nothrow_construct_v<__VA_ARGS__>)
 #endif
 
-export namespace pf::views {
+export namespace pf::adapters {
 
 template<typename T, bool T_capacityPowOf2Value = false>
 class RingQueue {
@@ -56,7 +56,7 @@ public:
     static constexpr bool is_nothrow_construct_v = std::is_nothrow_constructible_v<T, V_args...>;
   };
 
-  PF_VIEWS_INHERIT_TRAITS(Traits);
+  PF_ADAPTERS_INHERIT_TRAITS(Traits);
   
   constexpr
   RingQueue(T* pBuf, size_type capacity, size_type startIdx = 0) PF_NOEXCEPT

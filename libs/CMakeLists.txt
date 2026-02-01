@@ -1,5 +1,5 @@
 add_subdirectory(core)
-add_subdirectory(views)
+add_subdirectory(adapters)
 add_subdirectory(logging)
 add_subdirectory(mem)
 

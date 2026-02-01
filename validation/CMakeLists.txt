@@ -14,5 +14,5 @@ function(add_unit_test TEST_NAME)
 endfunction()
 
 add_subdirectory(core)
-add_subdirectory(views)
+add_subdirectory(adapters)
 add_subdirectory(mem)

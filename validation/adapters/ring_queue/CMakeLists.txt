@@ -1,4 +1,4 @@
-add_views_unit_test(test_ring_queue)
+add_adapters_unit_test(test_ring_queue)
 
 target_sources(test_ring_queue
   PRIVATE
