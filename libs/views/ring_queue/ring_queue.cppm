@@ -4,11 +4,14 @@ module;
 #include <type_traits>
 #include <utility>
 #include <optional>
+#include <ranges>
 
 #include <PixelForge/core/macros.hpp>
 #include <PixelForge/views/macros.hpp>
 
 export module PixelForge.views.ringQueue;
+
+import PixelForge.views.utils.traits;
 
 import PixelForge.core;
 
@@ -22,9 +25,9 @@ import PixelForge.core;
 #define NOEXCEPT_CONSTRUCT(...)
 #else
 std::is_nothrow_copy_constructible_v<typename Tp>
-#define NOEXCEPT_MOVE PF_NOEXCEPT(is_nothrow_move_v)
-#define NOEXCEPT_COPY PF_NOEXCEPT(is_nothrow_copy_v)
-#define NOEXCEPT_CONSTRUCT(...) PF_NOEXCEPT(is_nothrow_construct_v<__VA_ARGS__>)
+#define NOEXCEPT_MOVE PF_NOEXCEPT(Traits::is_nothrow_move_v)
+#define NOEXCEPT_COPY PF_NOEXCEPT(Traits::is_nothrow_copy_v)
+#define NOEXCEPT_CONSTRUCT(...) PF_NOEXCEPT(Traits::is_nothrow_construct_v<__VA_ARGS__>)
 #endif
 
 export namespace pf::views {
@@ -55,11 +58,16 @@ public:
 
   PF_VIEWS_INHERIT_TRAITS(Traits);
   
-  RingQueue(T* pBuf, size_type capacity) PF_NOEXCEPT
-    : m_data(pBuf), m_capMask(capacity - 1), m_front(0), m_back(0) {
-    PF_REQUIRE(pBuf != 0);
-    PF_REQUIRE(capacity > 0);
-    PF_REQUIRE(math::isPowerOfTwo(capacity));
+  constexpr
+  RingQueue(T* pBuf, size_type capacity, size_type startIdx = 0) PF_NOEXCEPT
+    : m_data(pBuf), m_capMask(capacity - 1), m_front(startIdx), m_back(startIdx) {
+    PF_REQUIRE(valid_init_());
+  }
+  
+  constexpr
+  RingQueue(std::span<T> buf, size_type startIdx = 0) PF_NOEXCEPT
+    : m_data(buf.data()), m_capMask(buf.size() - 1), m_front(startIdx), m_back(startIdx) {
+    PF_REQUIRE(valid_init_());
   }
 
   [[nodiscard]] constexpr pointer
@@ -121,8 +129,8 @@ public:
   constexpr reference
   emplace_unchecked(V_args... args) NOEXCEPT_CONSTRUCT(V_args) {
     PF_REQUIRE(!full());
-    new(&m_data[m_back]) T(std::forward<V_args>(args)...);
-    reference retVal = m_data[m_back];
+    new(&m_data[m_back & m_capMask]) T(std::forward<V_args>(args)...);
+    reference retVal = m_data[m_back & m_capMask];
     m_back++;
     return retVal;
   }
@@ -138,7 +146,7 @@ public:
   constexpr void
   push_unchecked(const T& value) NOEXCEPT_COPY {
     PF_REQUIRE(!full());
-    m_data[m_back] = value;
+    m_data[m_back & m_capMask] = value;
     m_back++;
   }
 
@@ -266,26 +274,14 @@ public:
   /**
    *@brief pops from the front
    *
-   *@anchor pop_unchecked
-   *
   */
-  constexpr void
+  constexpr T
   pop_unchecked(void) PF_NOEXCEPT {
     PF_REQUIRE(!empty());
+    T temp = std::move(front());
+    std::destroy_at(std::addressof(front())); // maybe not needed will see if compiler can optimise
     m_front++;
-  }
-
-  /**
-   *@params val the element that was popped
-   *
-   *
-   *@overload
-  */
-  constexpr void
-  pop_unchecked(T& val) NOEXCEPT_MOVE {
-    PF_REQUIRE(!empty());
-    val = std::move(front());
-    m_front++;
+    return temp;
   }
 
   /**
@@ -293,72 +289,74 @@ public:
    *
    *@returns false if failed
    *
-   *@anchor try_pop
-   *
   */
-  [[nodiscard]] constexpr bool
+  [[nodiscard]] constexpr std::optional<T>
   try_pop(void) PF_NOEXCEPT {
     if (empty()) {
-      return false;
+      return std::nullopt;
     }
     
-    pop_unchecked();
-    return true;
+    return pop_unchecked();
   }
 
   /**
    *@params val the element that was popped
    *
-   *
-   *@overload
   */
-  [[nodiscard]] constexpr bool
-  try_pop(T& val) NOEXCEPT_MOVE {
-    if (empty()) {
-      return false;
-    }
-    
-    pop_unchecked(val);
-    return true;
-  }
-
-  /**
-   *@brief pops from the front
-   *
-   *@throws EmptyError if empty
-   *
-   *@anchor pop
-   *
-  */
-  constexpr void
-  pop(void) {
-    if (empty()) {
-      throw EmptyError{};
-    }
-    
-    pop_unchecked();
-  }
-
-  /**
-   *@params val the element that was popped
-   *
-   *@overload
-  */
-  constexpr void
+  constexpr T
   pop(T& val) {
     if (empty()) {
       throw EmptyError{};
     }
     
-    pop_unchecked(val);
+    return pop_unchecked(val);
+  }
+    
+  template<typename T_Range>
+  requires CompatibleInputRange_c<RingQueue<T>, T_Range>
+  constexpr void
+  push_range_unchecked(T_Range&& range) {
+    for (const_reference val : range) {
+      emplace_unchecked(val);
+    }
+  }
+  
+  template<typename T_Range>
+  requires CompatibleInputRange_c<RingQueue<T>, T_Range>
+  constexpr void
+  push_range(T_Range&& range) {
+    if (std::ranges::size(range) > remaining()) {
+      throw FullError{};
+    }
+    push_range_unchecked(range);
   }
 
+  template<typename T_Range>
+  requires CompatibleInputRange_c<RingQueue<T>, T_Range>
+  [[nodiscard]] constexpr bool
+  try_push_range(T_Range&& range) {
+    if (std::ranges::size(range) > remaining()) {
+      return false;
+    }
+    push_range_unchecked(range);
+  }
+
+  //TODO destructor etc...
+  
 private:
   const_pointer m_data;
   size_type m_capMask; // capacity - 1
   size_type m_front; // is such that m_data[m_front] is the front() element
   size_type m_back; // is such that m_data[m_back] is the back() element
   // Both indices are incremented forever and only when accesses they are applied against the mask
+  
+  [[nodiscard]] constexpr bool
+  valid_init_(void) const PF_NOEXCEPT {
+    return m_front == m_back &&
+           m_capMask > 0 &&
+           m_data != nullptr &&
+           m_front < m_capMask; // strictly speaking not 100% always required but is probably not good if violated
+  }
 };
 
 }

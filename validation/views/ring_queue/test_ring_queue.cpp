@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <optional>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -58,9 +59,9 @@ namespace pf::views {
         REQUIRE(queue.data() == buf);
         REQUIRE(queue.remaining() == BUF_SIZE - i);
         
-        std::uint32_t popVal;
-        REQUIRE(queue.try_pop(popVal));
-        REQUIRE(popVal == BUF_SIZE * 2 - i);
+        std::optional<std::uint32_t> popVal = queue.try_pop();
+        REQUIRE(popVal.has_value());
+        REQUIRE(popVal.value() == BUF_SIZE * 2 - i);
       }
 
       REQUIRE(queue.empty());
