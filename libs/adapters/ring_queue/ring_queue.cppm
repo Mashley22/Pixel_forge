@@ -70,6 +70,39 @@ public:
     PF_REQUIRE(valid_init_());
   }
 
+  constexpr 
+  ~RingQueue(void) PF_NOEXCEPT {
+    clear();
+  }
+  
+  RingQueue(const RingQueue& other) = delete; // if interested in moving or copying the underlying contents
+  // see \ref copy_contents_to or \ref move_contents_to
+
+  RingQueue& operator=(const RingQueue& other) = delete;
+
+  constexpr
+  RingQueue(RingQueue&& other) PF_NOEXCEPT
+    : m_data(other.data), m_capMask(other.m_capMask), m_front(other.m_front), m_back(other.m_back) {
+    other.m_data = nullptr;
+    other.m_front = other.m_back = other.m_capMask = 0;
+
+    PF_REQUIRE(valid_init_() && !other.valid_init_(), "implementation error!");
+  }
+
+  constexpr RingQueue&
+  operator=(RingQueue&& other) PF_NOEXCEPT
+  {
+    m_data = other.m_data;
+    m_capMask = other.m_capMask;
+    m_front = other.m_front;
+    m_back = other.m_back;
+
+    other.m_data = nullptr;
+    other.m_front = other.m_back = other.m_capMask = 0;
+
+    PF_REQUIRE(valid_init_() && !other.valid_init_(), "implementation error!");
+  }
+
   [[nodiscard]] constexpr pointer
   data(void) PF_NOEXCEPT {
     return m_data;
@@ -340,9 +373,17 @@ public:
     }
     push_range_unchecked(range);
   }
-
-  //TODO destructor etc...
   
+  constexpr void
+  clear(void) PF_NOEXCEPT {
+    size_type num_to_destroy = size();
+    for (size_type i = 0; i < num_to_destroy; i++) { // abit safer than using the while(!empty())
+      std::destroy_at(&front());
+      m_front++;
+    }
+    PF_REQUIRE(empty(), "implementation error!");
+  }
+
 private:
   const_pointer m_data;
   size_type m_capMask; // capacity - 1
