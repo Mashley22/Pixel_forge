@@ -2,6 +2,7 @@ function(add_unit_test TEST_NAME)
   target_link_libraries(${TEST_NAME}
     PRIVATE
       Catch2::Catch2WithMain
+      PixelForge_validation_helpers
   )
 
   catch_discover_tests(${TEST_NAME})
@@ -12,6 +13,8 @@ function(add_unit_test TEST_NAME)
   )
 
 endfunction()
+
+add_subdirectory(helpers)
 
 add_subdirectory(core)
 add_subdirectory(adapters)

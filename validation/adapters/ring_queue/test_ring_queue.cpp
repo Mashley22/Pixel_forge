@@ -5,11 +5,20 @@
 
 import PixelForge.adapters.ringQueue;
 
+import PixelForge.validation_helpers;
+
 #define BUF_SIZE 128
 
 namespace pf::adapters {
 
-  TEST_CASE( "RingQueue basic" , "[views][RingQueue]" ) {
+namespace {
+
+pf_vh::LifeTimeTrackerStorage M_buf[BUF_SIZE];
+pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf);
+
+}
+
+  TEST_CASE( "RingQueue basic" , "[adapters][RingQueue]" ) {
       
     std::uint32_t buf[BUF_SIZE]{};  
     RingQueue<std::uint32_t> queue(buf, BUF_SIZE);
@@ -70,5 +79,35 @@ namespace pf::adapters {
       REQUIRE(!queue.try_pop());
     }
 
+  }
+
+  TEST_CASE( "RingQueue lifetimes", "[adapters][RingQueue]" ) {
+    
+    SECTION( "simple" ) {
+
+      {
+        RingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+        
+        queue.emplace_unchecked();
+
+        {
+          pf_vh::LifeTimeTracker::OpInfo opInfo = {.id = 0, .type = pf_vh::LifeTimeTracker::OpType::DEFAULT_CONSTRUCT};   
+          REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(M_p_buf)[0] == opInfo);
+        }
+        
+        REQUIRE(queue.try_pop().has_value());
+        {
+          pf_vh::LifeTimeTracker::OpInfo opInfo = {.id = 0, .type = pf_vh::LifeTimeTracker::OpType::DESTRUCT};   
+          REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(M_p_buf)[1] == opInfo);
+        }
+        pf_vh::LifeTimeTracker::clearOpLogs();
+      }
+      
+      // check no extra frees here
+      for (std::size_t i = 0; i < BUF_SIZE; i++) {
+        REQUIRE(!pf_vh::LifeTimeTracker::opLogs().contains(&M_p_buf[i]));
+      }
+
+    }
   }
 }
