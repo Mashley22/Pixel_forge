@@ -24,10 +24,9 @@ import PixelForge.core;
 #define NOEXCEPT_COPY
 #define NOEXCEPT_CONSTRUCT(...)
 #else
-std::is_nothrow_copy_constructible_v<typename Tp>
-#define NOEXCEPT_MOVE PF_NOEXCEPT(Traits::is_nothrow_move_v)
-#define NOEXCEPT_COPY PF_NOEXCEPT(Traits::is_nothrow_copy_v)
-#define NOEXCEPT_CONSTRUCT(...) PF_NOEXCEPT(Traits::is_nothrow_construct_v<__VA_ARGS__>)
+#define NOEXCEPT_MOVE noexcept(Traits::is_nothrow_move_v)
+#define NOEXCEPT_COPY noexcept(Traits::is_nothrow_copy_v)
+#define NOEXCEPT_CONSTRUCT(...) noexcept(Traits::template is_nothrow_construct_v<__VA_ARGS__>)
 #endif
 
 export namespace pf::adapters {
@@ -160,7 +159,7 @@ public:
 
   template<class... V_args>
   constexpr reference
-  emplace_unchecked(V_args... args) NOEXCEPT_CONSTRUCT(V_args) {
+  emplace_unchecked(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
     PF_REQUIRE(!full());
     new(&m_data[m_back & m_capMask]) T(std::forward<V_args>(args)...);
     reference retVal = m_data[m_back & m_capMask];
@@ -197,7 +196,7 @@ public:
   */
   template<class... V_args>
   [[nodiscard]] constexpr std::optional<reference>
-  try_emplace(V_args... args) NOEXCEPT_CONSTRUCT(V_args) {
+  try_emplace(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
     if (full()) {
       return std::nullopt;
     }
@@ -271,7 +270,7 @@ public:
   */
   template<class... V_args>
   constexpr reference
-  force_emplace(V_args... args) NOEXCEPT_CONSTRUCT(V_args) {
+  force_emplace(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
     if (full()) {
       m_front++;
     }

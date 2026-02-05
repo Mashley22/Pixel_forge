@@ -18,7 +18,6 @@ include(cmake/utils.cmake)
 add_subdirectory(libs)
 
 if(PIXELFORGE_TEST)
-  add_compile_definitions(PIXELFORGE_TEST)
   enable_testing()
   include(CTest)
 
@@ -27,4 +26,17 @@ if(PIXELFORGE_TEST)
   include(Catch)
 
   add_subdirectory(validation)
+endif()
+
+if(PIXELFORGE_PERF_VAL)
+  enable_testing()
+  include(CTest)
+
+  add_subdirectory(extern/catch2)
+  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/extern/catch2/extras")
+  include(Catch)
+
+  add_subdirectory(extern/benchpp)
+
+  add_subdirectory(perf_val)
 endif()

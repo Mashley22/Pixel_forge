@@ -53,7 +53,7 @@ struct RequireFailInfo {
   */
 struct RequireFail_logContinue {
   static void
-  fail(const std::string_view msg, const std::source_location loc);
+  fail(const std::string_view msg, const std::source_location loc) PF_NOEXCEPT;
 
   [[nodiscard]] static std::size_t 
   currentIdx(void) PF_NOEXCEPT;
@@ -77,7 +77,7 @@ private:
   static RequireFailInfo m_failInfo;
 };
 
-template<RequireFailHandler_c RequireFailPolicy = RequireFail_terminate>
+template<RequireFailHandler_c RequireFail_policy = RequireFail_terminate>
 void
 require(const bool expr,
         const std::string_view msg = {},

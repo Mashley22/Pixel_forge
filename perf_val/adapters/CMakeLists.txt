@@ -1,0 +1,5 @@
+add_executable(ring_queue_destructive_move
+  ring_queue_destructive_move.cpp
+)
+
+add_perf_val(ring_queue_destructive_move)
