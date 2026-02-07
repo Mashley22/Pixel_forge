@@ -29,6 +29,12 @@ public:
   static void
   clearOpLogs(void) { s_opLogs.clear(); }
 
+  struct DeferClear {
+    ~DeferClear(void) noexcept {
+      s_opLogs.clear();
+    }
+  };
+
   LifeTimeTracker() : m_id(s_counter++) {
     log_(OpType::DEFAULT_CONSTRUCT);
   }

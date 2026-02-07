@@ -195,12 +195,12 @@ public:
    *@brief returns false if full, see \ref emplace_unchecked
   */
   template<class... V_args>
-  [[nodiscard]] constexpr std::optional<reference>
+  [[nodiscard]] constexpr std::optional<pointer>
   try_emplace(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
     if (full()) {
       return std::nullopt;
     }
-    return emplace_unchecked(args...);
+    return &emplace_unchecked(args...);
   }
 
   /**
