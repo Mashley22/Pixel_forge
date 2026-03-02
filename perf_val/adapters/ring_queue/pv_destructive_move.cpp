@@ -8,12 +8,12 @@ import PixelForge.adapters.ringQueue;
 
 #include <catch2/catch_all.hpp>
 
+#include <PixelForge/core/macros.hpp>
+
 #define BUF_SIZE 1000
 #define RUN_NUM 10000
 #define RUN_SIZE 10000
 #define TOLERANCE 1.05
-
-#define ATTRIB_CACHE_LINE_ALIGN __attribute__((aligned(std::hardware_destructive_interference_size), noinline))
 
 namespace pf::adapters {
 
@@ -65,7 +65,7 @@ public:
 benchpp::Timer noOpTimer;
 benchpp::Timer noOpAfterMoveTimer;
 
-ATTRIB_CACHE_LINE_ALIGN
+PF_ATTRIB_NOINLINE_CACHE_LINE_ALIGN
 void foo(RingQueue<NoOpDestructor>& noOp) {
   noOpTimer.start();
   for (std::size_t j = 0; j < RUN_SIZE; j++) {
@@ -77,7 +77,7 @@ void foo(RingQueue<NoOpDestructor>& noOp) {
   noOpTimer.recordAndReset();
 }
 
-ATTRIB_CACHE_LINE_ALIGN
+PF_ATTRIB_NOINLINE_CACHE_LINE_ALIGN
 void foo2(RingQueue<NoOpAfterMoveDestructor>& noOpAfterMove) {
   noOpAfterMoveTimer.start();
   for (std::size_t j = 0; j < RUN_SIZE; j++) {
