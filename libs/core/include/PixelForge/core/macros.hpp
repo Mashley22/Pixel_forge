@@ -11,6 +11,18 @@
 
 #define PF_CACHE_LINE_ALIGN alignas(std::hardware_destructive_interference_size)
 
+#ifdef _MSVC_VER
+  #define PF_ATTRIB_CACHE_LINE_ALIGN __declspec(align(std::hardware_destructive_interefence_size))
+  #define PF_ATTRIB_NOINLINE __declspec((noinline))
+  #define PF_ATTRIB_NOINLINE_CACHE_LINE_ALIGN __declspec(align(std::hardward_destructive_intereference_size)) __declspec((noinline))
+#elif defined(__GNUC__) || defined(__clang__)
+  #define PF_ATTRIB_CACHE_LINE_ALIGN __attribute__((aligned(std::hardware_destructive_interference_size)))
+  #define PF_ATTRIB_NOINLINE __attribute__((noinline))
+  #define PF_ATTRIB_NOINLINE_CACHE_LINE_ALIGN __attribute__((noinline, aligned(std::hardware_destructive_interference_size)))
+#else
+  #error "unsupported compiler"
+#endif
+
 #define PF_REQUIRE(...) \
   PF_REQUIRE_IMPL(__VA_ARGS__, \
     PF_REQUIRE_IMPL_EXPR_MSG_FAIL_HANDLER, \
