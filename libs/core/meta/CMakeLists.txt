@@ -4,4 +4,5 @@ target_cxx_modules_public(PixelForge_core
   modules/str_to_int.cppm
   modules/int_to_str.cppm
   modules/meta.cppm
+  modules/err_policy.cppm
 )
