@@ -6,6 +6,8 @@ module;
 
 export module PixelForge.core.meta.errPolicy;
 
+import PixelForge.core.require;
+
 export namespace pf {
 
 /**
@@ -52,6 +54,7 @@ struct ErrPolicy_nothing {
   template<class... V_args>
   static constexpr return_type
   fail(V_args... args) PF_NOEXCEPT {
+    PF_REQUIRE(false);
     ((void)args, ...);
     return return_type{};
   }
@@ -110,6 +113,38 @@ struct ErrPolicy_optional<void> {
   fail(V_args... args) PF_NOEXCEPT {
     ((void)args, ...);
     return false;
+  }
+};
+
+template<typename T_result_type, class T_exception>
+struct ErrPolicy_throws {
+  static constexpr bool is_noexcept = false;
+  using return_type = T_result_type;
+  
+  [[nodiscard]] static constexpr return_type
+  success(T_result_type& successfulResult) PF_NOEXCEPT {
+    return successfulResult;
+  }
+  
+  template<class... V_args>
+  [[noreturn]] static constexpr return_type
+  fail(V_args... args) {
+    throw T_exception{std::forward<V_args>(args)...};
+  }
+};
+
+template<class T_exception>
+struct ErrPolicy_throws<void, T_exception> {
+  static constexpr bool is_noexcept = false;
+  using return_type = void;
+  
+  static constexpr return_type
+  success() PF_NOEXCEPT {}
+  
+  template<class... V_args>
+  static constexpr return_type
+  fail(V_args... args) {
+    throw T_exception{std::forward<V_args>(args)...};
   }
 };
 

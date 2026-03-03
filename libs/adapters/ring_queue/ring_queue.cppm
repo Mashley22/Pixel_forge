@@ -19,15 +19,9 @@ import PixelForge.core;
 [[assume(m_data != nullptr)]]; \
 [[assume(m_capMask > 0)]]; 
 
-#ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
-#define NOEXCEPT_MOVE 
-#define NOEXCEPT_COPY
-#define NOEXCEPT_CONSTRUCT(...)
-#else
-#define NOEXCEPT_MOVE noexcept(Traits::is_nothrow_move_v)
-#define NOEXCEPT_COPY noexcept(Traits::is_nothrow_copy_v)
-#define NOEXCEPT_CONSTRUCT(...) noexcept(Traits::template is_nothrow_construct_v<__VA_ARGS__>)
-#endif
+#define NOEXCEPT_MOVE PF_NOEXCEPT_COND(Traits::is_nothrow_move_v)
+#define NOEXCEPT_COPY PF_NOEXCEPT_COND(Traits::is_nothrow_copy_v)
+#define NOEXCEPT_CONSTRUCT(...) PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<__VA_ARGS__>)
 
 export namespace pf::adapters {
 
@@ -157,14 +151,25 @@ public:
     return m_data[(m_back - 1) & m_capMask];
   }
 
+  /**
+   *@brief by default throws \ref Error::Full if full, see \ref emplace_unchecked
+  */
+  template<class... V_args, class T_ErrPolicy = ErrPolicy_throws<pointer, FullError>>
+  requires ErrPolicy<T_ErrPolicy, pointer> &&
+  requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
+  constexpr T_ErrPolicy::return_type
+  emplace(V_args... args) PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...> || T_ErrPolicy::is_noexcept) {
+    if (full()) {
+      return T_ErrPolicy::fail();
+    }
+
+    return T_ErrPolicy::success(emplace_impl_<V_args...>(args...));
+  }
+  
   template<class... V_args>
-  constexpr reference
+  pointer
   emplace_unchecked(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
-    PF_REQUIRE(!full());
-    new(&m_data[m_back & m_capMask]) T(std::forward<V_args>(args)...);
-    reference retVal = m_data[m_back & m_capMask];
-    m_back++;
-    return retVal;
+    return emplace_impl_<V_args...>(args...);
   }
 
   /**
@@ -177,9 +182,7 @@ public:
   */
   constexpr void
   push_unchecked(const T& value) NOEXCEPT_COPY {
-    PF_REQUIRE(!full());
-    m_data[m_back & m_capMask] = value;
-    m_back++;
+    push<ErrPolicy_nothing<void>>(value);
   }
 
   /**
@@ -188,7 +191,7 @@ public:
   */
   constexpr void
   push_unchecked(T&& value) NOEXCEPT_MOVE {
-    emplace(value);
+    push<ErrPolicy_nothing<void>>(value);
   }
 
   /**
@@ -200,7 +203,7 @@ public:
     if (full()) {
       return std::nullopt;
     }
-    return &emplace_unchecked(args...);
+    return emplace_impl_<V_args...>(args...);
   }
 
   /**
@@ -209,12 +212,8 @@ public:
    *@anchor try_push
   */
   [[nodiscard]] constexpr bool
-  try_push(const T& val) NOEXCEPT_MOVE {
-    if (full()) {
-      return false;
-    }
-    push_unchecked(val);
-    return true;
+  try_push(const T& val) NOEXCEPT_COPY {
+    return push<ErrPolicy_optional<void>>(val);
   }
   
   /**
@@ -222,47 +221,42 @@ public:
   */
   [[nodiscard]] constexpr bool
   try_push(T&& val) NOEXCEPT_MOVE {
-    if (full()) {
-      return false;
-    }
-    push_unchecked(val);
-    return true;
+    return push<ErrPolicy_optional<void>>(val);
   }
 
   /**
-   *@brief throws \ref Error::Full if full, see \ref emplace_unchecked
-  */
-  template<class... V_args>
-  constexpr reference
-  emplace(V_args... args) {
-    if (full()) {
-      throw FullError{};
-    }
-    return emplace_unchecked(args...);
-  }
-
-  /**
-   *@brief throws \ref FullError if full, see \ref push_unchecked
+   *@brief by default throws \ref FullError if full, see \ref push_unchecked
    *
    *@anchor push
   */
-  constexpr void
-  push(const T& val) {
+  template<class T_ErrPolicy = ErrPolicy_throws<void, FullError>>
+  requires VoidErrPolicy<T_ErrPolicy> &&
+  requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
+  constexpr T_ErrPolicy::return_type
+  push(const T& value) PF_NOEXCEPT_COND(Traits::is_nothrow_copy_v || T_ErrPolicy::is_noexcept) {
     if (full()) {
-      throw Error::Full;
+      return T_ErrPolicy::fail();
     }
-    push_unchecked(val);
+
+    m_data[m_back & m_capMask] = value;
+    m_back++;
+
+    return T_ErrPolicy::success();
   }
   
   /**
    *@overload
   */
-  constexpr void
-  push(T&& val) {
+  template<class T_ErrPolicy = ErrPolicy_nothing<void>>
+  requires ErrPolicy<T_ErrPolicy, void> &&
+  requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
+  constexpr T_ErrPolicy::return_type
+  push(T&& val) PF_NOEXCEPT_COND(Traits::is_nothrow_move_v || T_ErrPolicy::is_noexcept) {
     if (full()) {
-      throw Error::Full;
+      return T_ErrPolicy::fail();
     }
-    push_unchecked(val);
+
+    emplace_unchecked(val);
   }
 
   /**
@@ -309,11 +303,7 @@ public:
   */
   constexpr T
   pop_unchecked(void) PF_NOEXCEPT {
-    PF_REQUIRE(!empty());
-    T temp = std::move(front());
-    std::destroy_at(std::addressof(front())); // maybe not needed will see if compiler can optimise
-    m_front++;
-    return temp;
+    return pop<ErrPolicy_nothing<T>>();
   }
 
   /**
@@ -324,53 +314,57 @@ public:
   */
   [[nodiscard]] constexpr std::optional<T>
   try_pop(void) PF_NOEXCEPT {
-    if (empty()) {
-      return std::nullopt;
-    }
-    
-    return pop_unchecked();
+    return pop<ErrPolicy_optional<T>>();
   }
 
   /**
    *@params val the element that was popped
    *
   */
-  constexpr T
-  pop(T& val) {
+  template<class T_ErrPolicy = ErrPolicy_throws<T, EmptyError>>
+  requires ErrPolicy<T_ErrPolicy, T> &&
+  requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
+  constexpr T_ErrPolicy::return_type
+  pop(void) PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
     if (empty()) {
-      throw EmptyError{};
+      return T_ErrPolicy::fail();
     }
     
-    return pop_unchecked(val);
+    PF_REQUIRE(!empty());
+    T temp = std::move(front());
+    std::destroy_at(std::addressof(front()));  
+    m_front++;
+
+    return T_ErrPolicy::success(temp);
   }
     
   template<typename T_Range>
   requires CompatibleInputRange_c<RingQueue<T>, T_Range>
   constexpr void
   push_range_unchecked(T_Range&& range) {
+    push_range<T_Range, ErrPolicy_nothing<void>>(range);
+  }
+  
+  template<typename T_Range, class T_ErrPolicy = ErrPolicy_throws<void, FullError>>
+  requires CompatibleInputRange_c<RingQueue<T>, T_Range> &&
+  requires { VoidErrPolicy<T_ErrPolicy>; } &&
+  requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
+  constexpr T_ErrPolicy::return_type
+  push_range(T_Range&& range) {
+    if (std::ranges::size(range) > remaining()) {
+      return T_ErrPolicy::fail();
+    }
     for (const_reference val : range) {
       emplace_unchecked(val);
     }
-  }
-  
-  template<typename T_Range>
-  requires CompatibleInputRange_c<RingQueue<T>, T_Range>
-  constexpr void
-  push_range(T_Range&& range) {
-    if (std::ranges::size(range) > remaining()) {
-      throw FullError{};
-    }
-    push_range_unchecked(range);
+    return T_ErrPolicy::success();
   }
 
   template<typename T_Range>
   requires CompatibleInputRange_c<RingQueue<T>, T_Range>
   [[nodiscard]] constexpr bool
   try_push_range(T_Range&& range) {
-    if (std::ranges::size(range) > remaining()) {
-      return false;
-    }
-    push_range_unchecked(range);
+    return push_range<T_Range, ErrPolicy_optional<void>>(range);
   }
   
   constexpr void
@@ -397,6 +391,19 @@ private:
            m_data != nullptr &&
            m_front < m_capMask; // strictly speaking not 100% always required but is probably not good if violated
   }
+
+  template<class... V_args>
+  pointer
+  emplace_impl_(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
+    PF_REQUIRE(!full());
+
+    new(&m_data[m_back & m_capMask]) T(std::forward<V_args>(args)...);
+    pointer retVal = &m_data[m_back & m_capMask];
+    m_back++;
+
+    return retVal;
+  }
+
 };
 
 }
