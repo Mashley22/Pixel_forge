@@ -4,8 +4,11 @@
 #include <new>
 
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
-  #define PF_NOEXCEPT 
+  #define PF_NOEXCEPT
+  #define PF_NOEXCEPT_COND(...)
 #else
+  #define PF_NOEXCEPT_COND(...) \
+      noexcept(__VA_ARGS__)
   #define PF_NOEXCEPT noexcept
 #endif
 
