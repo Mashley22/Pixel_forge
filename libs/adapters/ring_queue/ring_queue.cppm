@@ -155,7 +155,7 @@ public:
    *@brief by default throws \ref Error::Full if full, see \ref emplace_unchecked
   */
   template<class... V_args, class T_ErrPolicy = ErrPolicy_throws<pointer, FullError>>
-  requires ErrPolicy<T_ErrPolicy, pointer> &&
+  requires ErrPolicy_c<T_ErrPolicy, pointer> &&
   requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
   constexpr T_ErrPolicy::return_type
   emplace(V_args... args) PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...> || T_ErrPolicy::is_noexcept) {
@@ -191,7 +191,7 @@ public:
   */
   constexpr void
   push_unchecked(T&& value) NOEXCEPT_MOVE {
-    push<ErrPolicy_nothing<void>>(value);
+    push<ErrPolicy_nothing<void>>(std::forward<T>(value));
   }
 
   /**
@@ -221,7 +221,7 @@ public:
   */
   [[nodiscard]] constexpr bool
   try_push(T&& val) NOEXCEPT_MOVE {
-    return push<ErrPolicy_optional<void>>(val);
+    return push<ErrPolicy_optional<void>>(std::forward<T>(val));
   }
 
   /**
@@ -230,7 +230,7 @@ public:
    *@anchor push
   */
   template<class T_ErrPolicy = ErrPolicy_throws<void, FullError>>
-  requires VoidErrPolicy<T_ErrPolicy> &&
+  requires VoidErrPolicy_c<T_ErrPolicy> &&
   requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
   constexpr T_ErrPolicy::return_type
   push(const T& value) PF_NOEXCEPT_COND(Traits::is_nothrow_copy_v || T_ErrPolicy::is_noexcept) {
@@ -248,7 +248,7 @@ public:
    *@overload
   */
   template<class T_ErrPolicy = ErrPolicy_nothing<void>>
-  requires ErrPolicy<T_ErrPolicy, void> &&
+  requires ErrPolicy_c<T_ErrPolicy, void> &&
   requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
   constexpr T_ErrPolicy::return_type
   push(T&& val) PF_NOEXCEPT_COND(Traits::is_nothrow_move_v || T_ErrPolicy::is_noexcept) {
@@ -256,7 +256,7 @@ public:
       return T_ErrPolicy::fail();
     }
 
-    emplace_unchecked(val);
+    emplace_unchecked(std::forward<T>(val));
   }
 
   /**
@@ -292,7 +292,7 @@ public:
     if (full()) {
       m_front++;
     }
-    push_unchecked(val);
+    push_unchecked(std::forward<T>(val));
   }
   
   // The choice of this api is simply to always offer a noexcept way of popping the queue
@@ -322,7 +322,7 @@ public:
    *
   */
   template<class T_ErrPolicy = ErrPolicy_throws<T, EmptyError>>
-  requires ErrPolicy<T_ErrPolicy, T> &&
+  requires ErrPolicy_c<T_ErrPolicy, T> &&
   requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
   constexpr T_ErrPolicy::return_type
   pop(void) PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
@@ -335,7 +335,7 @@ public:
     std::destroy_at(std::addressof(front()));  
     m_front++;
 
-    return T_ErrPolicy::success(temp);
+    return T_ErrPolicy::success(std::move(temp));
   }
     
   template<typename T_Range>
@@ -347,7 +347,7 @@ public:
   
   template<typename T_Range, class T_ErrPolicy = ErrPolicy_throws<void, FullError>>
   requires CompatibleInputRange_c<RingQueue<T>, T_Range> &&
-  requires { VoidErrPolicy<T_ErrPolicy>; } &&
+  requires { VoidErrPolicy_c<T_ErrPolicy>; } &&
   requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
   constexpr T_ErrPolicy::return_type
   push_range(T_Range&& range) {

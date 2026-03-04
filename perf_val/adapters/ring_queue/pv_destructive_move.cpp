@@ -36,15 +36,6 @@ public:
     return *this;
   }
 
-  NoOpDestructor(const NoOpDestructor& other)
-    : x(other.x) {}
-
-  NoOpDestructor& operator=(const NoOpDestructor& other)
-  {
-    x = other.x;
-    return *this;
-  }
-
   ~NoOpDestructor() = default;
 };
 
@@ -53,15 +44,6 @@ public:
   void* x = nullptr;
 
   NoOpAfterMoveDestructor() = default;
-
-  NoOpAfterMoveDestructor(const NoOpAfterMoveDestructor& other)
-    : x(other.x) {}
-
-  NoOpAfterMoveDestructor& operator=(const NoOpAfterMoveDestructor& other)
-  {
-    x = other.x;
-    return *this;
-  }
 
   NoOpAfterMoveDestructor(NoOpAfterMoveDestructor&& other) : x(nullptr) {
     other.x = nullptr;
