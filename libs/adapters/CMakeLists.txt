@@ -19,6 +19,7 @@ target_include_directories(PixelForge_adapters
 
 add_subdirectory(utils)
 add_subdirectory(ring_queue)
+add_subdirectory(stack)
 
 target_cxx_modules_public(PixelForge_adapters
   adapters.cppm
