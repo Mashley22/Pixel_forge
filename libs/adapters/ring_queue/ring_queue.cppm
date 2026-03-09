@@ -155,7 +155,13 @@ public:
   /**
    *@brief by default throws \ref Error::Full if full, see \ref emplace_unchecked
   */
-  template<class... V_args, class T_ErrPolicy = ErrPolicy_throws<pointer, FullError>>
+  template<class... V_args>
+  constexpr pointer
+  emplace(V_args... args) {
+    return emplace<ErrPolicy_throws<pointer, FullError>>(args...);
+  }
+
+  template<class T_ErrPolicy, class... V_args>
   requires ErrPolicy_c<T_ErrPolicy, pointer> &&
   requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
   constexpr T_ErrPolicy::return_type
@@ -164,13 +170,19 @@ public:
       return T_ErrPolicy::fail();
     }
 
-    return T_ErrPolicy::success(emplace_impl_<V_args...>(args...));
+    PF_REQUIRE(!full());
+
+    new(&m_data[m_back & m_capMask]) T(std::forward<V_args>(args)...);
+    pointer retVal = &m_data[m_back & m_capMask];
+    m_back++;
+
+    return T_ErrPolicy::success(retVal);
   }
   
   template<class... V_args>
   pointer
   emplace_unchecked(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
-    return emplace_impl_<V_args...>(args...);
+    return emplace<ErrPolicy_nothing<pointer>, V_args...>(args...);
   }
 
   /**
@@ -201,10 +213,7 @@ public:
   template<class... V_args>
   [[nodiscard]] constexpr std::optional<pointer>
   try_emplace(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
-    if (full()) {
-      return std::nullopt;
-    }
-    return emplace_impl_<V_args...>(args...);
+    return emplace<ErrPolicy_optional<pointer>, V_args...>(args...);
   }
 
   /**
@@ -326,7 +335,7 @@ public:
   requires ErrPolicy_c<T_ErrPolicy, T> &&
   requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
   constexpr T_ErrPolicy::return_type
-  pop(void) PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
+  pop(void) PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept || Traits::is_nothrow_move_v) {
     if (empty()) {
       return T_ErrPolicy::fail();
     }
@@ -392,18 +401,6 @@ private:
            m_data != nullptr &&
            (reinterpret_cast<std::uintptr_t>(m_data) % alignof(T)) == 0 &&
            m_front < m_capMask; // strictly speaking not 100% always required but is probably not good if violated
-  }
-
-  template<class... V_args>
-  pointer
-  emplace_impl_(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
-    PF_REQUIRE(!full());
-
-    new(&m_data[m_back & m_capMask]) T(std::forward<V_args>(args)...);
-    pointer retVal = &m_data[m_back & m_capMask];
-    m_back++;
-
-    return retVal;
   }
 
 };
