@@ -50,13 +50,13 @@ public:
 
   constexpr
   Stack(T* pBuf, size_type capacity) PF_NOEXCEPT 
-    : m_data(pBuf), m_top(pBuf), m_end(reinterpret_cast<T*>(data_() + capacity)) {
+    : m_data(pBuf), m_top(pBuf), m_end(pBuf + capacity) {
     PF_REQUIRE(valid_init_());
   }
   
   constexpr
   Stack(std::span<T> buf) PF_NOEXCEPT 
-    : m_data(buf.data()), m_top(buf.data()), m_end(reinterpret_cast<T*>(data_() + buf.size())) {
+    : m_data(buf.data()), m_top(buf.data()), m_end(buf.data() + buf.size()) {
     PF_REQUIRE(valid_init_());
   }
 
@@ -65,34 +65,27 @@ public:
     return m_data;
   }
 
-  [[nodiscard]] constexpr T* 
-  data(void) PF_NOEXCEPT {
-    return m_data;
-  }
-
   [[nodiscard]] constexpr const T*
   end(void) const PF_NOEXCEPT {
     return m_end;
   }
 
-  [[nodiscard]] constexpr T*
-  end(void) PF_NOEXCEPT {
-    return m_end;
-  }
-
   [[nodiscard]] constexpr size_type
   size(void) const PF_NOEXCEPT {
-    return top_() - data_();
+    [[assume(m_top >= m_data)]];
+    return static_cast<size_type>(m_top - m_data);
   }
 
   [[nodiscard]] constexpr size_type
   capacity(void) const PF_NOEXCEPT {
-    return end_() - data_();
+    [[assume(m_end > m_data)]];
+    return static_cast<size_type>(m_end - m_data);
   }
 
   [[nodiscard]] constexpr size_type
   remaining(void) const PF_NOEXCEPT {
-    return end_() - top_();
+    [[assume(m_end >= m_top)]];
+    return static_cast<size_type>(m_end - m_top);
   }
 
   [[nodiscard]] constexpr bool
@@ -119,25 +112,65 @@ public:
     return T_ErrPolicy::success();
   }
 
+  constexpr ErrPolicy_optional<void>::return_type
+  try_push(const T& value) NOEXCEPT_MOVE {
+    return push<ErrPolicy_optional<void>>(value);
+  }
+
+  constexpr ErrPolicy_nothing<void>::return_type
+  push_unchecked(const T& value) NOEXCEPT_MOVE {
+    return push<ErrPolicy_nothing<void>>(value);
+  }
+
   template<class T_ErrPolicy = ErrPolicy_throws<void, FullError>>
   requires VoidErrPolicy_c<T_ErrPolicy> &&
   requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
   constexpr T_ErrPolicy::return_type
-  pop(void) PF_NOEXCEPT_COND(Traits::is_nothrow_copy_v || T_ErrPolicy::is_noexcept) {
+  push(T&& value) PF_NOEXCEPT_COND(Traits::is_nothrow_move_v || T_ErrPolicy::is_noexcept) {
+    if(full()) {
+      return T_ErrPolicy::fail();
+    }
+
+    emplace_unchecked(std::forward<T>(value));
+    return T_ErrPolicy::success();
+  }
+
+  constexpr ErrPolicy_nothing<void>::return_type
+  push_unchecked(T&& value) PF_NOEXCEPT_COND(Traits::is_nothrow_move_v) {
+    push<ErrPolicy_nothing<void>>(std::forward<T>(value));
+  }
+
+  constexpr ErrPolicy_optional<void>::return_type
+  try_push(T&& value) PF_NOEXCEPT_COND(Traits::is_nothrow_move_v) {
+    return push<ErrPolicy_optional<void>>(std::forward<T>(value));
+  }
+
+  template<class T_ErrPolicy = ErrPolicy_throws<T, FullError>>
+  requires ErrPolicy_c<T_ErrPolicy, T> &&
+  requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
+  constexpr T_ErrPolicy::return_type
+  pop(void) PF_NOEXCEPT_COND(Traits::is_nothrow_move_v || T_ErrPolicy::is_noexcept) {
     if (empty()) {
       return T_ErrPolicy::fail();
     }
     m_top--;
-    T temp = std::move(m_top);
+    T temp = std::move(*m_top);
     std::destroy_at(std::addressof(m_top));  
 
     return T_ErrPolicy::success(std::move(temp));
   }
 
-  /**
-   *@brief by default throws \ref Error::Full if full, see \ref emplace_unchecked
-  */
-  template<class... V_args, class T_ErrPolicy = ErrPolicy_throws<pointer, FullError>>
+  constexpr ErrPolicy_optional<T>::return_type
+  try_pop(void) NOEXCEPT_MOVE {
+    return pop<ErrPolicy_optional<T>>();
+  }
+
+  constexpr ErrPolicy_nothing<T>::return_type
+  pop_unchecked(void) NOEXCEPT_MOVE {
+    return pop<ErrPolicy_nothing<T>>();
+  }
+
+  template<class T_ErrPolicy, class... V_args>
   requires ErrPolicy_c<T_ErrPolicy, pointer> &&
   requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
   constexpr T_ErrPolicy::return_type
@@ -149,30 +182,33 @@ public:
     return T_ErrPolicy::success(emplace_impl_<V_args...>(args...));
   }
 
+  template<class... V_args>
+  constexpr ErrPolicy_throws<pointer, FullError>::return_type
+  emplace(V_args... args) {
+    return emplace<ErrPolicy_throws<pointer, FullError>>(args...);
+  }
+
+  template<class... V_args>
+  constexpr ErrPolicy_optional<pointer>::return_type
+  try_emplace(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
+    return emplace<ErrPolicy_optional<pointer>>(args...);
+  }
+
+  template<class... V_args>
+  constexpr ErrPolicy_nothing<pointer>::return_type
+  emplace_unchecked(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
+    return emplace<ErrPolicy_nothing<pointer>>(args...);
+  }
+
 private:
   T* m_data{nullptr};
   T* m_top{nullptr};
   T* m_end{nullptr};
 
-  [[nodiscard]] constexpr std::uintptr_t
-  top_(void) const PF_NOEXCEPT {
-    return reinterpret_cast<std::uintptr_t>(m_top);
-  }
-
-  [[nodiscard]] constexpr std::uintptr_t
-  end_(void) const PF_NOEXCEPT {
-    return reinterpret_cast<std::uintptr_t>(m_end);
-  }
-
-  [[nodiscard]] constexpr std::uintptr_t
-  data_(void) const PF_NOEXCEPT {
-    return reinterpret_cast<std::uintptr_t>(m_data);
-  }
-
   [[nodiscard]] constexpr bool
   valid_init_(void) const PF_NOEXCEPT {
     return m_data != nullptr &&
-           (data_() % alignof(T)) == 0;
+           (reinterpret_cast<std::uintptr_t>(m_data) % alignof(T)) == 0;
   }
 
   template<class... V_args>

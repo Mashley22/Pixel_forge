@@ -20,3 +20,4 @@ function(add_adapters_unit_test TEST_NAME)
 endfunction()
 
 add_subdirectory(ring_queue)
+add_subdirectory(stack)
