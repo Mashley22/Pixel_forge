@@ -155,7 +155,7 @@ public:
     }
     m_top--;
     T temp = std::move(*m_top);
-    std::destroy_at(std::addressof(m_top));  
+    std::destroy_at(m_top);  
 
     return T_ErrPolicy::success(std::move(temp));
   }
@@ -178,8 +178,11 @@ public:
     if (full()) {
       return T_ErrPolicy::fail();
     }
+    new(m_top) T(std::forward<V_args>(args)...);
+    pointer retVal = m_top;
+    m_top++;
 
-    return T_ErrPolicy::success(emplace_impl_<V_args...>(args...));
+    return T_ErrPolicy::success(retVal);
   }
 
   template<class... V_args>
@@ -209,18 +212,6 @@ private:
   valid_init_(void) const PF_NOEXCEPT {
     return m_data != nullptr &&
            (reinterpret_cast<std::uintptr_t>(m_data) % alignof(T)) == 0;
-  }
-
-  template<class... V_args>
-  pointer
-  emplace_impl_(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
-    PF_REQUIRE(!full());
-
-    new(m_top) T(std::forward<V_args>(args)...);
-    pointer retVal = m_top;
-    m_top++;
-
-    return retVal;
   }
 };
 
