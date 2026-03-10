@@ -23,21 +23,31 @@ concept RequireFailHandler_c = requires(const std::string_view msg, const std::s
 };
 
 struct RequireFail_doNothing {
-  static void
-  fail(const std::string_view msg, const std::source_location loc);
+  constexpr static void
+  fail(const std::string_view msg, const std::source_location loc) PF_NOEXCEPT {
+    (void)msg;
+    (void)loc;
+  }
 };
 
 struct RequireFail_terminate {
-  [[noreturn]] static void
-  fail(const std::string_view msg, const std::source_location loc);
+  [[noreturn]] constexpr static void
+  fail(const std::string_view msg, const std::source_location loc) PF_NOEXCEPT {
+    (void)msg;
+    (void)loc;
+    std::terminate();
+  }
 };
 
 /**
  *@note BE CAREFUL, if using this make sure to PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
  */
 struct RequireFail_throw {
-  [[noreturn]] static void
-  fail(const std::string_view msg, const std::source_location loc);
+  [[noreturn]] constexpr static void
+  fail(const std::string_view msg, const std::source_location loc) {
+    throw RequireFail{.msg = msg,
+                      .loc = loc};
+  }
 };
 
 struct RequireFailInfo {
@@ -78,7 +88,7 @@ private:
 };
 
 template<RequireFailHandler_c RequireFail_policy = RequireFail_terminate>
-void
+constexpr void
 require(const bool expr,
         const std::string_view msg = {},
         const std::source_location location = std::source_location::current()) {

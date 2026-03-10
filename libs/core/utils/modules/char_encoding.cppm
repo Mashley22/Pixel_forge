@@ -13,11 +13,14 @@ namespace pf {
 export
 class InvalidCharToHexError : public Exception {
 public:
-  InvalidCharToHexError(char chr) PF_NOEXCEPT;
+  constexpr InvalidCharToHexError(char chr) PF_NOEXCEPT
+    : m_chr(chr) {}
 
-  [[nodiscard]]
-  char
-  inputChar(void) const PF_NOEXCEPT;
+  [[nodiscard]] constexpr char
+  inputChar(void) const PF_NOEXCEPT {
+    return m_chr;
+  }
+
 private:
   const char m_chr;
 };
@@ -25,11 +28,13 @@ private:
 export 
 class InvalidHexToCharError : public Exception {
 public:
-  InvalidHexToCharError(int val) PF_NOEXCEPT;
+  constexpr InvalidHexToCharError(int val) PF_NOEXCEPT
+    : m_val(val) {}
 
-  [[nodiscard]]
-  int
-  inputVal(void) const PF_NOEXCEPT;
+  [[nodiscard]] constexpr int
+  inputVal(void) const PF_NOEXCEPT {
+    return m_val;
+  }
 
 private:
   const int m_val;
@@ -46,9 +51,7 @@ template<
   std::size_t T_base = 10,
   const std::string_view& T_digitSet = digitSetUpper
 >
-[[nodiscard]]
-constexpr
-int
+[[nodiscard]] constexpr int
 charToInt(char chr) {
   static_assert(T_base <= T_digitSet.size());
   std::size_t pos = T_digitSet.find(chr);
@@ -65,9 +68,7 @@ template<
   std::size_t T_base = 10,
   const std::string_view& T_digitSet = digitSetUpper
 >
-[[nodiscard]]
-constexpr 
-char
+[[nodiscard]] constexpr char
 intToChar(int value) {
   if (value < 0 || value >= T_base) {
     throw InvalidHexToCharError(value);

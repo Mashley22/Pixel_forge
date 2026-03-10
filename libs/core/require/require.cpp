@@ -20,28 +20,6 @@ RequireFail_logContinue::m_failInfos{};
 std::atomic<std::size_t>
 RequireFail_logContinue::m_currentIdx = 0;
 
-void 
-RequireFail_terminate::fail(const std::string_view msg,
-                            const std::source_location loc) {
-  (void)msg;
-  (void)loc;
-  std::terminate();
-}
-
-void
-RequireFail_doNothing::fail(const std::string_view msg,
-                            const std::source_location loc) {
-  (void)msg;
-  (void)loc;
-}
-
-void
-RequireFail_throw::fail(const std::string_view msg,
-                        const std::source_location loc) {
-  throw RequireFail{.msg = msg,
-                    .loc = loc};
-}
-
 void
 RequireFail_logTerminate::fail(const std::string_view msg,
                                const std::source_location loc) {
