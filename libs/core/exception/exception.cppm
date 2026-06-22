@@ -11,7 +11,7 @@ import PixelForge.core.status;
 
 namespace pf {
 
-namespace {
+namespace priv {
 
 constexpr void
 M_excepting(void) {
@@ -33,7 +33,7 @@ public:
 }
 
 export
-class Exception : private M_ExceptionImpl {
+class Exception : private priv::M_ExceptionImpl {
 public:
   constexpr Exception(void) PF_NOEXCEPT;
 };
