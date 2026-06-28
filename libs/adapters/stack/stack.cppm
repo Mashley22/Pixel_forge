@@ -107,7 +107,7 @@ public:
       return T_ErrPolicy::fail();
     }
 
-    *m_top= value;
+    new (m_top) T(value);
     m_top++;
     return T_ErrPolicy::success();
   }

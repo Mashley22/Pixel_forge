@@ -13,6 +13,10 @@ public:
   enum class OpType {
     DEFAULT_CONSTRUCT,
     CONSTRUCT,
+    COPY_CONSTRUCT,
+    COPY_ASSIGN,
+    MOVE_CONSTRUCT,
+    MOVE_ASSIGN,
     DESTRUCT
   };
 
@@ -43,6 +47,26 @@ public:
     log_(OpType::CONSTRUCT);
   } 
 
+  LifeTimeTracker(LifeTimeTracker&&) : m_id(s_counter++) {
+    log_(OpType::MOVE_CONSTRUCT);
+  }
+
+  LifeTimeTracker(LifeTimeTracker&) : m_id(s_counter++) {
+    log_(OpType::COPY_CONSTRUCT);
+  }
+
+  LifeTimeTracker& operator=(LifeTimeTracker& other) {
+    log_(OpType::COPY_ASSIGN);
+    std::swap(m_id, other.m_id);
+    return *this;
+  }
+
+  LifeTimeTracker& operator=(LifeTimeTracker&& other) {
+    log_(OpType::COPY_ASSIGN);
+    std::swap(m_id, other.m_id);
+    return *this;
+  }
+
   ~LifeTimeTracker() {
     log_(OpType::DESTRUCT);
   }
@@ -56,7 +80,10 @@ private:
   }
 
   std::size_t m_id;
-  static std::unordered_map<const LifeTimeTracker*, std::vector<OpInfo>> s_opLogs;
+  static std::unordered_map<
+    const LifeTimeTracker*,
+    std::vector<OpInfo>
+  > s_opLogs;
   static std::size_t s_counter;
 };
 
@@ -64,7 +91,11 @@ export struct alignas(LifeTimeTracker) LifeTimeTrackerStorage {
   unsigned char data[sizeof(LifeTimeTracker)];
 };
 
-std::unordered_map<const LifeTimeTracker*, std::vector<LifeTimeTracker::OpInfo>> LifeTimeTracker::s_opLogs;
+std::unordered_map<
+  const LifeTimeTracker*,
+  std::vector<LifeTimeTracker::OpInfo>
+> LifeTimeTracker::s_opLogs;
+
 std::size_t LifeTimeTracker::s_counter{0};
 
 }
