@@ -71,22 +71,28 @@
   pf::require<fail_handler>(expr, msg)
 
 // REQUIRE_ASSUME implementations (with [[assume]])
+
+#define PF_ASSUME(expr) \
+  do { bool pf_impl_assume_temp_var = (expr); \
+       [[assume(pf_impl_assume_temp_var)]]; \
+      }while(0) 
+
 #define PF_REQUIRE_ASSUME_IMPL_EXPR_ONLY(expr) \
   do { \
     PF_REQUIRE_IMPL_EXPR_ONLY(expr); \
-    [[assume(expr)]]; \
+    PF_ASSUME(expr); \
   } while(0)
 
 #define PF_REQUIRE_ASSUME_IMPL_EXPR_MSG(expr, msg) \
   do { \
     PF_REQUIRE_IMPL_EXPR_MSG(expr, msg); \
-    [[assume(expr)]]; \
+    PF_ASSUME(expr); \
   } while(0)
 
 #define PF_REQUIRE_ASSUME_IMPL_EXPR_MSG_FAIL_HANDLER(expr, msg, fail_handler) \
   do { \
     PF_REQUIRE_IMPL_EXPR_MSG_FAIL_HANDLER(expr, msg, fail_handler); \
-    [[assume(expr)]]; \
+    PF_ASSUME(expr); \
   } while(0)
 
 #endif /* PIXELFORGE_CORE_MACROS_HPP */
