@@ -1,0 +1,117 @@
+{
+  "version": 3,
+    "configurePresets": [
+      {
+        "name": "base",
+        "generator": "Ninja",
+        "binaryDir": "${sourceDir}/build/${presetName}",
+        "description": "Default to clang for consistency with the compile commands",
+        "cacheVariables": {
+          "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+          "CMAKE_C_COMPILER": "clang",
+          "CMAKE_CXX_COMPILER": "clang++"
+        }
+      },
+      {
+        "name": "debug_base",
+        "inherits": "base",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Debug"
+        }
+      },
+      {
+        "name": "release_base",
+        "inherits": "base",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release",
+          "PIXELFORGE_AGGRESSIVE_OPTIMISATIONS": "ON"
+        }
+      },
+      {
+        "name": "debug_validation",
+        "displayName": "debug validation",
+        "description": "debug clang build for the unit tests",
+        "inherits": "debug_base",
+        "cacheVariables": {
+          "PIXELFORGE_TEST": "ON"
+        }
+      },
+      {
+        "name": "release_validation",
+        "displayName": "release validation",
+        "description": "release clang build for the unit tests",
+        "inherits": "release_base",
+        "cacheVariables": {
+          "PIXELFORGE_TEST": "ON"
+        }
+      },
+      {
+        "name": "gcc_debug_validation",
+        "displayName": "gcc debug validation",
+        "description": "debug gcc build for the unit tests",
+        "inherits": "debug_base",
+        "cacheVariables": {
+          "PIXELFORGE_TEST": "ON",
+          "CMAKE_C_COMPILER": "gcc",
+          "CMAKE_CXX_COMPILER": "g++"
+        }
+      },
+      {
+        "name": "gcc_release_validation",
+        "displayName": "gcc release validation",
+        "description": "release gcc build for the unit tests",
+        "inherits": "release_base",
+        "cacheVariables": {
+          "PIXELFORGE_TEST": "ON",
+          "CMAKE_C_COMPILER": "gcc",
+          "CMAKE_CXX_COMPILER": "g++"
+        }
+      },
+      {
+        "name": "perf_val",
+        "displayName": "perf val",
+        "description": "clang build for the performance validation",
+        "inherits": "release_base",
+        "cacheVariables": {
+          "PIXELFORGE_PERF_VAL": "ON"
+        }
+      },
+      {
+        "name": "gcc_perf_val",
+        "displayName": "perf val",
+        "description": "gcc build for the performance validation",
+        "inherits": "release_base",
+        "cacheVariables": {
+          "PIXELFORGE_PERF_VAL": "ON",
+          "CMAKE_C_COMPILER": "gcc",
+          "CMAKE_CXX_COMPILER": "g++"
+        }
+      }
+    ],
+    "buildPresets": [
+    {
+      "name": "debug_validation",
+      "configurePreset": "debug_validation"
+    },
+    {
+      "name": "release_validation",
+      "configurePreset": "release_validation"
+    },
+    {
+      "name": "gcc_debug_validation",
+      "configurePreset": "gcc_debug_validation"
+    },
+    {
+      "name": "gcc_release_validation",
+      "configurePreset": "gcc_release_validation"
+    },
+    {
+      "name": "perf_val",
+      "configurePreset": "perf_val"
+    },
+    {
+      "name": "gcc_perf_val",
+      "configurePreset": "gcc_perf_val"
+    }
+  ]
+}
