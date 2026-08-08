@@ -1,7 +1,6 @@
 add_subdirectory(core)
 add_subdirectory(adapters)
-add_subdirectory(logging)
+add_subdirectory(log)
 add_subdirectory(mem)
 
-add_subdirectory(log_decoder)
 # always at the end!
