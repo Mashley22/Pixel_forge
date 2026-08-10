@@ -13,8 +13,10 @@ namespace pf {
 export
 class InvalidCharToHexError : public Exception {
 public:
+  static constexpr std::string_view what_arg = "Invalid char to hex";
+
   constexpr InvalidCharToHexError(char chr) PF_NOEXCEPT
-    : m_chr(chr) {}
+    : Exception(what_arg), m_chr(chr) {}
 
   [[nodiscard]] constexpr char
   inputChar(void) const PF_NOEXCEPT {
@@ -28,8 +30,10 @@ private:
 export 
 class InvalidHexToCharError : public Exception {
 public:
+  static constexpr std::string_view what_arg = "Invalid hex to char";
+
   constexpr InvalidHexToCharError(int val) PF_NOEXCEPT
-    : m_val(val) {}
+    : Exception(what_arg), m_val(val) {}
 
   [[nodiscard]] constexpr int
   inputVal(void) const PF_NOEXCEPT {

@@ -1,41 +1,24 @@
 module;
 
-#include <atomic>
+#include <stdexcept>
 
 #include <PixelForge/core/macros.hpp>
 
 export module PixelForge.core.exception;
 
 import PixelForge.core.require;
-import PixelForge.core.status;
 
 namespace pf {
 
-namespace priv {
-
-constexpr void
-M_excepting(void) {
-  PF_REQUIRE(currentStatus().load() == Status::OK);
-  auto expected = Status::OK;
-  currentStatus().compare_exchange_strong(expected,
-                                          Status::EXCEPT,
-                                          std::memory_order_seq_cst,
-                                          std::memory_order_seq_cst);
-}
-
-class M_ExceptionImpl {
-public:
-  constexpr M_ExceptionImpl(void) PF_NOEXCEPT {
-    M_excepting();
-  }
-};
-
-}
-
 export
-class Exception : private priv::M_ExceptionImpl {
+class Exception : public std::runtime_error {
 public:
-  constexpr Exception(void) PF_NOEXCEPT;
+  Exception(void) PF_NOEXCEPT = delete;
+  constexpr Exception(const Exception&) = default;
+  constexpr Exception(const std::string& str) : std::runtime_error(str) {}
+  constexpr Exception(const std::string_view& str) : std::runtime_error(std::string(str)) {}
+  constexpr Exception(const char * str) : std::runtime_error(str) {}
+  constexpr Exception(const std::runtime_error& error) : std::runtime_error(error) {}
 };
 
 }

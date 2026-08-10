@@ -1,5 +1,7 @@
 module;
 
+#include <string_view>
+
 #include <PixelForge/core/macros.hpp>
 
 export module PixelForge.mem.exception;
@@ -10,9 +12,11 @@ namespace pf {
 
 export namespace mem {
 
-class AlignmentError : Exception {
+class AlignmentError : public Exception {
 public:
   AlignmentError(std::size_t requestedAlignment, std::size_t minAlignment) PF_NOEXCEPT;
+
+  static constexpr std::string_view what_arg = "Mem alignment";
 
   [[nodiscard]]
   std::size_t
@@ -28,8 +32,10 @@ private:
 };
 
 // available should be adjusted for the given alignment!!
-class OOMError : Exception {
+class OOMError : public Exception {
 public:
+
+  static constexpr std::string_view what_arg = "OOM";
   
   OOMError(std::size_t requested, 
            std::size_t needed,
