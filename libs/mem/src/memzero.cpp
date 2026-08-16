@@ -25,13 +25,12 @@ void
 memzero_explicit(void* dest, std::size_t count) {
   PF_REQUIRE(dest != nullptr);
   PF_REQUIRE(count != 0);
-  
+
   volatile std::byte* p = static_cast<volatile std::byte*>(dest);
 
   for (std::size_t i = 0; i < count; i++) {
     p[i] = std::byte{0};
   }
-
 }
 
 }

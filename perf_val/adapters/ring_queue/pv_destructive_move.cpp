@@ -30,7 +30,8 @@ public:
     other.x = nullptr;
   }
 
-  NoOpDestructor& operator=(NoOpDestructor&& other) {
+  NoOpDestructor&
+  operator=(NoOpDestructor&& other) {
     x = other.x;
     other.x = nullptr;
     return *this;
@@ -49,7 +50,8 @@ public:
     other.x = nullptr;
   }
 
-  NoOpAfterMoveDestructor& operator=(NoOpAfterMoveDestructor&& other) {
+  NoOpAfterMoveDestructor&
+  operator=(NoOpAfterMoveDestructor&& other) {
     x = other.x;
     other.x = nullptr;
     return *this;
@@ -70,26 +72,26 @@ benchpp::Timer noOpTimer;
 benchpp::Timer noOpAfterMoveTimer;
 
 PF_ATTRIB_NOINLINE_CACHE_LINE_ALIGN
-void 
+void
 noOpRun(RingQueue<NoOpDestructor>& rq) {
   noOpTimer.start();
   for (std::size_t j = 0; j < RUN_SIZE; j++) {
     rq.emplace_unchecked();
     auto x = rq.pop_unchecked();
-    (void)x;
+    (void) x;
   }
   noOpTimer.stop();
   noOpTimer.recordAndReset();
 }
 
 PF_ATTRIB_NOINLINE_CACHE_LINE_ALIGN
-void 
+void
 noOpAfterMoveRun(RingQueue<NoOpAfterMoveDestructor>& rq) {
   noOpAfterMoveTimer.start();
   for (std::size_t j = 0; j < RUN_SIZE; j++) {
     rq.emplace_unchecked();
     auto x = rq.pop_unchecked();
-    (void)x;
+    (void) x;
   }
   noOpAfterMoveTimer.stop();
   noOpAfterMoveTimer.recordAndReset();
@@ -98,23 +100,27 @@ noOpAfterMoveRun(RingQueue<NoOpAfterMoveDestructor>& rq) {
 std::array<void*, BUF_SIZE> noOpBuf;
 std::array<void*, BUF_SIZE> otherBuf;
 
-TEST_CASE( "validate destructor is not called if no op", "[adapters][RingQueue]" ) {
+TEST_CASE("validate destructor is not called if no op", "[adapters][RingQueue]") {
 
   RingQueue<NoOpDestructor> noOp(reinterpret_cast<NoOpDestructor*>(noOpBuf.data()), BUF_SIZE);
-  RingQueue<NoOpAfterMoveDestructor> noOpAfterMove(reinterpret_cast<NoOpAfterMoveDestructor*>(otherBuf.data()), BUF_SIZE);
+  RingQueue<NoOpAfterMoveDestructor> noOpAfterMove(
+    reinterpret_cast<NoOpAfterMoveDestructor*>(otherBuf.data()), BUF_SIZE);
 
   for (std::size_t i = 0; i < RUN_NUM; i++) {
     noOpAfterMoveRun(noOpAfterMove);
     noOpRun(noOp);
   }
-  
-  auto noOpStats = benchpp::Stats<benchpp::TimeCount_t>::generate(noOpTimer.times());
-  auto noOpAfterMoveStats = benchpp::Stats<benchpp::TimeCount_t>::generate(noOpAfterMoveTimer.times());
-  
-  double combinedStddevOfMean = std::sqrt(noOpStats.varianceOfMean() + noOpAfterMoveStats.varianceOfMean());
 
-  REQUIRE_THAT(noOpStats.mean, Catch::Matchers::WithinAbs(noOpAfterMoveStats.mean, combinedStddevOfMean * TOLERANCE));
-  
+  auto noOpStats = benchpp::Stats<benchpp::TimeCount_t>::generate(noOpTimer.times());
+  auto noOpAfterMoveStats =
+    benchpp::Stats<benchpp::TimeCount_t>::generate(noOpAfterMoveTimer.times());
+
+  double combinedStddevOfMean =
+    std::sqrt(noOpStats.varianceOfMean() + noOpAfterMoveStats.varianceOfMean());
+
+  REQUIRE_THAT(
+    noOpStats.mean,
+    Catch::Matchers::WithinAbs(noOpAfterMoveStats.mean, combinedStddevOfMean * TOLERANCE));
 }
 
 }

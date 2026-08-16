@@ -15,21 +15,17 @@ namespace meta {
 
 // use std::stoll etc. for runtime
 // may add overflow checking but should be pretty obvious yourself :/
-export
-template<
-  std::integral T,
-  std::size_t T_base = 10,
-  const std::string_view& T_digitSet = digitSetUpper
->
+export template <std::integral T,
+                 std::size_t T_base = 10,
+                 const std::string_view& T_digitSet = digitSetUpper>
 [[nodiscard]]
 consteval T
 strToInt(std::string_view sv) PF_NOEXCEPT { // NOLINT, you gotta be a dumbass for this to throw
-  
+
   T retVal = 0;
   std::size_t multiplier = 1;
   for (auto it = sv.rbegin(); it != sv.rend() - 1; it++) {
-    retVal += static_cast<std::size_t>(charToInt<T_base, T_digitSet>(*it))
-              * multiplier;
+    retVal += static_cast<std::size_t>(charToInt<T_base, T_digitSet>(*it)) * multiplier;
     multiplier *= T_base;
   }
 
@@ -37,17 +33,13 @@ strToInt(std::string_view sv) PF_NOEXCEPT { // NOLINT, you gotta be a dumbass fo
     if (sv[0] == '-') {
       throw "Signed input with unsigned type!";
     }
-    retVal += static_cast<std::size_t>(charToInt<T_base, T_digitSet>(sv[0]))
-              * multiplier;
+    retVal += static_cast<std::size_t>(charToInt<T_base, T_digitSet>(sv[0])) * multiplier;
     return retVal;
-  }
-  else {
+  } else {
     if (sv[0] == '-') {
       return retVal * -1;
-    }
-    else {
-      retVal += static_cast<std::size_t>(charToInt<T_base, T_digitSet>(sv[0]))
-                * multiplier;
+    } else {
+      retVal += static_cast<std::size_t>(charToInt<T_base, T_digitSet>(sv[0])) * multiplier;
       return retVal;
     }
   }

@@ -8,12 +8,10 @@ namespace pf {
 
 namespace mem {
 
-export
-void 
+export void
 memzero(void* dest, std::size_t count);
 
-export 
-void
+export void
 memzero_explicit(void* dest, std::size_t count);
 
 }

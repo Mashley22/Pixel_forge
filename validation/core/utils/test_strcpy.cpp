@@ -22,21 +22,24 @@ namespace {
 // min(D - 1, src.size()) characters, so the return value is
 // min(D, src.size() + 1).
 
-constexpr bool strcpyBasicConstexpr() {
+constexpr bool
+strcpyBasicConstexpr() {
   char dest[8] = {};
   const std::size_t result = strcpy(std::span<char>{dest, 8}, std::string_view{"hi"});
   return result == 3 && dest[0] == 'h' && dest[1] == 'i' && dest[2] == '\0';
 }
 static_assert(strcpyBasicConstexpr());
 
-constexpr bool strcpyTruncationConstexpr() {
+constexpr bool
+strcpyTruncationConstexpr() {
   char dest[4] = {'X', 'X', 'X', 'X'};
   const std::size_t result = strcpy(std::span<char>{dest, 4}, std::string_view{"abcdef"});
   return result == 4 && dest[0] == 'a' && dest[1] == 'b' && dest[2] == 'c' && dest[3] == '\0';
 }
 static_assert(strcpyTruncationConstexpr());
 
-constexpr bool strcpyEmbeddedNullConstexpr() {
+constexpr bool
+strcpyEmbeddedNullConstexpr() {
   char dest[16] = {};
   const std::string_view src{"he\0llo", 6};
   const std::size_t result = strcpy(std::span<char>{dest, 16}, src);
@@ -49,10 +52,7 @@ TEST_CASE("strcpy: Basic functionality", "[core][utils][strcpy]") {
     std::string_view src = "hello";
     char dest[10] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 10},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 10}, src);
 
     REQUIRE(result == 6);
     REQUIRE(std::string(dest) == "hello");
@@ -64,10 +64,7 @@ TEST_CASE("strcpy: Basic functionality", "[core][utils][strcpy]") {
     std::string_view src = "world";
     char dest[10] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 10},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 10}, src);
 
     REQUIRE(result == 6);
     REQUIRE(std::string(dest) == "world");
@@ -78,10 +75,7 @@ TEST_CASE("strcpy: Basic functionality", "[core][utils][strcpy]") {
     std::string_view src = "test";
     char dest[10] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 10},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 10}, src);
 
     REQUIRE(result == 5);
     REQUIRE(std::string(dest) == "test");
@@ -94,10 +88,7 @@ TEST_CASE("strcpy: Buffer overflow protection", "[core][utils][strcpy]") {
     std::string_view src = "hello world this is long";
     char dest[6] = {'X', 'X', 'X', 'X', 'X', 'X'};
 
-    auto result = strcpy(
-      std::span<char>{dest, 6},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 6}, src);
 
     REQUIRE(result == 6);
     REQUIRE(std::string(dest) == "hello");
@@ -108,10 +99,7 @@ TEST_CASE("strcpy: Buffer overflow protection", "[core][utils][strcpy]") {
     std::string_view src = "verylongstring";
     char dest[5] = {'A', 'A', 'A', 'A', 'A'};
 
-    auto result = strcpy(
-      std::span<char>{dest, 5},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 5}, src);
 
     REQUIRE(result == 5);
     REQUIRE(std::string(dest) == "very");
@@ -122,10 +110,7 @@ TEST_CASE("strcpy: Buffer overflow protection", "[core][utils][strcpy]") {
     std::string_view src = "hello";
     char dest[1] = {'X'};
 
-    auto result = strcpy(
-      std::span<char>{dest, 1},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 1}, src);
 
     REQUIRE(result == 1);
     REQUIRE(std::string(dest).empty());
@@ -137,10 +122,7 @@ TEST_CASE("strcpy: Empty source", "[core][utils][strcpy]") {
     char dest[10] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
     std::string_view empty_view;
 
-    REQUIRE(strcpy(
-      std::span<char>{dest, 10},
-      empty_view
-    ) == 1);
+    REQUIRE(strcpy(std::span<char>{dest, 10}, empty_view) == 1);
 
     REQUIRE(std::string(dest).empty());
     for (std::size_t i = 1; i < 10; ++i) {
@@ -152,10 +134,7 @@ TEST_CASE("strcpy: Empty source", "[core][utils][strcpy]") {
     char dest[5] = {'X', 'X', 'X', 'X', 'X'};
     std::string_view empty_view;
 
-    auto result = strcpy(
-      std::span<char>{dest, 5},
-      empty_view
-    );
+    auto result = strcpy(std::span<char>{dest, 5}, empty_view);
 
     REQUIRE(result == 1);
     REQUIRE(std::string(dest).empty());
@@ -170,10 +149,7 @@ TEST_CASE("strcpy: maxNullTerminators parameter", "[core][utils][strcpy]") {
     std::string_view src = "hello";
     char dest[20] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 20},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 20}, src);
 
     REQUIRE(result == 6);
     REQUIRE(std::string(dest) == "hello");
@@ -183,11 +159,7 @@ TEST_CASE("strcpy: maxNullTerminators parameter", "[core][utils][strcpy]") {
     std::string_view src = "test";
     char dest[10] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 10},
-      src,
-      1
-    );
+    auto result = strcpy(std::span<char>{dest, 10}, src, 1);
 
     REQUIRE(result == 5);
     REQUIRE(std::string(dest) == "test");
@@ -197,10 +169,7 @@ TEST_CASE("strcpy: maxNullTerminators parameter", "[core][utils][strcpy]") {
     const std::string_view src{"he\0llo", 6};
     char dest[10] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
 
-    auto result = strcpy(
-      std::span<char>{dest, 10},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 10}, src);
 
     REQUIRE(result == 3);
     REQUIRE(std::string(dest, result - 1) == std::string_view{"he", 2});
@@ -212,11 +181,7 @@ TEST_CASE("strcpy: maxNullTerminators parameter", "[core][utils][strcpy]") {
     const std::string_view src{"he\0llo", 6};
     char dest[10] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
 
-    auto result = strcpy(
-      std::span<char>{dest, 10},
-      src,
-      1
-    );
+    auto result = strcpy(std::span<char>{dest, 10}, src, 1);
 
     REQUIRE(result == 7);
     REQUIRE(std::string(dest, result - 1) == std::string_view{"he\0llo", 6});
@@ -228,11 +193,7 @@ TEST_CASE("strcpy: maxNullTerminators parameter", "[core][utils][strcpy]") {
     const std::string_view src{"he\0llo\0w", 8};
     char dest[12] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
 
-    auto result = strcpy(
-      std::span<char>{dest, 12},
-      src,
-      2
-    );
+    auto result = strcpy(std::span<char>{dest, 12}, src, 2);
 
     REQUIRE(result == 9);
     REQUIRE(std::string(dest, result - 1) == std::string_view{"he\0llo\0w", 8});
@@ -244,11 +205,7 @@ TEST_CASE("strcpy: maxNullTerminators parameter", "[core][utils][strcpy]") {
     const std::string_view src{"a\0b\0c", 5};
     char dest[10] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
 
-    auto result = strcpy(
-      std::span<char>{dest, 10},
-      src,
-      1
-    );
+    auto result = strcpy(std::span<char>{dest, 10}, src, 1);
 
     REQUIRE(result == 4);
     REQUIRE(std::string(dest, result - 1) == std::string_view{"a\0b", 3});
@@ -262,10 +219,7 @@ TEST_CASE("strcpy: Content preservation", "[core][utils][strcpy]") {
     std::string_view src = "!@#$%^&*()";
     char dest[15] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 15},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 15}, src);
 
     REQUIRE(result == 11);
     REQUIRE(std::string(dest) == "!@#$%^&*()");
@@ -275,10 +229,7 @@ TEST_CASE("strcpy: Content preservation", "[core][utils][strcpy]") {
     std::string_view src = "0123456789";
     char dest[15] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 15},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 15}, src);
 
     REQUIRE(result == 11);
     REQUIRE(std::string(dest) == "0123456789");
@@ -288,10 +239,7 @@ TEST_CASE("strcpy: Content preservation", "[core][utils][strcpy]") {
     std::string_view src = "HeLLo WoRLd";
     char dest[15] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 15},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 15}, src);
 
     REQUIRE(result == 12);
     REQUIRE(std::string(dest) == "HeLLo WoRLd");
@@ -301,10 +249,7 @@ TEST_CASE("strcpy: Content preservation", "[core][utils][strcpy]") {
     std::string_view src = "hello  \t  world";
     char dest[20] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 20},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 20}, src);
 
     REQUIRE(result == 16);
     REQUIRE(std::string(dest) == "hello  \t  world");
@@ -316,10 +261,7 @@ TEST_CASE("strcpy: Return value correctness", "[core][utils][strcpy]") {
     std::string_view src = "hi";
     char dest[10] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 10},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 10}, src);
 
     REQUIRE(result == 3);
   }
@@ -328,10 +270,7 @@ TEST_CASE("strcpy: Return value correctness", "[core][utils][strcpy]") {
     std::string_view src = "hello";
     char dest[3] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 3},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 3}, src);
 
     REQUIRE(result == 3);
     REQUIRE(std::string(dest) == "he");
@@ -342,10 +281,7 @@ TEST_CASE("strcpy: Return value correctness", "[core][utils][strcpy]") {
     std::string_view src = "test";
     char dest[10] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 10},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 10}, src);
 
     REQUIRE(result == 5);
   }
@@ -356,10 +292,7 @@ TEST_CASE("strcpy: Large buffers", "[core][utils][strcpy]") {
     std::string_view src = "test";
     std::vector<char> dest(1000, 'X');
 
-    auto result = strcpy(
-      std::span<char>{dest.data(), dest.size()},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest.data(), dest.size()}, src);
 
     REQUIRE(result == 5);
     REQUIRE(std::string(dest.data()) == "test");
@@ -371,10 +304,7 @@ TEST_CASE("strcpy: Large buffers", "[core][utils][strcpy]") {
     std::string large_src(500, 'a');
     std::vector<char> dest(1000, 'X');
 
-    auto result = strcpy(
-      std::span<char>{dest.data(), dest.size()},
-      large_src
-    );
+    auto result = strcpy(std::span<char>{dest.data(), dest.size()}, large_src);
 
     REQUIRE(result == 501);
     REQUIRE(std::string(dest.data(), result - 1) == large_src);
@@ -386,10 +316,7 @@ TEST_CASE("strcpy: Large buffers", "[core][utils][strcpy]") {
     std::string large_src(99, 'b');
     std::vector<char> dest(100, 'X');
 
-    auto result = strcpy(
-      std::span<char>{dest.data(), dest.size()},
-      large_src
-    );
+    auto result = strcpy(std::span<char>{dest.data(), dest.size()}, large_src);
 
     REQUIRE(result == 100);
     REQUIRE(std::string(dest.data(), result - 1) == large_src);
@@ -402,10 +329,7 @@ TEST_CASE("strcpy: Boundary conditions", "[core][utils][strcpy]") {
     std::string_view src = "fit";
     char dest[4] = {'X', 'X', 'X', 'X'};
 
-    auto result = strcpy(
-      std::span<char>{dest, 4},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 4}, src);
 
     REQUIRE(result == 4);
     REQUIRE(std::string(dest) == "fit");
@@ -416,10 +340,7 @@ TEST_CASE("strcpy: Boundary conditions", "[core][utils][strcpy]") {
     std::string_view src = "hello";
     char dest[5] = {'X', 'X', 'X', 'X', 'X'};
 
-    auto result = strcpy(
-      std::span<char>{dest, 5},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 5}, src);
 
     REQUIRE(result == 5);
     REQUIRE(std::string(dest) == "hell");
@@ -430,10 +351,7 @@ TEST_CASE("strcpy: Boundary conditions", "[core][utils][strcpy]") {
     std::string_view src = "x";
     char dest[2] = {'X', 'X'};
 
-    auto result = strcpy(
-      std::span<char>{dest, 2},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 2}, src);
 
     REQUIRE(result == 2);
     REQUIRE(std::string(dest) == "x");
@@ -444,10 +362,7 @@ TEST_CASE("strcpy: Boundary conditions", "[core][utils][strcpy]") {
     std::string_view src = "abc";
     char dest[8] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
 
-    auto result = strcpy(
-      std::span<char>{dest, 8},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 8}, src);
 
     REQUIRE(result == 4);
     REQUIRE(std::string(dest) == "abc");
@@ -462,17 +377,11 @@ TEST_CASE("strcpy: Multiple consecutive calls", "[core][utils][strcpy]") {
   SECTION("Overwrite previous content") {
     char dest[10] = {};
 
-    auto result1 = strcpy(
-      std::span<char>{dest, 10},
-      std::string_view("first")
-    );
+    auto result1 = strcpy(std::span<char>{dest, 10}, std::string_view("first"));
     REQUIRE(result1 == 6);
     REQUIRE(std::string(dest) == "first");
 
-    auto result2 = strcpy(
-      std::span<char>{dest, 10},
-      std::string_view("second")
-    );
+    auto result2 = strcpy(std::span<char>{dest, 10}, std::string_view("second"));
     REQUIRE(result2 == 7);
     REQUIRE(std::string(dest) == "second");
   }
@@ -481,14 +390,8 @@ TEST_CASE("strcpy: Multiple consecutive calls", "[core][utils][strcpy]") {
     char dest1[10] = {};
     char dest2[10] = {};
 
-    auto result1 = strcpy(
-      std::span<char>{dest1, 10},
-      std::string_view("alpha")
-    );
-    auto result2 = strcpy(
-      std::span<char>{dest2, 10},
-      std::string_view("beta")
-    );
+    auto result1 = strcpy(std::span<char>{dest1, 10}, std::string_view("alpha"));
+    auto result2 = strcpy(std::span<char>{dest2, 10}, std::string_view("beta"));
 
     REQUIRE(result1 == 6);
     REQUIRE(result2 == 5);
@@ -502,10 +405,7 @@ TEST_CASE("strcpy: Various string content", "[core][utils][strcpy]") {
     std::string_view src = "a";
     char dest[5] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 5},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 5}, src);
 
     REQUIRE(result == 2);
     REQUIRE(std::string(dest) == "a");
@@ -516,10 +416,7 @@ TEST_CASE("strcpy: Various string content", "[core][utils][strcpy]") {
     std::string_view src = "12345";
     char dest[10] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 10},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 10}, src);
 
     REQUIRE(result == 6);
     REQUIRE(std::string(dest) == "12345");
@@ -529,10 +426,7 @@ TEST_CASE("strcpy: Various string content", "[core][utils][strcpy]") {
     std::string_view src = "/home/user/file.txt";
     char dest[30] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 30},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 30}, src);
 
     REQUIRE(result == 20);
     REQUIRE(std::string(dest) == "/home/user/file.txt");
@@ -542,10 +436,7 @@ TEST_CASE("strcpy: Various string content", "[core][utils][strcpy]") {
     std::string_view src = "https://example.com/path";
     char dest[50] = {};
 
-    auto result = strcpy(
-      std::span<char>{dest, 50},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 50}, src);
 
     REQUIRE(result == 25);
     REQUIRE(std::string(dest) == "https://example.com/path");
@@ -557,10 +448,7 @@ TEST_CASE("strcpy: Dest buffer exactly filled", "[core][utils][strcpy]") {
     std::string_view src = "abcd";
     char dest[5] = {'X', 'X', 'X', 'X', 'X'};
 
-    auto result = strcpy(
-      std::span<char>{dest, 5},
-      src
-    );
+    auto result = strcpy(std::span<char>{dest, 5}, src);
 
     REQUIRE(result == 5);
     REQUIRE(std::string(dest) == "abcd");
@@ -599,10 +487,9 @@ TEST_CASE("copy_until: Basic functionality", "[core][utils][strcpy]") {
     char dest[10] = {};
 
     auto result = copy_until(
-      std::span<char>{dest, 10},
-      std::span<const char>{src.data(), src.size()},
-      [](char val) { return val == '\0'; }
-    );
+      std::span<char>{dest, 10}, std::span<const char>{src.data(), src.size()}, [](char val) {
+        return val == '\0';
+      });
 
     REQUIRE(result == 5);
     REQUIRE(std::string(dest) == "hello");
@@ -613,10 +500,9 @@ TEST_CASE("copy_until: Basic functionality", "[core][utils][strcpy]") {
     char dest[10] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
 
     auto result = copy_until(
-      std::span<char>{dest, 10},
-      std::span<const char>{src.data(), src.size()},
-      [](char val) { return val == '\0'; }
-    );
+      std::span<char>{dest, 10}, std::span<const char>{src.data(), src.size()}, [](char val) {
+        return val == '\0';
+      });
 
     REQUIRE(result == 2);
     REQUIRE(std::string(dest, result) == "he");
@@ -630,9 +516,10 @@ TEST_CASE("copy_until: Basic functionality", "[core][utils][strcpy]") {
     auto result = copy_until(
       std::span<char>{dest, 10},
       std::span<const char>{src.data(), src.size()},
-      [](char val) { return val == '\0'; },
-      1
-    );
+      [](char val) {
+        return val == '\0';
+      },
+      1);
 
     REQUIRE(result == 5);
     REQUIRE(std::string(dest, result) == std::string_view{"he\0lo", 5});
@@ -643,10 +530,9 @@ TEST_CASE("copy_until: Basic functionality", "[core][utils][strcpy]") {
     char dest[3] = {'X', 'X', 'X'};
 
     auto result = copy_until(
-      std::span<char>{dest, 3},
-      std::span<const char>{src.data(), src.size()},
-      [](char val) { return val == '\0'; }
-    );
+      std::span<char>{dest, 3}, std::span<const char>{src.data(), src.size()}, [](char val) {
+        return val == '\0';
+      });
 
     REQUIRE(result == 3);
     REQUIRE(std::string(dest, result) == "hel");
@@ -657,10 +543,9 @@ TEST_CASE("copy_until: Basic functionality", "[core][utils][strcpy]") {
     char dest[1] = {'X'};
 
     auto result = copy_until(
-      std::span<char>{dest, 0},
-      std::span<const char>{src.data(), src.size()},
-      [](char val) { return val == '\0'; }
-    );
+      std::span<char>{dest, 0}, std::span<const char>{src.data(), src.size()}, [](char val) {
+        return val == '\0';
+      });
 
     REQUIRE(result == 0);
     REQUIRE(dest[0] == 'X');
@@ -671,16 +556,15 @@ TEST_CASE("copy_until: Basic functionality", "[core][utils][strcpy]") {
     char dest[10] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
 
     auto result = copy_until(
-      std::span<char>{dest, 10},
-      std::span<const char>{src.data(), src.size()},
-      [](char val) { return val == '\0'; }
-    );
+      std::span<char>{dest, 10}, std::span<const char>{src.data(), src.size()}, [](char val) {
+        return val == '\0';
+      });
 
     REQUIRE(result == 0);
     REQUIRE(dest[0] == 'X');
   }
 }
 
-}  // namespace
+} // namespace
 
-}  // namespace pf
+} // namespace pf

@@ -1,6 +1,6 @@
 #include <cstdint>
-#include <optional>
 #include <iostream>
+#include <optional>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -19,18 +19,18 @@ pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_bu
 
 }
 
-TEST_CASE( "Stack basic" , "[adapters][Stack]" ) {
-    
-  std::uint32_t buf[BUF_SIZE]{};  
+TEST_CASE("Stack basic", "[adapters][Stack]") {
+
+  std::uint32_t buf[BUF_SIZE]{};
   Stack<std::uint32_t> stack(buf, BUF_SIZE);
 
-  SECTION( "buffer untouched" ) {
+  SECTION("buffer untouched") {
     for (unsigned int i : buf) {
       REQUIRE(i == std::uint32_t{});
     }
   }
 
-  SECTION( "basic properties" ) {
+  SECTION("basic properties") {
     REQUIRE(stack.capacity() == BUF_SIZE);
     REQUIRE(stack.empty());
     REQUIRE(stack.empty());
@@ -40,7 +40,7 @@ TEST_CASE( "Stack basic" , "[adapters][Stack]" ) {
     REQUIRE(stack.remaining() == BUF_SIZE);
   }
 
-  SECTION( "push/pop full" ) {
+  SECTION("push/pop full") {
     REQUIRE(stack.empty());
     REQUIRE(!stack.try_pop());
     std::uint32_t pushVal;
@@ -57,7 +57,7 @@ TEST_CASE( "Stack basic" , "[adapters][Stack]" ) {
       REQUIRE(buf[i] == pushVal);
       REQUIRE(!stack.empty());
     }
-    
+
     std::cout << 3 << 'n';
     REQUIRE(stack.full());
     REQUIRE(stack.size() == BUF_SIZE);
@@ -70,7 +70,7 @@ TEST_CASE( "Stack basic" , "[adapters][Stack]" ) {
       REQUIRE(stack.size() == BUF_SIZE - i);
       REQUIRE(stack.data() == buf);
       REQUIRE(stack.remaining() == i);
-      
+
       std::optional<std::uint32_t> popVal = stack.try_pop();
       REQUIRE(popVal.has_value());
       REQUIRE(popVal.value() == BUF_SIZE * 2 - i - 1);
@@ -83,63 +83,66 @@ TEST_CASE( "Stack basic" , "[adapters][Stack]" ) {
   }
 }
 
-TEST_CASE( "RingQueue lifetimes", "[adapters][RingQueue]" ) {
-  
-  SECTION( "single push, single pop" ) {
+TEST_CASE("RingQueue lifetimes", "[adapters][RingQueue]") {
+
+  SECTION("single push, single pop") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
       Stack<pf_vh::LifeTimeTracker> stack(M_p_buf, BUF_SIZE);
-      
+
       REQUIRE(stack.try_emplace().has_value());
 
       {
-        pf_vh::LifeTimeTracker::OpInfo opInfo = {.id = 0, .type = pf_vh::LifeTimeTracker::OpType::DEFAULT_CONSTRUCT};   
+        pf_vh::LifeTimeTracker::OpInfo opInfo = {
+          .id = 0, .type = pf_vh::LifeTimeTracker::OpType::DEFAULT_CONSTRUCT};
         REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(M_p_buf)[0] == opInfo);
       }
-      
+
       REQUIRE(stack.try_pop().has_value());
       {
-        pf_vh::LifeTimeTracker::OpInfo opInfo = {.id = 0, .type = pf_vh::LifeTimeTracker::OpType::DESTRUCT};   
+        pf_vh::LifeTimeTracker::OpInfo opInfo = {.id = 0,
+                                                 .type = pf_vh::LifeTimeTracker::OpType::DESTRUCT};
         REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(M_p_buf)[1] == opInfo);
       }
     }
-    
+
     // check no extra frees here
     for (std::size_t i = 0; i < BUF_SIZE; i++) {
       REQUIRE(!pf_vh::LifeTimeTracker::opLogs().contains(&M_p_buf[i]));
     }
-
   }
 
-  SECTION( "push to full, pop to empty" ) {
+  SECTION("push to full, pop to empty") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
       Stack<pf_vh::LifeTimeTracker> stack(M_p_buf, BUF_SIZE);
 
       for (std::size_t j = 0; j < 5; j++) {
-      
+
         for (std::size_t i = 0; i < BUF_SIZE; i++) {
           REQUIRE(stack.try_emplace().has_value());
           REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[i]).size() == 2 * j + 1);
-          REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[i]).back().type == pf_vh::LifeTimeTracker::OpType::DEFAULT_CONSTRUCT);
+          REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[i]).back().type ==
+                  pf_vh::LifeTimeTracker::OpType::DEFAULT_CONSTRUCT);
           REQUIRE(stack.size() == i + 1);
         }
-      
+
         REQUIRE(stack.full());
 
         for (std::size_t i = 0; i < BUF_SIZE; i++) {
           REQUIRE(stack.size() == BUF_SIZE - i);
           REQUIRE(stack.try_pop().has_value());
-          REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[BUF_SIZE - i - 1]).size() == 2 * j + 2);
-          REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[BUF_SIZE - i - 1]).back().type == pf_vh::LifeTimeTracker::OpType::DESTRUCT);
+          REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[BUF_SIZE - i - 1]).size() ==
+                  2 * j + 2);
+          REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[BUF_SIZE - i - 1]).back().type ==
+                  pf_vh::LifeTimeTracker::OpType::DESTRUCT);
         }
 
         REQUIRE(stack.empty());
       }
     }
-
   }
 }
 
