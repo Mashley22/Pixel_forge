@@ -7,6 +7,7 @@ module;
 export module PixelForge.core:errors.exception;
 
 import :require;
+import :strcpy;
 
 namespace pf {
 
@@ -21,38 +22,16 @@ public:
 #else
   msgBufSizeDefault;
 #endif
-  
 private:
-  // uphold that this is null terminated
   static std::array<char, msgBufSize> m_msgBuf;
 
-  static constexpr void copyCstrToBuf_(const char* str) PF_NOEXCEPT {
-    for (std::size_t i = 0; i < msgBufSize - 1; i++) {
-      m_msgBuf[i] = str[i];
-      if (m_msgBuf[i] == '\0') {
-        return;
-      }
-    }
-    m_msgBuf.back() = '\0';
-  }
-
-  static constexpr void copyStrToBuf_(const std::string_view& str) PF_NOEXCEPT {
-    std::size_t i = 0;
-    while(true) {
-      if (i == str.size() || i == m_msgBuf.size() - 1)
-        m_msgBuf[i] = '\0';
-        
-      m_msgBuf[i] = str[i];
-      i++;
-    }
-  }
-
 public:
+  
   Exception(void) PF_NOEXCEPT = delete;
   constexpr Exception(const Exception&) PF_NOEXCEPT = default;
-  constexpr explicit Exception(const std::string_view& str) PF_NOEXCEPT { copyStrToBuf_(str); }
-  constexpr explicit Exception(const char * str) PF_NOEXCEPT { copyCstrToBuf_(str); }
-  constexpr explicit Exception(const std::exception& error) PF_NOEXCEPT { copyCstrToBuf_(error.what()); }
+  constexpr explicit Exception(const std::string_view& str) PF_NOEXCEPT { strcpy(m_msgBuf, str); }
+  constexpr explicit Exception(const char * str) PF_NOEXCEPT { strcpy(m_msgBuf, {str, m_msgBuf.size()}); }
+  constexpr explicit Exception(const std::exception& error) PF_NOEXCEPT { strcpy(m_msgBuf, {error.what(), m_msgBuf.size()}); }
 
   constexpr const char* what(void) const PF_NOEXCEPT { return m_msgBuf.data(); }
 };

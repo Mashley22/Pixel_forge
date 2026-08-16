@@ -11,6 +11,7 @@ import :require;
 
 namespace pf {
 
+export
 template<typename T, typename T_val>
 concept IsTerminator_c = requires(T isTerminatorFunc, T_val val) {
   { isTerminatorFunc(val) } -> std::convertible_to<bool>;
@@ -23,8 +24,8 @@ concept IsTerminator_c = requires(T isTerminatorFunc, T_val val) {
  *
  * @return The number of elements copied, including the terminators
  */
+export 
 template<typename T, IsTerminator_c<T> T_isTerminatorFunc>
-[[nodiscard]] 
 constexpr std::size_t 
 copy_until(std::span<T> dest, const std::span<const T> src, T_isTerminatorFunc&& isTerminator, const std::size_t maxTerminators = 0) PF_NOEXCEPT {
   std::size_t maxCount = std::min(dest.size(), src.size());
@@ -40,7 +41,7 @@ copy_until(std::span<T> dest, const std::span<const T> src, T_isTerminatorFunc&&
     dest[i] = src[i];
   }
 
-  return i + 1;
+  return i;
 }
 
 /**
@@ -51,18 +52,12 @@ copy_until(std::span<T> dest, const std::span<const T> src, T_isTerminatorFunc&&
  *
  * @return The number of characters copied, including the null terminator
  */
-[[nodiscard]] 
-constexpr std::size_t 
-strcpy(std::span<char> dest, const std::span<const char> src, const std::size_t maxNullTerminators = 0) PF_NOEXCEPT {
-  std::size_t copyCount = copy_until({dest.data(), dest.size() - 1}, src, [](char val){ return val == '\0'; }, maxNullTerminators);
-  dest.back() = '\0';
-  return copyCount;
-}
-
-[[nodiscard]] 
+export 
 constexpr std::size_t 
 strcpy(std::span<char> dest, const std::string_view src, const std::size_t maxNullTerminators = 0) PF_NOEXCEPT {
-  return strcpy(dest, std::span<const char>{src.data(), src.size()}, maxNullTerminators);
+  std::size_t copyCount = copy_until({dest.data(), dest.size() - 1}, std::span<const char>{src.data(), src.size()}, [](char val){ return val == '\0'; }, maxNullTerminators);
+  dest[copyCount] = '\0';
+  return copyCount + 1;
 }
 
 }
