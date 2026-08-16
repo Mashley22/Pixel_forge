@@ -10,7 +10,7 @@ namespace pf_vh {
 
 export class LifeTimeTracker {
 public:
-  enum class OpType {
+  enum class OpType : char {
     DEFAULT_CONSTRUCT,
     CONSTRUCT,
     COPY_CONSTRUCT,

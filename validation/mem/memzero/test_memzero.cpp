@@ -4,10 +4,8 @@ import PixelForge.core;
 
 #include <catch2/catch_test_macros.hpp>
 
-enum {
-NON_ZERO_VALUE = 8,
-TEST_ARR_LEN = 1000
-};
+constexpr auto NON_ZERO_VALUE = 8;
+constexpr auto TEST_ARR_LEN = 1000;
 
 static_assert(NON_ZERO_VALUE != 0);
 

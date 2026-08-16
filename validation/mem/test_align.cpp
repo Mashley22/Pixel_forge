@@ -5,7 +5,7 @@ import PixelForge.core;
 
 #include <catch2/catch_test_macros.hpp>
 
-#define CAST_TO_BYTE_PTR(val) reinterpret_cast<std::byte*>((void*)(val));
+#define CAST_TO_BYTE_PTR(val) reinterpret_cast<std::byte*>(val);
 
 namespace pf {
 

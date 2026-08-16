@@ -5,9 +5,7 @@ import PixelForge.core;
 
 #include <catch2/catch_test_macros.hpp>
 
-enum {
-TEST_VALS_NUM = 3
-};
+constexpr auto TEST_VALS_NUM = 3;
 
 namespace pf {
 

@@ -73,7 +73,7 @@
 // REQUIRE_ASSUME implementations (with [[assume]])
 
 #define PF_ASSUME(expr) \
-  do { bool pf_impl_assume_temp_var = (expr); \
+  do { const bool pf_impl_assume_temp_var = (expr); \
        [[assume(pf_impl_assume_temp_var)]]; \
       }while(0) 
 

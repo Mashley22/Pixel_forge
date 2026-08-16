@@ -23,10 +23,10 @@ align(std::byte* ptr,
   PF_REQUIRE(math::isPowerOfTwo(alignment));
   
   const auto addr = reinterpret_cast<std::uintptr_t>(ptr);
-  
-  const auto aligned_addr = (addr + alignment - 1) & ~(alignment - 1);
-  
-  return reinterpret_cast<std::byte*>(aligned_addr);
+
+  const auto alignment_padding = (alignment - (addr & (alignment - 1))) & (alignment - 1);
+
+  return ptr + alignment_padding;
 }
 
 }

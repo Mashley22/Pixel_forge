@@ -3,9 +3,7 @@
 
 import PixelForge.core;
 
-enum {
-BUF_SIZE = 64
-};
+constexpr auto BUF_SIZE = 64;
 
 namespace pf {
 

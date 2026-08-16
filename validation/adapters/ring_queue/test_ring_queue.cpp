@@ -7,9 +7,7 @@ import PixelForge.adapters.ringQueue;
 
 import PixelForge.validation_helpers;
 
-enum {
-BUF_SIZE = 128
-};
+constexpr auto BUF_SIZE = 128;
 
 namespace pf::adapters {
 

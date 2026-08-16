@@ -3,6 +3,8 @@ module;
 #include <concepts>
 #include <string_view>
 
+#include <PixelForge/core/macros.hpp>
+
 export module PixelForge.core:meta.strToInt;
 
 import :utils.charEncoding;
@@ -21,7 +23,7 @@ template<
 >
 [[nodiscard]]
 consteval T
-strToInt(std::string_view sv) noexcept {
+strToInt(std::string_view sv) PF_NOEXCEPT { // NOLINT, you gotta be a dumbass for this to throw
   
   T retVal = 0;
   std::size_t multiplier = 1;

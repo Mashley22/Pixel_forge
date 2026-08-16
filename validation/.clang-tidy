@@ -1,0 +1,22 @@
+---
+InheritParentConfig: true
+# Mirror of the root .clang-tidy check set, minus bugprone-unchecked-optional-access:
+# tests guard optionals with REQUIRE(opt.has_value()) immediately before .value(),
+# which the check does not recognize as a guard. Keep in sync with the root config.
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  misc-unused-parameters,
+  misc-unused-using-decls,
+  -bugprone-branch-clone,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-implicit-widening-of-multiplication-result,
+  -bugprone-narrowing-conversions,
+  -bugprone-switch-maybe-missing-default,
+  -bugprone-throwing-static-initialization,
+  -bugprone-unchecked-optional-access,
+  -bugprone-use-after-move,
+  -performance-noexcept-move-constructor,
+  -performance-no-int-to-ptr,
+...

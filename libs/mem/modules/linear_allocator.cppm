@@ -83,10 +83,10 @@ protected:
       throw OOMError(size, size, remaining());
     }
     
-    std::byte * retVal = m_current;
+    std::byte* const retVal = m_current;
     m_current+= size;
 
-    return retVal;
+    return reinterpret_cast<void*>(retVal);
   }
 
 private:

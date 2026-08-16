@@ -2,11 +2,9 @@
 
 #include <cstring>
 
-enum {
-SECRET_LEN = 64,
-BUFFER_SIZE = 256,
-SECRET_OFFSET = 128
-};
+constexpr std::uint16_t SECRET_LEN = 64;
+constexpr std::uint16_t BUFFER_SIZE = 256;
+constexpr std::uint16_t SECRET_OFFSET = 128;
 
 #ifndef BUILD_OPTS
 #define BUILD_OPTS

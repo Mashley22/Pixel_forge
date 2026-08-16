@@ -28,7 +28,7 @@ export
 template<typename T, IsTerminator_c<T> T_isTerminatorFunc>
 constexpr std::size_t 
 copy_until(std::span<T> dest, const std::span<const T> src, T_isTerminatorFunc&& isTerminator, const std::size_t maxTerminators = 0) PF_NOEXCEPT {
-  std::size_t maxCount = std::min(dest.size(), src.size());
+  std::size_t const maxCount = std::min(dest.size(), src.size());
   std::size_t i;
   std::size_t terminatorCount = 0;
   for (i = 0; i < maxCount; i++) {
@@ -55,7 +55,7 @@ copy_until(std::span<T> dest, const std::span<const T> src, T_isTerminatorFunc&&
 export 
 constexpr std::size_t 
 strcpy(std::span<char> dest, const std::string_view src, const std::size_t maxNullTerminators = 0) PF_NOEXCEPT {
-  std::size_t copyCount = copy_until({dest.data(), dest.size() - 1}, std::span<const char>{src.data(), src.size()}, [](char val){ return val == '\0'; }, maxNullTerminators);
+  const std::size_t copyCount = copy_until({dest.data(), dest.size() - 1}, std::span<const char>{src.data(), src.size()}, [](char val){ return val == '\0'; }, maxNullTerminators);
   dest[copyCount] = '\0';
   return copyCount + 1;
 }
