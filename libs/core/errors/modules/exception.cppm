@@ -7,7 +7,7 @@ module;
 export module PixelForge.core:errors.exception;
 
 import :require;
-import :strcpy;
+import :utils.strcpy;
 
 namespace pf {
 

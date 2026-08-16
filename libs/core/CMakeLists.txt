@@ -14,7 +14,6 @@ target_include_directories(PixelForge_core
 
 add_subdirectory(require) # require must be first for the stupid cmake file set stuff
 add_subdirectory(math)
-add_subdirectory(strcpy)
 add_subdirectory(errors)
 add_subdirectory(utils)
 add_subdirectory(meta)

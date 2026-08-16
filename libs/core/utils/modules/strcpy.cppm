@@ -5,7 +5,7 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.core:strcpy;
+export module PixelForge.core:utils.strcpy;
 
 import :require;
 
