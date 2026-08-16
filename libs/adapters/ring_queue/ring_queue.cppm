@@ -42,7 +42,7 @@ public:
     using reference = value_type&;
     using const_reference = const value_type&;
     using pointer = T*;
-    using const_pointer = const pointer;
+    using const_pointer = const T*;
 
     static constexpr bool is_nothrow_copy_v = std::is_nothrow_copy_constructible_v<T>;
     static constexpr bool is_nothrow_move_v = std::is_nothrow_move_constructible_v<T>;
@@ -91,15 +91,14 @@ public:
 
   constexpr RingQueue&
   operator=(RingQueue&& other) PF_NOEXCEPT {
-    m_data = other.m_data;
-    m_capMask = other.m_capMask;
-    m_front = other.m_front;
-    m_back = other.m_back;
+    std::swap(m_data, other.m_data);
+    std::swap(m_capMask, other.m_capMask);
+    std::swap(m_front, other.m_front);
+    std::swap(m_back, other.m_back);
 
-    other.m_data = nullptr;
-    other.m_front = other.m_back = other.m_capMask = 0;
+    other.clear();
 
-    PF_REQUIRE(valid_init_() && !other.valid_init_(), "implementation error!");
+    return *this;
   }
 
   [[nodiscard]] constexpr pointer
@@ -162,8 +161,8 @@ public:
    */
   template <class... V_args>
   constexpr pointer
-  emplace(V_args... args) {
-    return emplace<ErrPolicy_throws<pointer, FullError>>(args...);
+  emplace(V_args&&... args) {
+    return emplace<ErrPolicy_throws<pointer, FullError>>(std::forward<V_args>(args)...);
   }
 
   template <class T_ErrPolicy, class... V_args>
@@ -171,8 +170,8 @@ public:
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
   constexpr T_ErrPolicy::return_type
-  emplace(V_args... args) PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...> ||
-                                           T_ErrPolicy::is_noexcept) {
+  emplace(V_args&&... args) PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...> ||
+                                             T_ErrPolicy::is_noexcept) {
     if (full()) {
       return T_ErrPolicy::fail();
     }
@@ -188,8 +187,8 @@ public:
 
   template <class... V_args>
   pointer
-  emplace_unchecked(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
-    return emplace<ErrPolicy_nothing<pointer>, V_args...>(args...);
+  emplace_unchecked(V_args&&... args) NOEXCEPT_CONSTRUCT(V_args...) {
+    return emplace<ErrPolicy_nothing<pointer>, V_args...>(std::forward<V_args>(args)...);
   }
 
   /**
@@ -219,8 +218,8 @@ public:
    */
   template <class... V_args>
   [[nodiscard]] constexpr std::optional<pointer>
-  try_emplace(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
-    return emplace<ErrPolicy_optional<pointer>, V_args...>(args...);
+  try_emplace(V_args&&... args) NOEXCEPT_CONSTRUCT(V_args...) {
+    return emplace<ErrPolicy_optional<pointer>, V_args...>(std::forward<V_args>(args)...);
   }
 
   /**
@@ -256,8 +255,7 @@ public:
       return T_ErrPolicy::fail();
     }
 
-    m_data[m_back & m_capMask] = value;
-    m_back++;
+    emplace_unchecked(value);
 
     return T_ErrPolicy::success();
   }
@@ -266,7 +264,7 @@ public:
    *@overload
    */
   template <class T_ErrPolicy = ErrPolicy_nothing<void>>
-    requires ErrPolicy_c<T_ErrPolicy, void> && requires {
+    requires VoidErrPolicy_c<T_ErrPolicy> && requires {
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
   constexpr T_ErrPolicy::return_type
@@ -276,6 +274,8 @@ public:
     }
 
     emplace_unchecked(std::forward<T>(val));
+
+    return T_ErrPolicy::success();
   }
 
   /**
@@ -283,11 +283,12 @@ public:
    */
   template <class... V_args>
   constexpr reference
-  force_emplace(V_args... args) NOEXCEPT_CONSTRUCT(V_args...) {
+  force_emplace(V_args&&... args) NOEXCEPT_CONSTRUCT(V_args...) {
     if (full()) {
+      std::destroy_at(std::addressof(front()));
       m_front++;
     }
-    return emplace_unchecked(args...);
+    return *emplace_unchecked(std::forward<V_args>(args)...);
   }
 
   /**
@@ -298,6 +299,7 @@ public:
   constexpr void
   force_push(const T& val) NOEXCEPT_COPY {
     if (full()) {
+      std::destroy_at(std::addressof(front()));
       m_front++;
     }
     push_unchecked(val);
@@ -309,6 +311,7 @@ public:
   constexpr void
   force_push(T&& val) NOEXCEPT_MOVE {
     if (full()) {
+      std::destroy_at(std::addressof(front()));
       m_front++;
     }
     push_unchecked(std::forward<T>(val));
@@ -399,7 +402,7 @@ public:
   }
 
 private:
-  const_pointer m_data;
+  pointer m_data;
   size_type m_capMask; // capacity - 1
   size_type m_front;   // is such that m_data[m_front] is the front() element
   size_type m_back;    // is such that m_data[m_back] is the back() element

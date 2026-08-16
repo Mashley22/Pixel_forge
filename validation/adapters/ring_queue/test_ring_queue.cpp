@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <memory>
 #include <optional>
 
 #include <catch2/catch_test_macros.hpp>
@@ -15,6 +16,9 @@ namespace {
 
 pf_vh::LifeTimeTrackerStorage M_buf[BUF_SIZE];
 pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf);
+
+pf_vh::LifeTimeTrackerStorage M_buf2[BUF_SIZE];
+pf_vh::LifeTimeTracker* M_p_buf2 = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf2);
 
 }
 
@@ -164,6 +168,81 @@ TEST_CASE("RingQueue lifetimes", "[adapters][RingQueue]") {
         REQUIRE(queue.empty());
       }
     }
+  }
+}
+
+TEST_CASE("RingQueue move only elements", "[adapters][RingQueue]") {
+  std::unique_ptr<int> buf[BUF_SIZE]{};
+  RingQueue<std::unique_ptr<int>> queue(buf, BUF_SIZE);
+
+  REQUIRE(queue.try_push(std::make_unique<int>(42)));
+  REQUIRE(queue.try_push(std::make_unique<int>(43)));
+  REQUIRE(queue.size() == 2);
+
+  auto val = queue.try_pop();
+  REQUIRE(val.has_value());
+  REQUIRE(*val.value() == 42);
+
+  val = queue.try_pop();
+  REQUIRE(val.has_value());
+  REQUIRE(*val.value() == 43);
+
+  REQUIRE(queue.empty());
+}
+
+TEST_CASE("RingQueue force ops destroy replaced elements", "[adapters][RingQueue]") {
+  {
+    pf_vh::LifeTimeTracker::DeferClear clearer{};
+    RingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+
+    for (std::size_t i = 0; i < BUF_SIZE; i++) {
+      REQUIRE(queue.try_emplace(1).has_value());
+    }
+    REQUIRE(queue.full());
+
+    queue.force_emplace(1);
+    REQUIRE(queue.size() == BUF_SIZE);
+    REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[0]).size() == 3);
+    REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[0]).back().type ==
+            pf_vh::LifeTimeTracker::OpType::CONSTRUCT);
+
+    pf_vh::LifeTimeTracker val{1};
+    queue.force_push(std::move(val));
+    REQUIRE(queue.size() == BUF_SIZE);
+    REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[1]).size() == 3);
+    REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[1]).back().type ==
+            pf_vh::LifeTimeTracker::OpType::MOVE_CONSTRUCT);
+
+    for (std::size_t i = 2; i < BUF_SIZE; i++) {
+      REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[i]).size() == 1);
+    }
+  }
+}
+
+TEST_CASE("RingQueue move assignment", "[adapters][RingQueue]") {
+  {
+    pf_vh::LifeTimeTracker::DeferClear clearer{};
+    RingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+    RingQueue<pf_vh::LifeTimeTracker> other(M_p_buf2, BUF_SIZE);
+
+    REQUIRE(queue.try_emplace(1).has_value());
+    REQUIRE(queue.try_emplace(1).has_value());
+    REQUIRE(other.try_emplace(1).has_value());
+
+    queue = std::move(other);
+
+    REQUIRE(queue.size() == 1);
+    REQUIRE(other.empty());
+    REQUIRE(queue.data() == M_p_buf2);
+    REQUIRE(other.data() == M_p_buf);
+
+    REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[0]).size() == 2);
+    REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[0]).back().type ==
+            pf_vh::LifeTimeTracker::OpType::DESTRUCT);
+    REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[1]).size() == 2);
+    REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[1]).back().type ==
+            pf_vh::LifeTimeTracker::OpType::DESTRUCT);
+    REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf2[0]).size() == 1);
   }
 }
 
