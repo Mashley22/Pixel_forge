@@ -3,8 +3,8 @@ module;
 #include <atomic>
 #include <exception>
 #include <source_location>
-#include <string_view>
 #include <span>
+#include <string_view>
 
 #include <PixelForge/core/macros.hpp>
 
@@ -15,19 +15,14 @@ namespace pf {
 RequireFailInfo RequireFail_logTerminate::m_failInfo{};
 
 std::array<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE>
-RequireFail_logContinue::m_failInfos{};
+  RequireFail_logContinue::m_failInfos{};
 
-std::atomic<std::size_t>
-RequireFail_logContinue::m_currentIdx = 0;
+std::atomic<std::size_t> RequireFail_logContinue::m_currentIdx = 0;
 
 void
-RequireFail_logTerminate::fail(const std::string_view msg,
-                               const std::source_location loc) {
-  m_failInfo = {
-    .msg = msg, 
-    .loc = loc
-  };
-  std::terminate();          
+RequireFail_logTerminate::fail(const std::string_view msg, const std::source_location loc) {
+  m_failInfo = {.msg = msg, .loc = loc};
+  std::terminate();
 }
 
 const RequireFailInfo&

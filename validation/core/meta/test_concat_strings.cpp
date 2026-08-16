@@ -27,7 +27,7 @@ namespace meta {
 
 using HelloWorldConcat = ConcatStrings<hello, space, world, bang>;
 
-auto validInput = [](){
+auto validInput = []() {
   for (std::size_t i = 0; i < hello_world.size(); i++) {
     if (HelloWorldConcat::c_str()[i] != hello_world[i] ||
         HelloWorldConcat::arr[i] != hello_world[i]) {
@@ -38,13 +38,13 @@ auto validInput = [](){
   return true;
 };
 
-TEST_CASE( "concatStrings", "[core][meta]" ) {
-  STATIC_REQUIRE( HelloWorldConcat::sv() == HELLO_WORLD);
-  
-  STATIC_REQUIRE( validInput() );
+TEST_CASE("concatStrings", "[core][meta]") {
+  STATIC_REQUIRE(HelloWorldConcat::sv() == HELLO_WORLD);
 
-  STATIC_REQUIRE( HelloWorldConcat::c_str()[hello_world.size()] == '\0');
-  STATIC_REQUIRE( HelloWorldConcat::arr[hello_world.size()] == '\0');
+  STATIC_REQUIRE(validInput());
+
+  STATIC_REQUIRE(HelloWorldConcat::c_str()[hello_world.size()] == '\0');
+  STATIC_REQUIRE(HelloWorldConcat::arr[hello_world.size()] == '\0');
 }
 
 }

@@ -20,37 +20,44 @@ namespace detail {
 
 class LinearAllocator_impl {
 public:
-  constexpr
-  LinearAllocator_impl(void* buffer, std::size_t size) PF_NOEXCEPT
-    : m_capacity(size), m_start(static_cast<std::byte*>(buffer)), m_current(m_start) {}
+  constexpr LinearAllocator_impl(void* buffer, std::size_t size) PF_NOEXCEPT
+    : m_capacity(size),
+      m_start(static_cast<std::byte*>(buffer)),
+      m_current(m_start) {
+  }
 
-  constexpr
-  LinearAllocator_impl(std::byte* buffer, std::size_t size) PF_NOEXCEPT
-    : m_capacity(size), m_start(buffer), m_current(m_start) {}
+  constexpr LinearAllocator_impl(std::byte* buffer, std::size_t size) PF_NOEXCEPT
+    : m_capacity(size),
+      m_start(buffer),
+      m_current(m_start) {
+  }
 
-  [[nodiscard]] constexpr
-  std::size_t
-  cacpacity() const PF_NOEXCEPT { return m_capacity; }
+  [[nodiscard]] constexpr std::size_t
+  cacpacity() const PF_NOEXCEPT {
+    return m_capacity;
+  }
 
-  [[nodiscard]] constexpr 
-  std::size_t
-  remaining() const PF_NOEXCEPT { return m_capacity - used(); }
+  [[nodiscard]] constexpr std::size_t
+  remaining() const PF_NOEXCEPT {
+    return m_capacity - used();
+  }
 
-  [[nodiscard]] constexpr
-  std::size_t
-  used() const PF_NOEXCEPT { return static_cast<std::size_t>(m_current - m_start); }
+  [[nodiscard]] constexpr std::size_t
+  used() const PF_NOEXCEPT {
+    return static_cast<std::size_t>(m_current - m_start);
+  }
 
-  void constexpr 
-  clear() PF_NOEXCEPT { m_current = nullptr; }
+  void constexpr clear() PF_NOEXCEPT {
+    m_current = nullptr;
+  }
 
 protected:
-  
   /*
-   *@throws pf::mem::AlignmentError if the alignments aren't powers of two or the alignment requested is smaller than the minAlignment
-   *@throws pf::mem::OOMError if there isnt enough capacity to make the allocation 
-  */
-  [[nodiscard]] constexpr
-  void*
+   *@throws pf::mem::AlignmentError if the alignments aren't powers of two or the alignment
+   * requested is smaller than the minAlignment
+   *@throws pf::mem::OOMError if there isnt enough capacity to make the allocation
+   */
+  [[nodiscard]] constexpr void*
   alloc(std::size_t size, std::size_t alignment, std::size_t minAlignment) {
     if (!math::isPowerOfTwo<std::size_t>(alignment) ||
         !math::isPowerOfTwo<std::size_t>(minAlignment)) {
@@ -60,7 +67,7 @@ protected:
     LinearAllocator_impl temp = *this;
 
     temp.m_current = align(m_current, alignment);
-    
+
     if (temp.remaining() < size) {
       auto neededSize = [&]() {
         return size + static_cast<std::size_t>(temp.m_current - m_current);
@@ -75,24 +82,23 @@ protected:
 
   /**
    *@throw pf::mem::OOMError if there isn't enough capacity
-  */
-  [[nodiscard]] constexpr
-  void*
+   */
+  [[nodiscard]] constexpr void*
   alloc(std::size_t size) {
     if (remaining() < size) {
       throw OOMError(size, size, remaining());
     }
-    
+
     std::byte* const retVal = m_current;
-    m_current+= size;
+    m_current += size;
 
     return reinterpret_cast<void*>(retVal);
   }
 
 private:
   std::size_t m_capacity;
-  std::byte * m_start;
-  std::byte * m_current;
+  std::byte* m_start;
+  std::byte* m_current;
 };
 
 }

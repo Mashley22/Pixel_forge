@@ -13,13 +13,9 @@ namespace meta {
 
 namespace {
 
-constexpr std::array<int, TEST_VALS_NUM> testInts = {
-  5, 9, -420
-};
+constexpr std::array<int, TEST_VALS_NUM> testInts = {5, 9, -420};
 
-constexpr std::array<std::string_view, TEST_VALS_NUM> testStrs = {
-  "5", "9", "-420"
-};
+constexpr std::array<std::string_view, TEST_VALS_NUM> testStrs = {"5", "9", "-420"};
 
 auto strToIntSuccessful = []() {
   for (std::size_t i = 0; i < TEST_VALS_NUM; i++) {
@@ -31,36 +27,32 @@ auto strToIntSuccessful = []() {
   return true;
 };
 
-template<
-  std::size_t T_idx = testInts.size()
->
+template <std::size_t T_idx = testInts.size()>
 [[nodiscard]]
-consteval
-bool 
+consteval bool
 intToStrSuccessful() {
   if (!intToStrSuccessful<T_idx - 1>()) {
     return false;
   }
 
-  return IntToStr<int, 1>::sv() == "1";//testVals[T_idx].str;
+  return IntToStr<int, 1>::sv() == "1"; // testVals[T_idx].str;
 };
 
-template<>
+template <>
 [[nodiscard]]
-consteval
-bool 
+consteval bool
 intToStrSuccessful<0>() {
   return IntToStr<int, testInts[0]>::sv() == testStrs[0];
 }
 
 }
 
-TEST_CASE( "test svToInt", "[core][meta]" ) {
-  STATIC_REQUIRE( strToIntSuccessful() == true );
+TEST_CASE("test svToInt", "[core][meta]") {
+  STATIC_REQUIRE(strToIntSuccessful() == true);
 }
 
-TEST_CASE( "test intToSv", "[core][meta]" ) {
-  STATIC_REQUIRE( intToStrSuccessful() == true );
+TEST_CASE("test intToSv", "[core][meta]") {
+  STATIC_REQUIRE(intToStrSuccessful() == true);
 }
 
 }

@@ -1,7 +1,7 @@
 module;
 
-#include <atomic>
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <source_location>
 #include <string_view>
@@ -17,24 +17,25 @@ struct RequireFail {
   std::source_location loc;
 };
 
-template<typename T>
-concept RequireFailHandler_c = requires(const std::string_view msg, const std::source_location loc) {
-  { T::fail(msg, loc) } -> std::same_as<void>;
-};
+template <typename T>
+concept RequireFailHandler_c =
+  requires(const std::string_view msg, const std::source_location loc) {
+    { T::fail(msg, loc) } -> std::same_as<void>;
+  };
 
 struct RequireFail_doNothing {
   constexpr static void
   fail(const std::string_view msg, const std::source_location loc) PF_NOEXCEPT {
-    (void)msg;
-    (void)loc;
+    (void) msg;
+    (void) loc;
   }
 };
 
 struct RequireFail_terminate {
   [[noreturn]] constexpr static void
   fail(const std::string_view msg, const std::source_location loc) PF_NOEXCEPT {
-    (void)msg;
-    (void)loc;
+    (void) msg;
+    (void) loc;
     std::terminate();
   }
 };
@@ -45,8 +46,7 @@ struct RequireFail_terminate {
 struct RequireFail_throw {
   [[noreturn]] constexpr static void
   fail(const std::string_view msg, const std::source_location loc) {
-    throw RequireFail{.msg = msg,
-                      .loc = loc};
+    throw RequireFail{.msg = msg, .loc = loc};
   }
 };
 
@@ -60,12 +60,12 @@ struct RequireFailInfo {
 };
 
 /**@brief this uses a small circular logging buffer
-  */
+ */
 struct RequireFail_logContinue {
   static void
   fail(std::string_view msg, std::source_location loc) PF_NOEXCEPT;
 
-  [[nodiscard]] static std::size_t 
+  [[nodiscard]] static std::size_t
   currentIdx() PF_NOEXCEPT;
 
   [[nodiscard]] static std::span<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE>
@@ -80,14 +80,14 @@ struct RequireFail_logTerminate {
   [[noreturn]] static void
   fail(std::string_view msg, std::source_location loc);
 
-  const RequireFailInfo& 
+  const RequireFailInfo&
   failInfo() PF_NOEXCEPT;
 
 private:
   static RequireFailInfo m_failInfo;
 };
 
-template<RequireFailHandler_c RequireFail_policy = RequireFail_terminate>
+template <RequireFailHandler_c RequireFail_policy = RequireFail_terminate>
 constexpr void
 require(const bool expr,
         const std::string_view msg = {},

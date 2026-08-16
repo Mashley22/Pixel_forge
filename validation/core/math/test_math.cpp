@@ -8,7 +8,7 @@ namespace pf {
 
 namespace math {
 
-TEST_CASE( "isPowerOfTwo", "[core][math]" ) {
+TEST_CASE("isPowerOfTwo", "[core][math]") {
 
   STATIC_REQUIRE(isPowerOfTwo<std::uint64_t>(1));
 
