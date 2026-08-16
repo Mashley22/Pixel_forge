@@ -41,6 +41,7 @@ public:
   struct DeferClear {
     ~DeferClear() noexcept {
       s_opLogs.clear();
+      s_counter = 0;
     }
   };
 
