@@ -17,6 +17,7 @@ function(add_core_unit_test TEST_NAME)
 endfunction()
 
 add_subdirectory(require)
+add_subdirectory(errors)
 add_subdirectory(meta)
 add_subdirectory(math)
 add_subdirectory(utils)

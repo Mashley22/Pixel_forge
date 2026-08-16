@@ -84,7 +84,7 @@ struct ErrPolicy_nothing<void> {
   static constexpr return_type
   fail(V_args... args) PF_NOEXCEPT {
     ((void) args, ...);
-    return_type{};
+    return;
   }
 };
 
