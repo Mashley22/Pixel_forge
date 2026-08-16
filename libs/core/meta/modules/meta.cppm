@@ -1,6 +1,6 @@
-export module PixelForge.core.meta;
+export module PixelForge.core:meta;
 
-export import PixelForge.core.meta.enumBits;
-export import PixelForge.core.meta.concatStrings;
-export import PixelForge.core.meta.strToInt;
-export import PixelForge.core.meta.intToStr;
+export import :meta.enumBits;
+export import :meta.concatStrings;
+export import :meta.strToInt;
+export import :meta.intToStr;

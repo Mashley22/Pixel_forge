@@ -1,4 +1,4 @@
-import PixelForge.core.meta;
+import PixelForge.core;
 
 #include <array>
 #include <string_view>

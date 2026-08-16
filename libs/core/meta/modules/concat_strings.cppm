@@ -2,7 +2,7 @@ module;
 
 #include <string_view>
 
-export module PixelForge.core.meta.concatStrings;
+export module PixelForge.core:meta.concatStrings;
 
 namespace pf {
 

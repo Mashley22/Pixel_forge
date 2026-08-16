@@ -4,7 +4,7 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.core.meta.enumBits; // doesnt like being called .enum
+export module PixelForge.core:meta.enumBits; // doesnt like being called .enum
 
 namespace pf {
 

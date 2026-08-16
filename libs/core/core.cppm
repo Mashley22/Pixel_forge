@@ -6,4 +6,4 @@ export import PixelForge.core.exception;
 export import PixelForge.core.errPolicy;
 export import PixelForge.core.utils;
 export import PixelForge.core.strcpy;
-export import PixelForge.core.meta;
+export import :meta;

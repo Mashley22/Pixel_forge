@@ -3,7 +3,7 @@ module;
 #include <concepts>
 #include <string_view>
 
-export module PixelForge.core.meta.strToInt;
+export module PixelForge.core:meta.strToInt;
 
 import PixelForge.core.utils.charEncoding;
 
