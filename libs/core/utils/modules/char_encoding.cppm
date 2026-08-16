@@ -4,9 +4,9 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.core.utils.charEncoding;
+export module PixelForge.core:utils.charEncoding;
 
-import PixelForge.core.exception;
+import :errors.exception;
 
 namespace pf {
 

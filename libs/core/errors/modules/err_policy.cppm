@@ -4,7 +4,7 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.core.errPolicy;
+export module PixelForge.core:errors.errPolicy;
 
 import PixelForge.core.require;
 

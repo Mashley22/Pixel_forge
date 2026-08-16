@@ -5,7 +5,7 @@ module;
 
 export module PixelForge.core:meta.strToInt;
 
-import PixelForge.core.utils.charEncoding;
+import :utils.charEncoding;
 
 namespace pf {
 

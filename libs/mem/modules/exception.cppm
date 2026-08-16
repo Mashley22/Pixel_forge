@@ -6,7 +6,7 @@ module;
 
 export module PixelForge.mem.exception;
 
-import PixelForge.core.exception;
+import PixelForge.core;
 
 namespace pf {
 

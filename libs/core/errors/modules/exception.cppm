@@ -4,7 +4,7 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.core.exception;
+export module PixelForge.core:errors.exception;
 
 import PixelForge.core.require;
 

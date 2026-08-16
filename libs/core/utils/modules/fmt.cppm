@@ -5,7 +5,7 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.core.utils.fmt;
+export module PixelForge.core:utils.fmt;
 import PixelForge.core.require;
 
 namespace pf {
