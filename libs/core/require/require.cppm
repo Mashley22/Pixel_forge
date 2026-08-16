@@ -8,7 +8,7 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.core.require;
+export module PixelForge.core:require;
 
 export namespace pf {
 

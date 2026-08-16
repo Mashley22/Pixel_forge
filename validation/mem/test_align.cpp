@@ -1,5 +1,5 @@
 import PixelForge.mem;
-import PixelForge.core.require;
+import PixelForge.core;
 
 #include <cstddef>
 

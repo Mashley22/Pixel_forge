@@ -7,7 +7,7 @@ module;
 
 export module PixelForge.core:strcpy;
 
-import PixelForge.core.require;
+import :require;
 
 namespace pf {
 

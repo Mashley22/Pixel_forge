@@ -7,7 +7,7 @@ module;
 
 module PixelForge.mem.memzero;
 
-import PixelForge.core.require;
+import PixelForge.core;
 
 namespace pf {
 

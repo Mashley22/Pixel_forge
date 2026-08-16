@@ -1,6 +1,6 @@
 import PixelForge.mem.memzero;
 
-import PixelForge.core.require;
+import PixelForge.core;
 
 #include <catch2/catch_test_macros.hpp>
 

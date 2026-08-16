@@ -6,7 +6,7 @@ module;
 
 export module PixelForge.core:errors.errPolicy;
 
-import PixelForge.core.require;
+import :require;
 
 export namespace pf {
 

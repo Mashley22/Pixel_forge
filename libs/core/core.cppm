@@ -1,6 +1,6 @@
 export module PixelForge.core;
 
-export import PixelForge.core.require;
+export import :require;
 export import :math;
 export import :errors;
 export import :utils;
