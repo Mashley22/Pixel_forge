@@ -2,9 +2,11 @@
 
 #include <cstring>
 
-#define SECRET_LEN 64
-#define BUFFER_SIZE 256
-#define SECRET_OFFSET 128
+enum {
+SECRET_LEN = 64,
+BUFFER_SIZE = 256,
+SECRET_OFFSET = 128
+};
 
 #ifndef BUILD_OPTS
 #define BUILD_OPTS

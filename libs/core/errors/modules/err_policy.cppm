@@ -73,13 +73,13 @@ struct ErrPolicy_nothing<void> {
   using return_type = void;
 
   static constexpr void
-  success(void) PF_NOEXCEPT {};
+  success() PF_NOEXCEPT {};
 
   template<class... V_args>
   static constexpr return_type
   fail(V_args... args) PF_NOEXCEPT {
     ((void)args, ...);
-    return return_type{};
+    return_type{};
   }
 };
 
@@ -115,7 +115,7 @@ struct ErrPolicy_optional<void> {
   using return_type = bool;
 
   [[nodiscard]] static constexpr return_type
-  success(void) PF_NOEXCEPT {
+  success() PF_NOEXCEPT {
     return true;
   };
 
@@ -155,7 +155,7 @@ struct ErrPolicy_throws<void, T_exception> {
   using return_type = void;
   
   static constexpr return_type
-  success(void) PF_NOEXCEPT {}
+  success() PF_NOEXCEPT {}
   
   template<class... V_args>
   static constexpr return_type

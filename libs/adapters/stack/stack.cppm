@@ -46,7 +46,7 @@ public:
 
   PF_ADAPTERS_INHERIT_TRAITS(Traits);
 
-  constexpr Stack(void) PF_NOEXCEPT = default;
+  constexpr Stack() PF_NOEXCEPT = default;
 
   constexpr
   Stack(T* pBuf, size_type capacity) PF_NOEXCEPT 
@@ -61,40 +61,40 @@ public:
   }
 
   [[nodiscard]] constexpr const T* 
-  data(void) const PF_NOEXCEPT {
+  data() const PF_NOEXCEPT {
     return m_data;
   }
 
   [[nodiscard]] constexpr const T*
-  end(void) const PF_NOEXCEPT {
+  end() const PF_NOEXCEPT {
     return m_end;
   }
 
   [[nodiscard]] constexpr size_type
-  size(void) const PF_NOEXCEPT {
+  size() const PF_NOEXCEPT {
     [[assume(m_top >= m_data)]];
     return static_cast<size_type>(m_top - m_data);
   }
 
   [[nodiscard]] constexpr size_type
-  capacity(void) const PF_NOEXCEPT {
+  capacity() const PF_NOEXCEPT {
     [[assume(m_end > m_data)]];
     return static_cast<size_type>(m_end - m_data);
   }
 
   [[nodiscard]] constexpr size_type
-  remaining(void) const PF_NOEXCEPT {
+  remaining() const PF_NOEXCEPT {
     [[assume(m_end >= m_top)]];
     return static_cast<size_type>(m_end - m_top);
   }
 
   [[nodiscard]] constexpr bool
-  full(void) const PF_NOEXCEPT {
+  full() const PF_NOEXCEPT {
     return size() == capacity();
   }
 
   [[nodiscard]] constexpr bool
-  empty(void) const PF_NOEXCEPT {
+  empty() const PF_NOEXCEPT {
     return size() == 0;
   }
 
@@ -149,7 +149,7 @@ public:
   requires ErrPolicy_c<T_ErrPolicy, T> &&
   requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
   constexpr T_ErrPolicy::return_type
-  pop(void) PF_NOEXCEPT_COND(Traits::is_nothrow_move_v || T_ErrPolicy::is_noexcept) {
+  pop() PF_NOEXCEPT_COND(Traits::is_nothrow_move_v || T_ErrPolicy::is_noexcept) {
     if (empty()) {
       return T_ErrPolicy::fail();
     }
@@ -161,12 +161,12 @@ public:
   }
 
   constexpr ErrPolicy_optional<T>::return_type
-  try_pop(void) NOEXCEPT_MOVE {
+  try_pop() NOEXCEPT_MOVE {
     return pop<ErrPolicy_optional<T>>();
   }
 
   constexpr ErrPolicy_nothing<T>::return_type
-  pop_unchecked(void) NOEXCEPT_MOVE {
+  pop_unchecked() NOEXCEPT_MOVE {
     return pop<ErrPolicy_nothing<T>>();
   }
 
@@ -209,7 +209,7 @@ private:
   T* m_end{nullptr};
 
   [[nodiscard]] constexpr bool
-  valid_init_(void) const PF_NOEXCEPT {
+  valid_init_() const PF_NOEXCEPT {
     return m_data != nullptr &&
            (reinterpret_cast<std::uintptr_t>(m_data) % alignof(T)) == 0;
   }

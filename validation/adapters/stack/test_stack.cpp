@@ -8,7 +8,9 @@ import PixelForge.adapters.stack;
 
 import PixelForge.validation_helpers;
 
-#define BUF_SIZE 128
+enum {
+BUF_SIZE = 128
+};
 
 namespace pf::adapters {
 
@@ -25,14 +27,14 @@ TEST_CASE( "Stack basic" , "[adapters][Stack]" ) {
   Stack<std::uint32_t> stack(buf, BUF_SIZE);
 
   SECTION( "buffer untouched" ) {
-    for (std::size_t i = 0; i < BUF_SIZE; i++) {
-      REQUIRE(buf[i] == std::uint32_t{});
+    for (unsigned int i : buf) {
+      REQUIRE(i == std::uint32_t{});
     }
   }
 
   SECTION( "basic properties" ) {
     REQUIRE(stack.capacity() == BUF_SIZE);
-    REQUIRE(stack.size() == 0);
+    REQUIRE(stack.empty());
     REQUIRE(stack.empty());
     REQUIRE(!stack.full());
     REQUIRE(stack.data() == buf);
@@ -77,7 +79,7 @@ TEST_CASE( "Stack basic" , "[adapters][Stack]" ) {
     }
 
     REQUIRE(stack.empty());
-    REQUIRE(stack.size() == 0);
+    REQUIRE(stack.empty());
     REQUIRE(stack.remaining() == BUF_SIZE);
     REQUIRE(!stack.try_pop());
   }

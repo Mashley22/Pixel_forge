@@ -24,7 +24,7 @@ Flag(T_Bit_t bit) PF_NOEXCEPT
 [[nodiscard]] 
 constexpr 
 underlying_t
-val(void) const PF_NOEXCEPT {
+val() const PF_NOEXCEPT {
   return m_val;
 }
 

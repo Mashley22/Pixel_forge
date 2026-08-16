@@ -27,13 +27,13 @@ private:
 
 public:
   
-  Exception(void) PF_NOEXCEPT = delete;
+  Exception() PF_NOEXCEPT = delete;
   constexpr Exception(const Exception&) PF_NOEXCEPT = default;
   constexpr explicit Exception(const std::string_view& str) PF_NOEXCEPT { strcpy(m_msgBuf, str); }
   constexpr explicit Exception(const char * str) PF_NOEXCEPT { strcpy(m_msgBuf, {str, m_msgBuf.size()}); }
   constexpr explicit Exception(const std::exception& error) PF_NOEXCEPT { strcpy(m_msgBuf, {error.what(), m_msgBuf.size()}); }
 
-  constexpr const char* what(void) const PF_NOEXCEPT { return m_msgBuf.data(); }
+  constexpr const char* what() const PF_NOEXCEPT { return m_msgBuf.data(); }
 };
 
 std::array<char, Exception::msgBufSize> Exception::m_msgBuf = {};

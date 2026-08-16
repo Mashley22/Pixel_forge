@@ -12,10 +12,10 @@ AlignmentError::AlignmentError(std::size_t requestedAlignment, std::size_t minAl
   : Exception(what_arg), m_requestedAlignment(requestedAlignment), m_minAlignment(minAlignment) {}
 
 std::size_t
-AlignmentError::requestedAlignment(void) const PF_NOEXCEPT { return m_minAlignment; }
+AlignmentError::requestedAlignment() const PF_NOEXCEPT { return m_minAlignment; }
 
 std::size_t
-AlignmentError::minAlignmnet(void) const PF_NOEXCEPT { return m_minAlignment; }
+AlignmentError::minAlignmnet() const PF_NOEXCEPT { return m_minAlignment; }
 
 OOMError::OOMError(std::size_t requested, 
                    std::size_t needed,
@@ -24,19 +24,19 @@ OOMError::OOMError(std::size_t requested,
   
 [[nodiscard]]
 std::size_t
-OOMError::requested(void) const PF_NOEXCEPT {
+OOMError::requested() const PF_NOEXCEPT {
   return m_requested;
 }
 
 [[nodiscard]]
 std::size_t 
-OOMError::needed(void) const PF_NOEXCEPT {
+OOMError::needed() const PF_NOEXCEPT {
   return m_needed;
 }
 
 [[nodiscard]]
 std::size_t 
-OOMError::available(void) const PF_NOEXCEPT {
+OOMError::available() const PF_NOEXCEPT {
   return m_available;
 }
 

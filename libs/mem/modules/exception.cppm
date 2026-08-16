@@ -20,11 +20,11 @@ public:
 
   [[nodiscard]]
   std::size_t
-  requestedAlignment(void) const PF_NOEXCEPT;
+  requestedAlignment() const PF_NOEXCEPT;
 
   [[nodiscard]]
   std::size_t
-  minAlignmnet(void) const PF_NOEXCEPT;
+  minAlignmnet() const PF_NOEXCEPT;
 
 private:
   const std::size_t m_requestedAlignment;
@@ -43,15 +43,15 @@ public:
   
   [[nodiscard]]
   std::size_t
-  requested(void) const PF_NOEXCEPT;
+  requested() const PF_NOEXCEPT;
 
   [[nodiscard]]
   std::size_t 
-  needed(void) const PF_NOEXCEPT;
+  needed() const PF_NOEXCEPT;
 
   [[nodiscard]]
   std::size_t 
-  available(void) const PF_NOEXCEPT;
+  available() const PF_NOEXCEPT;
 
 private:
   const std::size_t m_requested;
