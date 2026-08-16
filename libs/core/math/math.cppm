@@ -4,7 +4,7 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.core.math;
+export module PixelForge.core:math;
 
 import PixelForge.core.require;
 

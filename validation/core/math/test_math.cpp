@@ -1,4 +1,4 @@
-import PixelForge.core.math;
+import PixelForge.core;
 
 #include <cstdint>
 

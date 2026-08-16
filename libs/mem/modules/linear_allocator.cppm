@@ -8,7 +8,7 @@ export module PixelForge.mem.linearAllocator;
 
 import PixelForge.mem.exception;
 import PixelForge.mem.align;
-import PixelForge.core.math;
+import PixelForge.core;
 
 namespace pf {
 

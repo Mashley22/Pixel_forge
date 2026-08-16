@@ -7,8 +7,7 @@ module;
 
 export module PixelForge.mem.align;
 
-import PixelForge.core.require;
-import PixelForge.core.math;
+import PixelForge.core;
 
 namespace pf {
 
