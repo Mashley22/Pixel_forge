@@ -65,7 +65,7 @@ public:
   }
 
   constexpr 
-  ~RingQueue(void) PF_NOEXCEPT {
+  ~RingQueue() PF_NOEXCEPT {
     clear();
   }
   
@@ -98,57 +98,57 @@ public:
   }
 
   [[nodiscard]] constexpr pointer
-  data(void) PF_NOEXCEPT {
+  data() PF_NOEXCEPT {
     return m_data;
   }
 
   [[nodiscard]] constexpr const_pointer
-  data(void) const PF_NOEXCEPT {
+  data() const PF_NOEXCEPT {
     return m_data;
   }
 
   [[nodiscard]] constexpr size_type
-  capacity(void) const PF_NOEXCEPT {
+  capacity() const PF_NOEXCEPT {
     return m_capMask + 1;
   }
 
   [[nodiscard]] constexpr size_type
-  size(void) const PF_NOEXCEPT {
+  size() const PF_NOEXCEPT {
     return m_back - m_front;
   }
 
   [[nodiscard]] constexpr size_type
-  remaining(void) const PF_NOEXCEPT {
+  remaining() const PF_NOEXCEPT {
     return capacity() - size();
   }
 
   [[nodiscard]] constexpr bool
-  empty(void) const PF_NOEXCEPT {
+  empty() const PF_NOEXCEPT {
     return size() == 0;
   }
 
   [[nodiscard]] constexpr bool
-  full(void) const PF_NOEXCEPT {
+  full() const PF_NOEXCEPT {
     return size() >= capacity();
   }
 
   [[nodiscard]] constexpr reference
-  front(void) PF_NOEXCEPT {
+  front() PF_NOEXCEPT {
     return m_data[m_front & m_capMask];
   }
 
   [[nodiscard]] constexpr const_reference
-  front(void) const PF_NOEXCEPT {
+  front() const PF_NOEXCEPT {
     return m_data[m_front & m_capMask];
   }
   
   [[nodiscard]] constexpr reference
-  back(void) PF_NOEXCEPT {
+  back() PF_NOEXCEPT {
     return m_data[(m_back - 1) & m_capMask]; 
   }
 
   [[nodiscard]] constexpr const_reference
-  back(void) const PF_NOEXCEPT {
+  back() const PF_NOEXCEPT {
     return m_data[(m_back - 1) & m_capMask];
   }
 
@@ -312,7 +312,7 @@ public:
    *
   */
   constexpr T
-  pop_unchecked(void) PF_NOEXCEPT {
+  pop_unchecked() PF_NOEXCEPT {
     return pop<ErrPolicy_nothing<T>>();
   }
 
@@ -323,7 +323,7 @@ public:
    *
   */
   [[nodiscard]] constexpr std::optional<T>
-  try_pop(void) PF_NOEXCEPT {
+  try_pop() PF_NOEXCEPT {
     return pop<ErrPolicy_optional<T>>();
   }
 
@@ -335,7 +335,7 @@ public:
   requires ErrPolicy_c<T_ErrPolicy, T> &&
   requires { { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>; }
   constexpr T_ErrPolicy::return_type
-  pop(void) PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept || Traits::is_nothrow_move_v) {
+  pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept || Traits::is_nothrow_move_v) {
     if (empty()) {
       return T_ErrPolicy::fail();
     }
@@ -378,7 +378,7 @@ public:
   }
   
   constexpr void
-  clear(void) PF_NOEXCEPT {
+  clear() PF_NOEXCEPT {
     size_type num_to_destroy = size();
     for (size_type i = 0; i < num_to_destroy; i++) { // abit safer than using the while(!empty())
       std::destroy_at(&front());
@@ -395,7 +395,7 @@ private:
   // Both indices are incremented forever and only when accesses they are applied against the mask
   
   [[nodiscard]] constexpr bool
-  valid_init_(void) const PF_NOEXCEPT {
+  valid_init_() const PF_NOEXCEPT {
     return m_front == m_back &&
            m_capMask > 0 &&
            m_data != nullptr &&

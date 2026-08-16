@@ -7,7 +7,9 @@ import PixelForge.adapters.ringQueue;
 
 import PixelForge.validation_helpers;
 
-#define BUF_SIZE 128
+enum {
+BUF_SIZE = 128
+};
 
 namespace pf::adapters {
 
@@ -24,14 +26,14 @@ TEST_CASE( "RingQueue basic" , "[adapters][RingQueue]" ) {
   RingQueue<std::uint32_t> queue(buf, BUF_SIZE);
 
   SECTION( "buffer untouched" ) {
-    for (std::size_t i = 0; i < BUF_SIZE; i++) {
-      REQUIRE(buf[i] == std::uint32_t{});
+    for (unsigned int i : buf) {
+      REQUIRE(i == std::uint32_t{});
     }
   }
 
   SECTION( "basic properties" ) {
     REQUIRE(queue.capacity() == BUF_SIZE);
-    REQUIRE(queue.size() == 0);
+    REQUIRE(queue.empty());
     REQUIRE(queue.empty());
     REQUIRE(!queue.full());
     REQUIRE(queue.data() == buf);
@@ -74,7 +76,7 @@ TEST_CASE( "RingQueue basic" , "[adapters][RingQueue]" ) {
     }
 
     REQUIRE(queue.empty());
-    REQUIRE(queue.size() == 0);
+    REQUIRE(queue.empty());
     REQUIRE(queue.remaining() == BUF_SIZE);
     REQUIRE(!queue.try_pop());
   }

@@ -28,13 +28,13 @@ public:
   };
 
   static const std::unordered_map<const LifeTimeTracker*, std::vector<OpInfo>>&
-  opLogs(void) { return s_opLogs; }
+  opLogs() { return s_opLogs; }
 
   static void
-  clearOpLogs(void) { s_opLogs.clear(); }
+  clearOpLogs() { s_opLogs.clear(); }
 
   struct DeferClear {
-    ~DeferClear(void) noexcept {
+    ~DeferClear() noexcept {
       s_opLogs.clear();
     }
   };
@@ -43,15 +43,15 @@ public:
     log_(OpType::DEFAULT_CONSTRUCT);
   }
 
-  LifeTimeTracker(int) : m_id(s_counter++) {
+  LifeTimeTracker(int /*unused*/) : m_id(s_counter++) {
     log_(OpType::CONSTRUCT);
   } 
 
-  LifeTimeTracker(LifeTimeTracker&&) : m_id(s_counter++) {
+  LifeTimeTracker(LifeTimeTracker&& /*unused*/) : m_id(s_counter++) {
     log_(OpType::MOVE_CONSTRUCT);
   }
 
-  LifeTimeTracker(LifeTimeTracker&) : m_id(s_counter++) {
+  LifeTimeTracker(LifeTimeTracker& /*unused*/) : m_id(s_counter++) {
     log_(OpType::COPY_CONSTRUCT);
   }
 

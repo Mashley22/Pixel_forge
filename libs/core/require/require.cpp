@@ -31,17 +31,17 @@ RequireFail_logTerminate::fail(const std::string_view msg,
 }
 
 const RequireFailInfo&
-RequireFail_logTerminate::failInfo(void) PF_NOEXCEPT {
+RequireFail_logTerminate::failInfo() PF_NOEXCEPT {
   return m_failInfo;
 }
 
 std::size_t
-RequireFail_logContinue::currentIdx(void) PF_NOEXCEPT {
+RequireFail_logContinue::currentIdx() PF_NOEXCEPT {
   return m_currentIdx;
 }
 
 std::span<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE>
-RequireFail_logContinue::failInfos(void) PF_NOEXCEPT {
+RequireFail_logContinue::failInfos() PF_NOEXCEPT {
   return m_failInfos;
 }
 

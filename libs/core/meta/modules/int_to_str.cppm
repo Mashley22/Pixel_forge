@@ -26,7 +26,7 @@ private:
 [[nodiscard]]
 static consteval
 std::size_t
-digits(void) {
+digits() {
   std::size_t digitCount = 1;
   T val = T_val;
   
@@ -40,14 +40,14 @@ digits(void) {
 [[nodiscard]]
 static consteval
 std::size_t
-len(void) {
+len() {
   return digits() + 1;
 }
 
 [[nodiscard]]
 static consteval
 T
-maxBaseScale(void) {
+maxBaseScale() {
   T val = T_base;
   while (static_cast<T>(val * T_base) < T_val) {
     val *= T_base;
@@ -59,7 +59,7 @@ maxBaseScale(void) {
 [[nodiscard]]
 static consteval
 std::array<char, len()>
-impl(void) {
+impl() {
   std::array<char, len()> retVal{};
   T val = T_val;
   T scale = maxBaseScale();
@@ -85,17 +85,17 @@ arr = impl();
 [[nodiscard]]
 static consteval
 std::string_view
-sv(void) { return {arr.data(), arr.size() - 1}; }
+sv() { return {arr.data(), arr.size() - 1}; }
 
 [[nodiscard]]
 static consteval
 const char *
-c_str(void) { return arr.data(); }
+c_str() { return arr.data(); }
 
 [[nodiscard]]
 static consteval
 std::string_view
-str(void) { return {arr.data(), arr.size() - 1}; }
+str() { return {arr.data(), arr.size() - 1}; }
 
 };
 
@@ -115,7 +115,7 @@ static constexpr auto UintArr = UintToStr<unsigned_t, static_cast<unsigned_t>(T_
 
 [[nodiscard]]
 static consteval
-std::size_t len(void) {
+std::size_t len() {
   if constexpr (T_val > 0) {
     return UintArr.size();
   }
@@ -125,7 +125,7 @@ std::size_t len(void) {
 [[nodiscard]]
 static consteval
 std::array<char, len()>
-impl(void) {
+impl() {
   std::array<char, len()> retVal;
   if constexpr (T_val > 0) {
     std::copy(UintArr.begin(), UintArr.end(), retVal.begin());
@@ -146,12 +146,12 @@ arr = impl();
 [[nodiscard]]
 static consteval
 std::string_view
-sv(void) { return {arr.data(), arr.size() - 1}; }
+sv() { return {arr.data(), arr.size() - 1}; }
 
 [[nodiscard]]
 static consteval
 const char *
-c_str(void) { return arr.data(); }
+c_str() { return arr.data(); }
 
 };
 

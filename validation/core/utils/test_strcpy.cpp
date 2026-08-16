@@ -128,21 +128,21 @@ TEST_CASE("strcpy: Buffer overflow protection", "[core][utils][strcpy]") {
     );
 
     REQUIRE(result == 1);
-    REQUIRE(std::string(dest) == "");
+    REQUIRE(std::string(dest).empty());
   }
 }
 
 TEST_CASE("strcpy: Empty source", "[core][utils][strcpy]") {
   SECTION("Empty string_view") {
     char dest[10] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
-    std::string_view empty_view = "";
+    std::string_view empty_view;
 
     REQUIRE(strcpy(
       std::span<char>{dest, 10},
       empty_view
     ) == 1);
 
-    REQUIRE(std::string(dest) == "");
+    REQUIRE(std::string(dest).empty());
     for (std::size_t i = 1; i < 10; ++i) {
       REQUIRE(dest[i] == 'X');
     }
@@ -150,7 +150,7 @@ TEST_CASE("strcpy: Empty source", "[core][utils][strcpy]") {
 
   SECTION("Empty string_view with small buffer") {
     char dest[5] = {'X', 'X', 'X', 'X', 'X'};
-    std::string_view empty_view = "";
+    std::string_view empty_view;
 
     auto result = strcpy(
       std::span<char>{dest, 5},
@@ -158,7 +158,7 @@ TEST_CASE("strcpy: Empty source", "[core][utils][strcpy]") {
     );
 
     REQUIRE(result == 1);
-    REQUIRE(std::string(dest) == "");
+    REQUIRE(std::string(dest).empty());
     for (std::size_t i = 1; i < 5; ++i) {
       REQUIRE(dest[i] == 'X');
     }

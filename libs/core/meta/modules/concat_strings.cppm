@@ -20,14 +20,14 @@ private:
 [[nodiscard]]
 static consteval
 std::size_t
-total_len(void) { // including null terminator
+total_len() { // including null terminator
   return (V_strs.size() + ...) + 1;
 }
 
 [[nodiscard]]
 static consteval 
 std::array<char, total_len()>
-impl(void) {
+impl() {
   std::array<char, total_len()> retVal{};
   std::size_t pos = 0;
 
@@ -49,15 +49,15 @@ std::array<char, total_len()> arr = impl();
 
 [[nodiscard]]
 static consteval
-std::string_view sv(void) { return {arr.data(), arr.size() - 1}; }
+std::string_view sv() { return {arr.data(), arr.size() - 1}; }
 
 [[nodiscard]]
 static consteval
-std::string_view str(void) { return {arr.data(), arr.size() - 1}; }
+std::string_view str() { return {arr.data(), arr.size() - 1}; }
 
 [[nodiscard]]
 static consteval
-const char* c_str(void) noexcept { return arr.data(); }
+const char* c_str() noexcept { return arr.data(); }
 
 };
 

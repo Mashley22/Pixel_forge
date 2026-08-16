@@ -3,7 +3,9 @@
 
 import PixelForge.core;
 
-#define BUF_SIZE 64
+enum {
+BUF_SIZE = 64
+};
 
 namespace pf {
 

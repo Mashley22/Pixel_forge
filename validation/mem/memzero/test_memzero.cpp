@@ -4,8 +4,10 @@ import PixelForge.core;
 
 #include <catch2/catch_test_macros.hpp>
 
-#define NON_ZERO_VALUE 8
-#define TEST_ARR_LEN 1000
+enum {
+NON_ZERO_VALUE = 8,
+TEST_ARR_LEN = 1000
+};
 
 static_assert(NON_ZERO_VALUE != 0);
 
@@ -28,8 +30,8 @@ TEST_CASE( "memzero", "[core][mem]" ) {
 
     memzero(arr, TEST_ARR_LEN * sizeof(NotZeroByte));
 
-    for (std::size_t i = 0; i < TEST_ARR_LEN; i++) {
-      REQUIRE(arr[i].data == std::byte{0});
+    for (auto & i : arr) {
+      REQUIRE(i.data == std::byte{0});
     }
   } 
 
@@ -47,8 +49,8 @@ TEST_CASE( "memzero_explicit_basic", "[core][mem]" ) {
 
     memzero_explicit(arr, TEST_ARR_LEN * sizeof(NotZeroByte));
 
-    for (std::size_t i = 0; i < TEST_ARR_LEN; i++) {
-      REQUIRE(arr[i].data == std::byte{0});
+    for (auto & i : arr) {
+      REQUIRE(i.data == std::byte{0});
     }
   } 
 

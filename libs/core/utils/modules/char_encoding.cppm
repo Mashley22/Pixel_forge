@@ -19,7 +19,7 @@ public:
     : Exception(what_arg), m_chr(chr) {}
 
   [[nodiscard]] constexpr char
-  inputChar(void) const PF_NOEXCEPT {
+  inputChar() const PF_NOEXCEPT {
     return m_chr;
   }
 
@@ -36,7 +36,7 @@ public:
     : Exception(what_arg), m_val(val) {}
 
   [[nodiscard]] constexpr int
-  inputVal(void) const PF_NOEXCEPT {
+  inputVal() const PF_NOEXCEPT {
     return m_val;
   }
 

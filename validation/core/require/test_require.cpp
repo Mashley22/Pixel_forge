@@ -10,7 +10,7 @@ namespace pf {
 namespace {
 
 void
-M_testRequireInfos(void) {
+M_testRequireInfos() {
   std::string_view msg = "funny message here";
   try {
     require(false, msg);

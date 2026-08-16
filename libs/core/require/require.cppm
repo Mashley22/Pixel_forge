@@ -56,20 +56,20 @@ struct RequireFailInfo {
   std::time_t time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
   [[nodiscard]] bool
-  empty(void) PF_NOEXCEPT;
+  empty() PF_NOEXCEPT;
 };
 
 /**@brief this uses a small circular logging buffer
   */
 struct RequireFail_logContinue {
   static void
-  fail(const std::string_view msg, const std::source_location loc) PF_NOEXCEPT;
+  fail(std::string_view msg, std::source_location loc) PF_NOEXCEPT;
 
   [[nodiscard]] static std::size_t 
-  currentIdx(void) PF_NOEXCEPT;
+  currentIdx() PF_NOEXCEPT;
 
   [[nodiscard]] static std::span<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE>
-  failInfos(void) PF_NOEXCEPT;
+  failInfos() PF_NOEXCEPT;
 
 private:
   static std::array<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE> m_failInfos;
@@ -78,10 +78,10 @@ private:
 
 struct RequireFail_logTerminate {
   [[noreturn]] static void
-  fail(const std::string_view msg, const std::source_location loc);
+  fail(std::string_view msg, std::source_location loc);
 
   const RequireFailInfo& 
-  failInfo(void) PF_NOEXCEPT;
+  failInfo() PF_NOEXCEPT;
 
 private:
   static RequireFailInfo m_failInfo;

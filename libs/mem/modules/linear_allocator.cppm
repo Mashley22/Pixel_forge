@@ -30,18 +30,18 @@ public:
 
   [[nodiscard]] constexpr
   std::size_t
-  cacpacity(void) const PF_NOEXCEPT { return m_capacity; }
+  cacpacity() const PF_NOEXCEPT { return m_capacity; }
 
   [[nodiscard]] constexpr 
   std::size_t
-  remaining(void) const PF_NOEXCEPT { return m_capacity - used(); }
+  remaining() const PF_NOEXCEPT { return m_capacity - used(); }
 
   [[nodiscard]] constexpr
   std::size_t
-  used(void) const PF_NOEXCEPT { return static_cast<std::size_t>(m_current - m_start); }
+  used() const PF_NOEXCEPT { return static_cast<std::size_t>(m_current - m_start); }
 
   void constexpr 
-  clear(void) PF_NOEXCEPT { m_current = 0; }
+  clear() PF_NOEXCEPT { m_current = nullptr; }
 
 protected:
   

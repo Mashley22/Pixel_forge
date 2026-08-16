@@ -5,7 +5,9 @@ import PixelForge.core;
 
 #include <catch2/catch_test_macros.hpp>
 
-#define TEST_VALS_NUM 3
+enum {
+TEST_VALS_NUM = 3
+};
 
 namespace pf {
 
@@ -37,7 +39,7 @@ template<
 [[nodiscard]]
 consteval
 bool 
-intToStrSuccessful(void) {
+intToStrSuccessful() {
   if (!intToStrSuccessful<T_idx - 1>()) {
     return false;
   }
@@ -49,7 +51,7 @@ template<>
 [[nodiscard]]
 consteval
 bool 
-intToStrSuccessful<0>(void) {
+intToStrSuccessful<0>() {
   return IntToStr<int, testInts[0]>::sv() == testStrs[0];
 }
 
