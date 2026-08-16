@@ -1,10 +1,13 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <ranges>
+#include <vector>
 
 #include <catch2/catch_test_macros.hpp>
 
 import PixelForge.adapters.ringQueue;
+import PixelForge.adapters.utils.traits;
 
 import PixelForge.validation_helpers;
 
@@ -19,6 +22,42 @@ pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_bu
 
 pf_vh::LifeTimeTrackerStorage M_buf2[BUF_SIZE];
 pf_vh::LifeTimeTracker* M_p_buf2 = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf2);
+
+struct M_UnsizedInputRange {
+  struct iterator {
+    using iterator_category = std::input_iterator_tag;
+    using value_type = std::uint32_t;
+    using difference_type = std::ptrdiff_t;
+    std::uint32_t v = 0;
+    iterator&
+    operator++() {
+      return *this;
+    }
+    iterator
+    operator++(int) {
+      return *this;
+    }
+    const std::uint32_t&
+    operator*() const {
+      return v;
+    }
+    bool
+    operator==(const iterator&) const = default;
+  };
+  iterator
+  begin() const {
+    return {};
+  }
+  iterator
+  end() const {
+    return {};
+  }
+};
+
+static_assert(std::ranges::input_range<M_UnsizedInputRange>);
+static_assert(!std::ranges::sized_range<M_UnsizedInputRange>);
+static_assert(!CompatibleInputRange_c<RingQueue<std::uint32_t>, M_UnsizedInputRange>);
+static_assert(CompatibleInputRange_c<RingQueue<std::uint32_t>, std::vector<std::uint32_t>>);
 
 }
 
@@ -244,6 +283,12 @@ TEST_CASE("RingQueue move assignment", "[adapters][RingQueue]") {
             pf_vh::LifeTimeTracker::OpType::DESTRUCT);
     REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf2[0]).size() == 1);
   }
+}
+
+TEST_CASE("RingQueue pow2 capacity validation", "[adapters][RingQueue]") {
+  std::uint32_t buf[BUF_SIZE]{};
+  REQUIRE_NOTHROW((RingQueue<std::uint32_t, true>(buf, BUF_SIZE)));
+  REQUIRE_THROWS((RingQueue<std::uint32_t, true>(buf, BUF_SIZE - 1)));
 }
 
 }

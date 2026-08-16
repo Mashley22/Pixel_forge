@@ -91,6 +91,7 @@ public:
 
   constexpr RingQueue&
   operator=(RingQueue&& other) PF_NOEXCEPT {
+    PF_REQUIRE(this != &other);
     std::swap(m_data, other.m_data);
     std::swap(m_capMask, other.m_capMask);
     std::swap(m_front, other.m_front);
@@ -138,22 +139,22 @@ public:
 
   [[nodiscard]] constexpr reference
   front() PF_NOEXCEPT {
-    return m_data[m_front & m_capMask];
+    return m_data[toIdx_(m_front)];
   }
 
   [[nodiscard]] constexpr const_reference
   front() const PF_NOEXCEPT {
-    return m_data[m_front & m_capMask];
+    return m_data[toIdx_(m_front)];
   }
 
   [[nodiscard]] constexpr reference
   back() PF_NOEXCEPT {
-    return m_data[(m_back - 1) & m_capMask];
+    return m_data[toIdx_(m_back - 1)];
   }
 
   [[nodiscard]] constexpr const_reference
   back() const PF_NOEXCEPT {
-    return m_data[(m_back - 1) & m_capMask];
+    return m_data[toIdx_(m_back - 1)];
   }
 
   /**
@@ -176,10 +177,8 @@ public:
       return T_ErrPolicy::fail();
     }
 
-    PF_REQUIRE(!full());
-
-    new (&m_data[m_back & m_capMask]) T(std::forward<V_args>(args)...);
-    pointer retVal = &m_data[m_back & m_capMask];
+    new (&m_data[toIdx_(m_back)]) T(std::forward<V_args>(args)...);
+    pointer retVal = &m_data[toIdx_(m_back)];
     m_back++;
 
     return T_ErrPolicy::success(retVal);
@@ -263,7 +262,7 @@ public:
   /**
    *@overload
    */
-  template <class T_ErrPolicy = ErrPolicy_nothing<void>>
+  template <class T_ErrPolicy = ErrPolicy_throws<void, FullError>>
     requires VoidErrPolicy_c<T_ErrPolicy> && requires {
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
@@ -407,13 +406,23 @@ private:
   size_type m_front;   // is such that m_data[m_front] is the front() element
   size_type m_back;    // is such that m_data[m_back] is the back() element
   // Both indices are incremented forever and only when accesses they are applied against the mask
+  //
+  [[nodiscard]] constexpr size_type
+  toIdx_(size_type num) const PF_NOEXCEPT {
+    if constexpr (T_capacityPowOf2Value) {
+      return num & m_capMask;
+    } else {
+      return num % capacity();
+    }
+  }
 
   [[nodiscard]] constexpr bool
   valid_init_() const PF_NOEXCEPT {
     return m_front == m_back && m_capMask > 0 && m_data != nullptr &&
            (reinterpret_cast<std::uintptr_t>(m_data) % alignof(T)) == 0 &&
-           m_front < m_capMask; // strictly speaking not 100% always required but is probably not
-                                // good if violated
+           m_front < m_capMask && // strictly speaking not 100% always required but is probably not
+                                  // good if violated
+           (!T_capacityPowOf2Value || ((capacity() & m_capMask) == 0));
   }
 };
 
