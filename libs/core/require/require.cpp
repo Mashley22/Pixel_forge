@@ -1,7 +1,7 @@
 module;
 
-#include <atomic>
 #include <exception>
+#include <limits>
 #include <source_location>
 #include <span>
 #include <string_view>
@@ -14,10 +14,11 @@ namespace pf {
 
 RequireFailInfo RequireFail_logTerminate::m_failInfo{};
 
-std::array<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE>
+thread_local std::array<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE>
   RequireFail_logContinue::m_failInfos{};
 
-std::atomic<std::size_t> RequireFail_logContinue::m_currentIdx = 0;
+thread_local std::size_t RequireFail_logContinue::m_currentIdx =
+  std::numeric_limits<std::size_t>::max();
 
 void
 RequireFail_logTerminate::fail(const std::string_view msg, const std::source_location loc) {
@@ -35,6 +36,16 @@ RequireFail_logContinue::currentIdx() PF_NOEXCEPT {
   return m_currentIdx;
 }
 
+const RequireFailInfo&
+RequireFail_logContinue::getLastError() PF_NOEXCEPT {
+  return m_failInfos[m_currentIdx % m_failInfos.size()];
+}
+
+bool
+RequireFailInfo::empty() const PF_NOEXCEPT {
+  return msg.empty();
+}
+
 std::span<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE>
 RequireFail_logContinue::failInfos() PF_NOEXCEPT {
   return m_failInfos;
@@ -43,7 +54,7 @@ RequireFail_logContinue::failInfos() PF_NOEXCEPT {
 void
 RequireFail_logContinue::fail(const std::string_view msg,
                               const std::source_location loc) PF_NOEXCEPT {
-  m_failInfos[m_currentIdx++] = {.msg = msg, .loc = loc};
+  m_failInfos[(++m_currentIdx) % m_failInfos.size()] = {.msg = msg, .loc = loc};
 }
 
 }

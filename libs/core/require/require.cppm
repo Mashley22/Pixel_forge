@@ -1,7 +1,6 @@
 module;
 
 #include <array>
-#include <atomic>
 #include <chrono>
 #include <source_location>
 #include <string_view>
@@ -56,7 +55,7 @@ struct RequireFailInfo {
   std::time_t time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
   [[nodiscard]] bool
-  empty() PF_NOEXCEPT;
+  empty() const PF_NOEXCEPT;
 };
 
 /**@brief this uses a small circular logging buffer
@@ -71,9 +70,12 @@ struct RequireFail_logContinue {
   [[nodiscard]] static std::span<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE>
   failInfos() PF_NOEXCEPT;
 
+  [[nodiscard]] static const RequireFailInfo&
+  getLastError() PF_NOEXCEPT;
+
 private:
-  static std::array<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE> m_failInfos;
-  static std::atomic<std::size_t> m_currentIdx;
+  static thread_local std::array<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE> m_failInfos;
+  static thread_local std::size_t m_currentIdx;
 };
 
 struct RequireFail_logTerminate {
