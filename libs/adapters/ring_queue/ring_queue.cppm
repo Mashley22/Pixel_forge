@@ -2,6 +2,7 @@ module;
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <ranges>
 #include <type_traits>
@@ -79,14 +80,12 @@ public:
   RingQueue&
   operator=(const RingQueue& other) = delete;
 
-  constexpr RingQueue(RingQueue&& other) PF_NOEXCEPT : m_data(other.data),
+  constexpr RingQueue(RingQueue&& other) PF_NOEXCEPT : m_data(other.m_data),
                                                        m_capMask(other.m_capMask),
                                                        m_front(other.m_front),
                                                        m_back(other.m_back) {
     other.m_data = nullptr;
     other.m_front = other.m_back = other.m_capMask = 0;
-
-    PF_REQUIRE(valid_init_() && !other.valid_init_(), "implementation error!");
   }
 
   constexpr RingQueue&
@@ -139,21 +138,25 @@ public:
 
   [[nodiscard]] constexpr reference
   front() PF_NOEXCEPT {
+    ASSUMPTIONS;
     return m_data[toIdx_(m_front)];
   }
 
   [[nodiscard]] constexpr const_reference
   front() const PF_NOEXCEPT {
+    ASSUMPTIONS;
     return m_data[toIdx_(m_front)];
   }
 
   [[nodiscard]] constexpr reference
   back() PF_NOEXCEPT {
+    ASSUMPTIONS;
     return m_data[toIdx_(m_back - 1)];
   }
 
   [[nodiscard]] constexpr const_reference
   back() const PF_NOEXCEPT {
+    ASSUMPTIONS;
     return m_data[toIdx_(m_back - 1)];
   }
 
@@ -177,11 +180,12 @@ public:
       return T_ErrPolicy::fail();
     }
 
-    new (&m_data[toIdx_(m_back)]) T(std::forward<V_args>(args)...);
-    pointer retVal = &m_data[toIdx_(m_back)];
+    ASSUMPTIONS;
+    const size_type idx = toIdx_(m_back);
+    new (&m_data[idx]) T(std::forward<V_args>(args)...);
     m_back++;
 
-    return T_ErrPolicy::success(retVal);
+    return T_ErrPolicy::success(&m_data[idx]);
   }
 
   template <class... V_args>
@@ -254,6 +258,7 @@ public:
       return T_ErrPolicy::fail();
     }
 
+    ASSUMPTIONS;
     emplace_unchecked(value);
 
     return T_ErrPolicy::success();
@@ -272,6 +277,7 @@ public:
       return T_ErrPolicy::fail();
     }
 
+    ASSUMPTIONS;
     emplace_unchecked(std::forward<T>(val));
 
     return T_ErrPolicy::success();
@@ -284,6 +290,7 @@ public:
   constexpr reference
   force_emplace(V_args&&... args) NOEXCEPT_CONSTRUCT(V_args...) {
     if (full()) {
+      ASSUMPTIONS;
       std::destroy_at(std::addressof(front()));
       m_front++;
     }
@@ -298,6 +305,7 @@ public:
   constexpr void
   force_push(const T& val) NOEXCEPT_COPY {
     if (full()) {
+      ASSUMPTIONS;
       std::destroy_at(std::addressof(front()));
       m_front++;
     }
@@ -310,6 +318,7 @@ public:
   constexpr void
   force_push(T&& val) NOEXCEPT_MOVE {
     if (full()) {
+      ASSUMPTIONS;
       std::destroy_at(std::addressof(front()));
       m_front++;
     }
@@ -352,7 +361,7 @@ public:
       return T_ErrPolicy::fail();
     }
 
-    PF_REQUIRE(!empty());
+    ASSUMPTIONS;
     T temp = std::move(front());
     std::destroy_at(std::addressof(front()));
     m_front++;
@@ -377,8 +386,8 @@ public:
     if (std::ranges::size(range) > remaining()) {
       return T_ErrPolicy::fail();
     }
-    for (const_reference val : range) {
-      emplace_unchecked(val);
+    for (auto&& val : range) {
+      emplace_unchecked(std::forward<decltype(val)>(val));
     }
     return T_ErrPolicy::success();
   }
@@ -393,7 +402,8 @@ public:
   constexpr void
   clear() PF_NOEXCEPT {
     size_type num_to_destroy = size();
-    for (size_type i = 0; i < num_to_destroy; i++) { // abit safer than using the while(!empty())
+    for (size_type i = 0; i < num_to_destroy; i++) {
+      ASSUMPTIONS;
       std::destroy_at(&front());
       m_front++;
     }
@@ -403,12 +413,13 @@ public:
 private:
   pointer m_data;
   size_type m_capMask; // capacity - 1
-  size_type m_front;   // is such that m_data[m_front] is the front() element
-  size_type m_back;    // is such that m_data[m_back] is the back() element
-  // Both indices are incremented forever and only when accesses they are applied against the mask
+  size_type m_front;   // index of front element (modulo capacity)
+  size_type m_back;    // index one-past-back element (modulo capacity)
+  // Both indices increment monotonically; toIdx_ applies modulo/wrap on access
   //
   [[nodiscard]] constexpr size_type
   toIdx_(size_type num) const PF_NOEXCEPT {
+    ASSUMPTIONS;
     if constexpr (T_capacityPowOf2Value) {
       return num & m_capMask;
     } else {
@@ -418,10 +429,8 @@ private:
 
   [[nodiscard]] constexpr bool
   valid_init_() const PF_NOEXCEPT {
-    return m_front == m_back && m_capMask > 0 && m_data != nullptr &&
+    return m_front == m_back && m_capMask > 0 && m_capMask != SIZE_MAX && m_data != nullptr &&
            (reinterpret_cast<std::uintptr_t>(m_data) % alignof(T)) == 0 &&
-           m_front < m_capMask && // strictly speaking not 100% always required but is probably not
-                                  // good if violated
            (!T_capacityPowOf2Value || ((capacity() & m_capMask) == 0));
   }
 };
