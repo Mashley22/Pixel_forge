@@ -33,11 +33,6 @@ public:
     return s_opLogs;
   }
 
-  static void
-  clearOpLogs() {
-    s_opLogs.clear();
-  }
-
   struct DeferClear {
     ~DeferClear() noexcept {
       s_opLogs.clear();
@@ -57,21 +52,19 @@ public:
     log_(OpType::MOVE_CONSTRUCT);
   }
 
-  LifeTimeTracker(LifeTimeTracker& /*unused*/) : m_id(s_counter++) {
+  LifeTimeTracker(const LifeTimeTracker& /*unused*/) : m_id(s_counter++) {
     log_(OpType::COPY_CONSTRUCT);
   }
 
   LifeTimeTracker&
-  operator=(LifeTimeTracker& other) {
+  operator=([[maybe_unused]] const LifeTimeTracker& other) {
     log_(OpType::COPY_ASSIGN);
-    std::swap(m_id, other.m_id);
     return *this;
   }
 
   LifeTimeTracker&
-  operator=(LifeTimeTracker&& other) {
-    log_(OpType::COPY_ASSIGN);
-    std::swap(m_id, other.m_id);
+  operator=([[maybe_unused]] LifeTimeTracker&& other) {
+    log_(OpType::MOVE_ASSIGN);
     return *this;
   }
 
@@ -81,7 +74,7 @@ public:
 
 private:
   void
-  log_(const OpType&& type) {
+  log_(const OpType& type) {
     s_opLogs[this].push_back({.id = m_id, .type = type});
   }
 
