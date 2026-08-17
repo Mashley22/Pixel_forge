@@ -21,8 +21,8 @@ template <typename Adapter, typename Range>
 concept CompatibleInputRange_c =
   Adapter_c<Adapter> && std::ranges::input_range<Range> && std::ranges::sized_range<Range> &&
   requires {
-    std::convertible_to<std::ranges::range_value_t<Range>, typename Adapter::value_type> ||
-      std::convertible_to<std::ranges::range_reference_t<Range>, typename Adapter::value_type>;
+    std::constructible_from<typename Adapter::value_type, std::ranges::range_value_t<Range>> ||
+      std::constructible_from<typename Adapter::value_type, std::ranges::range_reference_t<Range>>;
   };
 
 template <typename Adapter, typename Range>

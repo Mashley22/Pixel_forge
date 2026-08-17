@@ -242,6 +242,8 @@ TEST_CASE("RingQueue force ops destroy replaced elements", "[adapters][RingQueue
     queue.force_emplace(1);
     REQUIRE(queue.size() == BUF_SIZE);
     REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[0]).size() == 3);
+    REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[0])[1].type ==
+            pf_vh::LifeTimeTracker::OpType::DESTRUCT);
     REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[0]).back().type ==
             pf_vh::LifeTimeTracker::OpType::CONSTRUCT);
 
@@ -249,12 +251,83 @@ TEST_CASE("RingQueue force ops destroy replaced elements", "[adapters][RingQueue
     queue.force_push(std::move(val));
     REQUIRE(queue.size() == BUF_SIZE);
     REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[1]).size() == 3);
+    REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[1])[1].type ==
+            pf_vh::LifeTimeTracker::OpType::DESTRUCT);
     REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[1]).back().type ==
             pf_vh::LifeTimeTracker::OpType::MOVE_CONSTRUCT);
 
     for (std::size_t i = 2; i < BUF_SIZE; i++) {
       REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[i]).size() == 1);
     }
+  }
+}
+
+TEST_CASE("RingQueue push_range basic", "[adapters][RingQueue]") {
+  std::uint32_t buf[BUF_SIZE]{};
+  RingQueue<std::uint32_t> queue(buf, BUF_SIZE);
+
+  std::vector<std::uint32_t> input{1, 2, 3, 4, 5};
+  queue.push_range(input);
+
+  REQUIRE(queue.size() == 5);
+  for (std::size_t i = 0; i < 5; i++) {
+    REQUIRE(queue.front() == static_cast<std::uint32_t>(i + 1));
+    queue.pop_unchecked();
+  }
+  REQUIRE(queue.empty());
+
+  SECTION("push_range full fails") {
+    std::vector<std::uint32_t> big(BUF_SIZE + 1, 42);
+    REQUIRE(!queue.try_push_range(big));
+    REQUIRE(queue.empty());
+  }
+
+  SECTION("push_range_unchecked") {
+    std::vector<std::uint32_t> input2{10, 20, 30};
+    queue.push_range_unchecked(input2);
+    REQUIRE(queue.size() == 3);
+    REQUIRE(queue.front() == 10);
+    REQUIRE(queue.back() == 30);
+  }
+}
+
+TEST_CASE("RingQueue push_range move only", "[adapters][RingQueue]") {
+  std::unique_ptr<int> buf[BUF_SIZE]{};
+  RingQueue<std::unique_ptr<int>> queue(buf, BUF_SIZE);
+
+  std::vector<std::unique_ptr<int>> input;
+  input.push_back(std::make_unique<int>(42));
+  input.push_back(std::make_unique<int>(43));
+  input.push_back(std::make_unique<int>(44));
+
+  queue.push_range(std::move(input));
+
+  REQUIRE(queue.size() == 3);
+  auto v1 = queue.try_pop();
+  REQUIRE(v1.has_value());
+  REQUIRE(*v1.value() == 42);
+  auto v2 = queue.try_pop();
+  REQUIRE(v2.has_value());
+  REQUIRE(*v2.value() == 43);
+  auto v3 = queue.try_pop();
+  REQUIRE(v3.has_value());
+  REQUIRE(*v3.value() == 44);
+  REQUIRE(queue.empty());
+
+  SECTION("try_push_range") {
+    std::vector<std::unique_ptr<int>> input2;
+    input2.push_back(std::make_unique<int>(100));
+    input2.push_back(std::make_unique<int>(200));
+    REQUIRE(queue.try_push_range(std::move(input2)));
+    REQUIRE(queue.size() == 2);
+  }
+
+  SECTION("push_range_unchecked") {
+    std::vector<std::unique_ptr<int>> input3;
+    input3.push_back(std::make_unique<int>(300)); 
+    input3.push_back(std::make_unique<int>(400));
+    queue.push_range_unchecked(std::move(input3));
+    REQUIRE(queue.size() == 2);
   }
 }
 

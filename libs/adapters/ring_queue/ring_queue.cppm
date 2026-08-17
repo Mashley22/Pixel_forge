@@ -31,7 +31,9 @@ export namespace pf::adapters {
 template <typename T, bool T_capacityPowOf2Value = false>
 class RingQueue {
 public:
-  struct Error : public Exception {};
+  struct Error : public Exception {
+    Error() : Exception("Ring queue error") {}
+  };
 
   struct FullError : public Error {};
   struct EmptyError : public Error {};
@@ -373,7 +375,7 @@ public:
     requires CompatibleInputRange_c<RingQueue<T>, T_Range>
   constexpr void
   push_range_unchecked(T_Range&& range) {
-    push_range<T_Range, ErrPolicy_nothing<void>>(range);
+    push_range<T_Range, ErrPolicy_nothing<void>>(std::forward<T_Range>(range));
   }
 
   template <typename T_Range, class T_ErrPolicy = ErrPolicy_throws<void, FullError>>
@@ -386,8 +388,10 @@ public:
     if (std::ranges::size(range) > remaining()) {
       return T_ErrPolicy::fail();
     }
-    for (auto&& val : range) {
-      emplace_unchecked(std::forward<decltype(val)>(val));
+    auto first = std::make_move_iterator(std::ranges::begin(range));
+    auto last = std::make_move_iterator(std::ranges::end(range));
+    for (; first != last; ++first) {
+      emplace_unchecked(*first);
     }
     return T_ErrPolicy::success();
   }
@@ -396,7 +400,7 @@ public:
     requires CompatibleInputRange_c<RingQueue<T>, T_Range>
   [[nodiscard]] constexpr bool
   try_push_range(T_Range&& range) {
-    return push_range<T_Range, ErrPolicy_optional<void>>(range);
+    return push_range<T_Range, ErrPolicy_optional<void>>(std::forward<T_Range>(range));
   }
 
   constexpr void
