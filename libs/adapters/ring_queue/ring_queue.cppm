@@ -21,11 +21,6 @@ import PixelForge.core;
   [[assume(m_data != nullptr)]]; \
   [[assume(m_capMask > 0)]];
 
-#define NOEXCEPT_MOVE PF_NOEXCEPT_COND(Traits::is_nothrow_move_v)
-#define NOEXCEPT_COPY PF_NOEXCEPT_COND(Traits::is_nothrow_copy_v)
-#define NOEXCEPT_CONSTRUCT(...) \
-  PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<__VA_ARGS__>)
-
 export namespace pf::adapters {
 
 template <typename T, bool T_capacityPowOf2Value = false>
@@ -47,8 +42,10 @@ public:
     using pointer = T*;
     using const_pointer = const T*;
 
-    static constexpr bool is_nothrow_copy_v = std::is_nothrow_copy_constructible_v<T>;
-    static constexpr bool is_nothrow_move_v = std::is_nothrow_move_constructible_v<T>;
+    static constexpr bool is_nothrow_copy_construct_v =
+        std::is_nothrow_copy_constructible_v<T>;
+    static constexpr bool is_nothrow_move_construct_v =
+        std::is_nothrow_move_constructible_v<T>;
     template <typename... V_args>
     static constexpr bool is_nothrow_construct_v =
         std::is_nothrow_constructible_v<T, V_args...>;
@@ -176,9 +173,8 @@ public:
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
   constexpr T_ErrPolicy::return_type
-  emplace(V_args&&... args)
-      PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...> ||
-                       T_ErrPolicy::is_noexcept) {
+  emplace(V_args&&... args) PF_NOEXCEPT_COND(
+      Traits::template is_nothrow_construct_v<V_args...>&& T_ErrPolicy::is_noexcept) {
     if (full()) {
       return T_ErrPolicy::fail();
     }
@@ -193,7 +189,8 @@ public:
 
   template <class... V_args>
   pointer
-  emplace_unchecked(V_args&&... args) NOEXCEPT_CONSTRUCT(V_args...) {
+  emplace_unchecked(V_args&&... args) PF_NOEXCEPT_COND(
+      Traits::template is_nothrow_construct_v<T>&& T_ErrPolicy::is_noexcept) {
     return emplace<ErrPolicy_nothing<pointer>, V_args...>(std::forward<V_args>(args)...);
   }
 
@@ -206,7 +203,7 @@ public:
    *
    */
   constexpr void
-  push_unchecked(const T& value) NOEXCEPT_COPY {
+  push_unchecked(const T& value) PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
     push<ErrPolicy_nothing<void>>(value);
   }
 
@@ -215,7 +212,7 @@ public:
    *
    */
   constexpr void
-  push_unchecked(T&& value) NOEXCEPT_MOVE {
+  push_unchecked(T&& value) PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
     push<ErrPolicy_nothing<void>>(std::forward<T>(value));
   }
 
@@ -224,7 +221,8 @@ public:
    */
   template <class... V_args>
   [[nodiscard]] constexpr std::optional<pointer>
-  try_emplace(V_args&&... args) NOEXCEPT_CONSTRUCT(V_args...) {
+  try_emplace(V_args&&... args)
+      PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...>) {
     return emplace<ErrPolicy_optional<pointer>, V_args...>(std::forward<V_args>(args)...);
   }
 
@@ -234,7 +232,7 @@ public:
    *@anchor try_push
    */
   [[nodiscard]] constexpr bool
-  try_push(const T& val) NOEXCEPT_COPY {
+  try_push(const T& val) PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
     return push<ErrPolicy_optional<void>>(val);
   }
 
@@ -242,7 +240,7 @@ public:
    *@overload
    */
   [[nodiscard]] constexpr bool
-  try_push(T&& val) NOEXCEPT_MOVE {
+  try_push(T&& val) PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
     return push<ErrPolicy_optional<void>>(std::forward<T>(val));
   }
 
@@ -257,7 +255,7 @@ public:
     }
   constexpr T_ErrPolicy::return_type
   push(const T& value)
-      PF_NOEXCEPT_COND(Traits::is_nothrow_copy_v || T_ErrPolicy::is_noexcept) {
+      PF_NOEXCEPT_COND(Traits::is_nothrow_copy_v && T_ErrPolicy::is_noexcept) {
     if (full()) {
       return T_ErrPolicy::fail();
     }
@@ -276,7 +274,7 @@ public:
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
   constexpr T_ErrPolicy::return_type
-  push(T&& val) PF_NOEXCEPT_COND(Traits::is_nothrow_move_v || T_ErrPolicy::is_noexcept) {
+  push(T&& val) PF_NOEXCEPT_COND(Traits::is_nothrow_move_v && T_ErrPolicy::is_noexcept) {
     if (full()) {
       return T_ErrPolicy::fail();
     }
@@ -292,7 +290,8 @@ public:
    */
   template <class... V_args>
   constexpr reference
-  force_emplace(V_args&&... args) NOEXCEPT_CONSTRUCT(V_args...) {
+  force_emplace(V_args&&... args)
+      PF_NOEXCEPT_COND(Traits::is_nothrow_construct_v<V_args...>) {
     if (full()) {
       ASSUMPTIONS;
       std::destroy_at(std::addressof(front()));
@@ -307,7 +306,7 @@ public:
    *@anchor force_push
    */
   constexpr void
-  force_push(const T& val) NOEXCEPT_COPY {
+  force_push(const T& val) PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
     if (full()) {
       ASSUMPTIONS;
       std::destroy_at(std::addressof(front()));
@@ -320,7 +319,7 @@ public:
    *@overload
    */
   constexpr void
-  force_push(T&& val) NOEXCEPT_MOVE {
+  force_push(T&& val) PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
     if (full()) {
       ASSUMPTIONS;
       std::destroy_at(std::addressof(front()));
@@ -361,7 +360,7 @@ public:
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
   constexpr T_ErrPolicy::return_type
-  pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept || Traits::is_nothrow_move_v) {
+  pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && Traits::is_nothrow_move_v) {
     if (empty()) {
       return T_ErrPolicy::fail();
     }

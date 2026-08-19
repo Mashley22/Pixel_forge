@@ -135,8 +135,8 @@ public:
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
   constexpr T_ErrPolicy::return_type
-  push(T&& value) PF_NOEXCEPT_COND(
-      Traits::template is_nothrow_construct_v<T>&& T_ErrPolicy::is_noexcept) {
+  push(T&& value)
+      PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v&& T_ErrPolicy::is_noexcept) {
     if (full()) {
       return T_ErrPolicy::fail();
     }
