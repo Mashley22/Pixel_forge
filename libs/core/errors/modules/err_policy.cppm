@@ -18,9 +18,9 @@ template <class Policy, typename T_result_type>
 concept ErrPolicy_c = !std::is_same_v<T_result_type, void> &&
                       requires(const T_result_type& lvalue, T_result_type&& rvalue) {
                         /**
-                         *@brief whether a given policy introduces new exceptions that can be thrown
-                         *       i.e. optionals do not introduce new exceptions that can throw from
-                         * within the function
+                         *@brief whether a given policy introduces new exceptions that can
+                         * be thrown i.e. optionals do not introduce new exceptions that
+                         * can throw from within the function
                          *
                          */
                         typename std::bool_constant<Policy::is_noexcept>;
@@ -34,7 +34,9 @@ concept ErrPolicy_c = !std::is_same_v<T_result_type, void> &&
                           Policy::success(static_cast<T_result_type&&>(rvalue))
                         } -> std::same_as<typename Policy::return_type>;
 
-                        { Policy::success(lvalue) } -> std::same_as<typename Policy::return_type>;
+                        {
+                          Policy::success(lvalue)
+                        } -> std::same_as<typename Policy::return_type>;
                       };
 
 template <class VoidPolicy>
@@ -160,8 +162,7 @@ struct ErrPolicy_throws<void, T_exception> {
   using return_type = void;
 
   static constexpr return_type
-  success() PF_NOEXCEPT {
-  }
+  success() PF_NOEXCEPT {}
 
   template <class... V_args>
   static constexpr return_type

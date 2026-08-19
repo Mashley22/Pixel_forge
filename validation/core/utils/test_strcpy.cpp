@@ -34,7 +34,8 @@ constexpr bool
 strcpyTruncationConstexpr() {
   char dest[4] = {'X', 'X', 'X', 'X'};
   const std::size_t result = strcpy(std::span<char>{dest, 4}, std::string_view{"abcdef"});
-  return result == 4 && dest[0] == 'a' && dest[1] == 'b' && dest[2] == 'c' && dest[3] == '\0';
+  return result == 4 && dest[0] == 'a' && dest[1] == 'b' && dest[2] == 'c' &&
+         dest[3] == '\0';
 }
 static_assert(strcpyTruncationConstexpr());
 
@@ -486,10 +487,9 @@ TEST_CASE("copy_until: Basic functionality", "[core][utils][strcpy]") {
     const std::string_view src = "hello";
     char dest[10] = {};
 
-    auto result = copy_until(
-      std::span<char>{dest, 10}, std::span<const char>{src.data(), src.size()}, [](char val) {
-        return val == '\0';
-      });
+    auto result = copy_until(std::span<char>{dest, 10},
+                             std::span<const char>{src.data(), src.size()},
+                             [](char val) { return val == '\0'; });
 
     REQUIRE(result == 5);
     REQUIRE(std::string(dest) == "hello");
@@ -499,10 +499,9 @@ TEST_CASE("copy_until: Basic functionality", "[core][utils][strcpy]") {
     const std::string_view src{"he\0lo", 5};
     char dest[10] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
 
-    auto result = copy_until(
-      std::span<char>{dest, 10}, std::span<const char>{src.data(), src.size()}, [](char val) {
-        return val == '\0';
-      });
+    auto result = copy_until(std::span<char>{dest, 10},
+                             std::span<const char>{src.data(), src.size()},
+                             [](char val) { return val == '\0'; });
 
     REQUIRE(result == 2);
     REQUIRE(std::string(dest, result) == "he");
@@ -514,12 +513,10 @@ TEST_CASE("copy_until: Basic functionality", "[core][utils][strcpy]") {
     char dest[10] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
 
     auto result = copy_until(
-      std::span<char>{dest, 10},
-      std::span<const char>{src.data(), src.size()},
-      [](char val) {
-        return val == '\0';
-      },
-      1);
+        std::span<char>{dest, 10},
+        std::span<const char>{src.data(), src.size()},
+        [](char val) { return val == '\0'; },
+        1);
 
     REQUIRE(result == 5);
     REQUIRE(std::string(dest, result) == std::string_view{"he\0lo", 5});
@@ -529,10 +526,9 @@ TEST_CASE("copy_until: Basic functionality", "[core][utils][strcpy]") {
     const std::string_view src = "hello";
     char dest[3] = {'X', 'X', 'X'};
 
-    auto result = copy_until(
-      std::span<char>{dest, 3}, std::span<const char>{src.data(), src.size()}, [](char val) {
-        return val == '\0';
-      });
+    auto result = copy_until(std::span<char>{dest, 3},
+                             std::span<const char>{src.data(), src.size()},
+                             [](char val) { return val == '\0'; });
 
     REQUIRE(result == 3);
     REQUIRE(std::string(dest, result) == "hel");
@@ -542,10 +538,9 @@ TEST_CASE("copy_until: Basic functionality", "[core][utils][strcpy]") {
     const std::string_view src = "hello";
     char dest[1] = {'X'};
 
-    auto result = copy_until(
-      std::span<char>{dest, 0}, std::span<const char>{src.data(), src.size()}, [](char val) {
-        return val == '\0';
-      });
+    auto result = copy_until(std::span<char>{dest, 0},
+                             std::span<const char>{src.data(), src.size()},
+                             [](char val) { return val == '\0'; });
 
     REQUIRE(result == 0);
     REQUIRE(dest[0] == 'X');
@@ -555,10 +550,9 @@ TEST_CASE("copy_until: Basic functionality", "[core][utils][strcpy]") {
     const std::string_view src{"\0abc", 4};
     char dest[10] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
 
-    auto result = copy_until(
-      std::span<char>{dest, 10}, std::span<const char>{src.data(), src.size()}, [](char val) {
-        return val == '\0';
-      });
+    auto result = copy_until(std::span<char>{dest, 10},
+                             std::span<const char>{src.data(), src.size()},
+                             [](char val) { return val == '\0'; });
 
     REQUIRE(result == 0);
     REQUIRE(dest[0] == 'X');

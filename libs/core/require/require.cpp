@@ -15,13 +15,14 @@ namespace pf {
 RequireFailInfo RequireFail_logTerminate::m_failInfo{};
 
 thread_local std::array<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE>
-  RequireFail_logContinue::m_failInfos{};
+    RequireFail_logContinue::m_failInfos{};
 
 thread_local std::size_t RequireFail_logContinue::m_currentIdx =
-  std::numeric_limits<std::size_t>::max();
+    std::numeric_limits<std::size_t>::max();
 
 void
-RequireFail_logTerminate::fail(const std::string_view msg, const std::source_location loc) {
+RequireFail_logTerminate::fail(const std::string_view msg,
+                               const std::source_location loc) {
   m_failInfo = {.msg = msg, .loc = loc};
   std::terminate();
 }

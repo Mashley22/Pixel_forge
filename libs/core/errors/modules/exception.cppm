@@ -17,9 +17,9 @@ public:
 
   static constexpr std::size_t msgBufSize =
 #ifdef PF_EXCEPTION_MSG_BUF_SIZE
-    PF_EXCEPTION_MSG_BUF_SIZE;
+      PF_EXCEPTION_MSG_BUF_SIZE;
 #else
-    msgBufSizeDefault;
+      msgBufSizeDefault;
 #endif
 private:
   static std::array<char, msgBufSize> m_msgBuf;

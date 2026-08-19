@@ -6,9 +6,6 @@ export module PixelForge.logging;
 
 namespace pf {
 
-export namespace log {
-
-
-}
+export namespace log {}
 
 }

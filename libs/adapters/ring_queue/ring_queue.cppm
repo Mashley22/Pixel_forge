@@ -50,7 +50,8 @@ public:
     static constexpr bool is_nothrow_copy_v = std::is_nothrow_copy_constructible_v<T>;
     static constexpr bool is_nothrow_move_v = std::is_nothrow_move_constructible_v<T>;
     template <typename... V_args>
-    static constexpr bool is_nothrow_construct_v = std::is_nothrow_constructible_v<T, V_args...>;
+    static constexpr bool is_nothrow_construct_v =
+        std::is_nothrow_constructible_v<T, V_args...>;
   };
 
   PF_ADAPTERS_INHERIT_TRAITS(Traits);
@@ -71,12 +72,10 @@ public:
     PF_REQUIRE(valid_init_());
   }
 
-  constexpr ~RingQueue() PF_NOEXCEPT {
-    clear();
-  }
+  constexpr ~RingQueue() PF_NOEXCEPT { clear(); }
 
   RingQueue(const RingQueue& other) =
-    delete; // if interested in moving or copying the underlying contents
+      delete; // if interested in moving or copying the underlying contents
   // see \ref copy_contents_to or \ref move_contents_to
 
   RingQueue&
@@ -163,7 +162,8 @@ public:
   }
 
   /**
-   *@brief by default throws \ref Error::Full if full, see \ref emplace_unchecked
+   *@brief by default throws \ref Error::Full if full, see \ref
+   * emplace_unchecked
    */
   template <class... V_args>
   constexpr pointer
@@ -176,8 +176,9 @@ public:
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
   constexpr T_ErrPolicy::return_type
-  emplace(V_args&&... args) PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...> ||
-                                             T_ErrPolicy::is_noexcept) {
+  emplace(V_args&&... args)
+      PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...> ||
+                       T_ErrPolicy::is_noexcept) {
     if (full()) {
       return T_ErrPolicy::fail();
     }
@@ -255,7 +256,8 @@ public:
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
   constexpr T_ErrPolicy::return_type
-  push(const T& value) PF_NOEXCEPT_COND(Traits::is_nothrow_copy_v || T_ErrPolicy::is_noexcept) {
+  push(const T& value)
+      PF_NOEXCEPT_COND(Traits::is_nothrow_copy_v || T_ErrPolicy::is_noexcept) {
     if (full()) {
       return T_ErrPolicy::fail();
     }
@@ -327,7 +329,8 @@ public:
     push_unchecked(std::forward<T>(val));
   }
 
-  // The choice of this api is simply to always offer a noexcept way of popping the queue
+  // The choice of this api is simply to always offer a noexcept way of popping
+  // the queue
 
   /**
    *@brief pops from the front
@@ -433,7 +436,8 @@ private:
 
   [[nodiscard]] constexpr bool
   valid_init_() const PF_NOEXCEPT {
-    return m_front == m_back && m_capMask > 0 && m_capMask != SIZE_MAX && m_data != nullptr &&
+    return m_front == m_back && m_capMask > 0 && m_capMask != SIZE_MAX &&
+           m_data != nullptr &&
            (reinterpret_cast<std::uintptr_t>(m_data) % alignof(T)) == 0 &&
            (!T_capacityPowOf2Value || ((capacity() & m_capMask) == 0));
   }

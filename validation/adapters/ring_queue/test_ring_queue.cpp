@@ -57,7 +57,8 @@ struct M_UnsizedInputRange {
 static_assert(std::ranges::input_range<M_UnsizedInputRange>);
 static_assert(!std::ranges::sized_range<M_UnsizedInputRange>);
 static_assert(!CompatibleInputRange_c<RingQueue<std::uint32_t>, M_UnsizedInputRange>);
-static_assert(CompatibleInputRange_c<RingQueue<std::uint32_t>, std::vector<std::uint32_t>>);
+static_assert(
+    CompatibleInputRange_c<RingQueue<std::uint32_t>, std::vector<std::uint32_t>>);
 
 }
 
@@ -135,14 +136,14 @@ TEST_CASE("RingQueue lifetimes", "[adapters][RingQueue]") {
 
       {
         pf_vh::LifeTimeTracker::OpInfo opInfo = {
-          .id = 0, .type = pf_vh::LifeTimeTracker::OpType::DEFAULT_CONSTRUCT};
+            .id = 0, .type = pf_vh::LifeTimeTracker::OpType::DEFAULT_CONSTRUCT};
         REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(M_p_buf)[0] == opInfo);
       }
 
       REQUIRE(queue.try_pop().has_value());
       {
-        pf_vh::LifeTimeTracker::OpInfo opInfo = {.id = 0,
-                                                 .type = pf_vh::LifeTimeTracker::OpType::DESTRUCT};
+        pf_vh::LifeTimeTracker::OpInfo opInfo = {
+            .id = 0, .type = pf_vh::LifeTimeTracker::OpType::DESTRUCT};
         REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(M_p_buf)[1] == opInfo);
       }
     }
@@ -324,7 +325,7 @@ TEST_CASE("RingQueue push_range move only", "[adapters][RingQueue]") {
 
   SECTION("push_range_unchecked") {
     std::vector<std::unique_ptr<int>> input3;
-    input3.push_back(std::make_unique<int>(300)); 
+    input3.push_back(std::make_unique<int>(300));
     input3.push_back(std::make_unique<int>(400));
     queue.push_range_unchecked(std::move(input3));
     REQUIRE(queue.size() == 2);

@@ -26,9 +26,7 @@ public:
 
   NoOpDestructor() = default;
 
-  NoOpDestructor(NoOpDestructor&& other) : x(nullptr) {
-    other.x = nullptr;
-  }
+  NoOpDestructor(NoOpDestructor&& other) : x(nullptr) { other.x = nullptr; }
 
   NoOpDestructor&
   operator=(NoOpDestructor&& other) {
@@ -102,9 +100,10 @@ std::array<void*, BUF_SIZE> otherBuf;
 
 TEST_CASE("validate destructor is not called if no op", "[adapters][RingQueue]") {
 
-  RingQueue<NoOpDestructor> noOp(reinterpret_cast<NoOpDestructor*>(noOpBuf.data()), BUF_SIZE);
+  RingQueue<NoOpDestructor> noOp(reinterpret_cast<NoOpDestructor*>(noOpBuf.data()),
+                                 BUF_SIZE);
   RingQueue<NoOpAfterMoveDestructor> noOpAfterMove(
-    reinterpret_cast<NoOpAfterMoveDestructor*>(otherBuf.data()), BUF_SIZE);
+      reinterpret_cast<NoOpAfterMoveDestructor*>(otherBuf.data()), BUF_SIZE);
 
   for (std::size_t i = 0; i < RUN_NUM; i++) {
     noOpAfterMoveRun(noOpAfterMove);
@@ -113,14 +112,14 @@ TEST_CASE("validate destructor is not called if no op", "[adapters][RingQueue]")
 
   auto noOpStats = benchpp::Stats<benchpp::TimeCount_t>::generate(noOpTimer.times());
   auto noOpAfterMoveStats =
-    benchpp::Stats<benchpp::TimeCount_t>::generate(noOpAfterMoveTimer.times());
+      benchpp::Stats<benchpp::TimeCount_t>::generate(noOpAfterMoveTimer.times());
 
   double combinedStddevOfMean =
-    std::sqrt(noOpStats.varianceOfMean() + noOpAfterMoveStats.varianceOfMean());
+      std::sqrt(noOpStats.varianceOfMean() + noOpAfterMoveStats.varianceOfMean());
 
-  REQUIRE_THAT(
-    noOpStats.mean,
-    Catch::Matchers::WithinAbs(noOpAfterMoveStats.mean, combinedStddevOfMean * TOLERANCE));
+  REQUIRE_THAT(noOpStats.mean,
+               Catch::Matchers::WithinAbs(noOpAfterMoveStats.mean,
+                                          combinedStddevOfMean * TOLERANCE));
 }
 
 }

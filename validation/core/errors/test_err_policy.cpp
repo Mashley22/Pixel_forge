@@ -33,7 +33,8 @@ TEST_CASE("nothing policy", "[core][errPolicy]") {
 }
 
 TEST_CASE("nothing policy fail requires", "[core][errPolicy]") {
-  // PF_REQUIRE(false) throws RequireFail when PIXELFORGE_REQUIRE_THROWS_ON_FAILURE is defined
+  // PF_REQUIRE(false) throws RequireFail when
+  // PIXELFORGE_REQUIRE_THROWS_ON_FAILURE is defined
   REQUIRE_THROWS_AS(ErrPolicy_nothing<int>::fail(0), RequireFail);
 }
 
@@ -46,7 +47,8 @@ TEST_CASE("nothing policy void", "[core][errPolicy]") {
 
 TEST_CASE("optional policy", "[core][errPolicy]") {
   STATIC_REQUIRE(ErrPolicy_optional<int>::is_noexcept);
-  STATIC_REQUIRE(std::is_same_v<ErrPolicy_optional<int>::return_type, std::optional<int>>);
+  STATIC_REQUIRE(
+      std::is_same_v<ErrPolicy_optional<int>::return_type, std::optional<int>>);
 
   REQUIRE(ErrPolicy_optional<int>::success(42) == std::optional<int>{42});
   REQUIRE_FALSE(ErrPolicy_optional<int>::fail("some reason").has_value());

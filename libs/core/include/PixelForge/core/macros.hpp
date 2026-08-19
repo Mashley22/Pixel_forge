@@ -14,7 +14,8 @@
 #define PF_CACHE_LINE_ALIGN alignas(std::hardware_destructive_interference_size)
 
 #ifdef _MSVC_VER
-#define PF_ATTRIB_CACHE_LINE_ALIGN __declspec(align(std::hardware_destructive_interefence_size))
+#define PF_ATTRIB_CACHE_LINE_ALIGN \
+  __declspec(align(std::hardware_destructive_interefence_size))
 #define PF_ATTRIB_NOINLINE __declspec((noinline))
 #define PF_ATTRIB_NOINLINE_CACHE_LINE_ALIGN \
   __declspec(align(std::hardward_destructive_intereference_size)) __declspec((noinline))
@@ -44,18 +45,21 @@
 #define PF_REQUIRE_ASSUME_IMPL(_1, _2, _3, NAME, ...) NAME
 
 #ifdef PF_SUBMODULE_REQUIRE_FAIL_HANDLER
-#define PF_REQUIRE_IMPL_EXPR_ONLY(expr) pf::require<PF_SUBMODULE_REQUIRE_FAIL_HANDLER>(expr)
+#define PF_REQUIRE_IMPL_EXPR_ONLY(expr) \
+  pf::require<PF_SUBMODULE_REQUIRE_FAIL_HANDLER>(expr)
 
 #define PF_REQUIRE_IMPL_EXPR_MSG(expr, msg) \
   pf::require<PF_SUBMODULE_REQUIRE_FAIL_HANDLER>(expr, msg)
 #elif defined(PF_MODULE_REQUIRE_FAIL_HANDLER)
 #define PF_REQUIRE_IMPL_EXPR_ONLY(expr) pf::require<PF_MODULE_REQUIRE_FAIL_HANDLER>(expr)
 
-#define PF_REQUIRE_IMPL_EXPR_MSG(expr, msg) pf::require<PF_MODULE_REQUIRE_FAIL_HANDLER>(expr, msg)
+#define PF_REQUIRE_IMPL_EXPR_MSG(expr, msg) \
+  pf::require<PF_MODULE_REQUIRE_FAIL_HANDLER>(expr, msg)
 #elif defined(PF_GLOBAL_REQUIRE_FAIL_HANDLER)
 #define PF_REQUIRE_IMPL_EXPR_ONLY(expr) pf::require<PF_GLOBAL_REQUIRE_FAIL_HANDLER>(expr)
 
-#define PF_REQUIRE_IMPL_EXPR_MSG(expr, msg) pf::require<PF_GLOBAL_REQUIRE_FAIL_HANDLER>(expr, msg)
+#define PF_REQUIRE_IMPL_EXPR_MSG(expr, msg) \
+  pf::require<PF_GLOBAL_REQUIRE_FAIL_HANDLER>(expr, msg)
 #else
 #define PF_REQUIRE_IMPL_EXPR_ONLY(expr) pf::require(expr)
 

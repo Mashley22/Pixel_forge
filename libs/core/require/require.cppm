@@ -18,9 +18,9 @@ struct RequireFail {
 
 template <typename T>
 concept RequireFailHandler_c =
-  requires(const std::string_view msg, const std::source_location loc) {
-    { T::fail(msg, loc) } -> std::same_as<void>;
-  };
+    requires(const std::string_view msg, const std::source_location loc) {
+      { T::fail(msg, loc) } -> std::same_as<void>;
+    };
 
 struct RequireFail_doNothing {
   constexpr static void
@@ -40,7 +40,8 @@ struct RequireFail_terminate {
 };
 
 /**
- *@note BE CAREFUL, if using this make sure to PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
+ *@note BE CAREFUL, if using this make sure to
+ * PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
  */
 struct RequireFail_throw {
   [[noreturn]] constexpr static void
@@ -52,7 +53,8 @@ struct RequireFail_throw {
 struct RequireFailInfo {
   std::string_view msg{nullptr, 0};
   std::source_location loc;
-  std::time_t time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+  std::time_t time =
+      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
   [[nodiscard]] bool
   empty() const PF_NOEXCEPT;
@@ -74,7 +76,8 @@ struct RequireFail_logContinue {
   getLastError() PF_NOEXCEPT;
 
 private:
-  static thread_local std::array<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE> m_failInfos;
+  static thread_local std::array<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE>
+      m_failInfos;
   static thread_local std::size_t m_currentIdx;
 };
 

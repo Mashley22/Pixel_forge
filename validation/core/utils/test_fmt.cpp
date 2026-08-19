@@ -34,21 +34,13 @@ M_testFmt_cstrAgainstStd(std::format_string<V_args...> str, V_args&&... args) {
 }
 
 TEST_CASE("fmt", "[core][utils][fmt]") {
-  SECTION("Plain string") {
-    M_testFmtAgainstStd("Plain string");
-  }
-  SECTION("With some formatting") {
-    M_testFmtAgainstStd("{}", 1);
-  }
+  SECTION("Plain string") { M_testFmtAgainstStd("Plain string"); }
+  SECTION("With some formatting") { M_testFmtAgainstStd("{}", 1); }
 }
 
 TEST_CASE("fmt_cstr", "[core][utils][fmt]") {
-  SECTION("Plain string") {
-    M_testFmt_cstrAgainstStd("Nothing");
-  }
-  SECTION("With some formatting") {
-    M_testFmtAgainstStd("{}", 1);
-  }
+  SECTION("Plain string") { M_testFmt_cstrAgainstStd("Nothing"); }
+  SECTION("With some formatting") { M_testFmtAgainstStd("{}", 1); }
 }
 
 }

@@ -20,7 +20,8 @@ export template <std::integral T,
                  const std::string_view& T_digitSet = digitSetUpper>
 [[nodiscard]]
 consteval T
-strToInt(std::string_view sv) PF_NOEXCEPT { // NOLINT, you gotta be a dumbass for this to throw
+strToInt(std::string_view sv)
+    PF_NOEXCEPT { // NOLINT, you gotta be a dumbass for this to throw
 
   T retVal = 0;
   std::size_t multiplier = 1;
@@ -39,7 +40,8 @@ strToInt(std::string_view sv) PF_NOEXCEPT { // NOLINT, you gotta be a dumbass fo
     if (sv[0] == '-') {
       return retVal * -1;
     } else {
-      retVal += static_cast<std::size_t>(charToInt<T_base, T_digitSet>(sv[0])) * multiplier;
+      retVal +=
+          static_cast<std::size_t>(charToInt<T_base, T_digitSet>(sv[0])) * multiplier;
       return retVal;
     }
   }

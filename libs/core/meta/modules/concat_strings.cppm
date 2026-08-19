@@ -12,7 +12,8 @@ namespace meta {
 // From:
 // https://stackoverflow.com/questions/38955940/how-to-concatenate-static-strings-at-compile-time/62823211#62823211
 // User: nitronoid - How to concatenate static strings at compile time
-// Note that most llms will give a crappy version repat of this when asked for something similar
+// Note that most llms will give a crappy version repat of this when asked for
+// something similar
 export template <std::string_view const&... V_strs>
 struct ConcatStrings {
 private:

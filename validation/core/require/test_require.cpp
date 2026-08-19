@@ -22,12 +22,17 @@ M_testRequireInfos() {
   } catch (RequireFail& e) {
     REQUIRE(e.msg == msg);
     // a lil bit of magic
-    REQUIRE_THAT(e.loc.file_name(), Catch::Matchers::ContainsSubstring("test_require.cpp"));
+    REQUIRE_THAT(e.loc.file_name(),
+                 Catch::Matchers::ContainsSubstring("test_require.cpp"));
     REQUIRE(e.loc.line() == 20);
-    REQUIRE_THAT(e.loc.function_name(),
-                 Catch::Matchers::Equals(
-                   "void pf::(anonymous namespace)::M_testRequireInfos()")); // A bit unsure how
-                                                                             // guaranteed this is
+    REQUIRE_THAT(
+        e.loc.function_name(),
+        Catch::Matchers::Equals(
+            "void pf::(anonymous namespace)::M_testRequireInfos()")); // A bit
+                                                                      // unsure
+                                                                      // how
+                                                                      // guaranteed
+                                                                      // this is
     REQUIRE(e.loc.column() == 5);
   }
 }
@@ -45,9 +50,7 @@ TEST_CASE("basic", "[core][assert]") {
   }
 }
 
-TEST_CASE("correct infos", "[core][assert]") {
-  M_testRequireInfos();
-}
+TEST_CASE("correct infos", "[core][assert]") { M_testRequireInfos(); }
 
 TEST_CASE("logContinue records a fail", "[core][assert]") {
   std::string msg = "log and continue";
@@ -64,7 +67,7 @@ TEST_CASE("logContinue records a fail", "[core][assert]") {
   REQUIRE(last.loc.column() == loc.column());
   REQUIRE(RequireFail_logContinue::failInfos()[RequireFail_logContinue::currentIdx() %
                                                PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE]
-            .msg == msg);
+              .msg == msg);
 }
 
 TEST_CASE("logContinue is a circular buffer", "[core][assert]") {

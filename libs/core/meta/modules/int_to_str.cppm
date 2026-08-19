@@ -11,8 +11,8 @@ namespace pf {
 
 namespace meta {
 
-// can also use the IntToSv, this is just a very natural stopping off point in the implementation
-// might make this a private impl ...
+// can also use the IntToSv, this is just a very natural stopping off point in
+// the implementation might make this a private impl ...
 export template <std::unsigned_integral T,
                  T T_val,
                  std::size_t T_base = 10,
@@ -99,7 +99,7 @@ private:
   using unsigned_t = std::make_unsigned_t<T>;
 
   static constexpr auto UintArr =
-    UintToStr<unsigned_t, static_cast<unsigned_t>(T_val), T_base, T_digitSet>::arr;
+      UintToStr<unsigned_t, static_cast<unsigned_t>(T_val), T_base, T_digitSet>::arr;
 
   [[nodiscard]]
   static consteval std::size_t

@@ -23,14 +23,12 @@ public:
   constexpr LinearAllocator_impl(void* buffer, std::size_t size) PF_NOEXCEPT
     : m_capacity(size),
       m_start(static_cast<std::byte*>(buffer)),
-      m_current(m_start) {
-  }
+      m_current(m_start) {}
 
   constexpr LinearAllocator_impl(std::byte* buffer, std::size_t size) PF_NOEXCEPT
     : m_capacity(size),
       m_start(buffer),
-      m_current(m_start) {
-  }
+      m_current(m_start) {}
 
   [[nodiscard]] constexpr std::size_t
   cacpacity() const PF_NOEXCEPT {
@@ -47,15 +45,14 @@ public:
     return static_cast<std::size_t>(m_current - m_start);
   }
 
-  void constexpr clear() PF_NOEXCEPT {
-    m_current = nullptr;
-  }
+  void constexpr clear() PF_NOEXCEPT { m_current = nullptr; }
 
 protected:
   /*
-   *@throws pf::mem::AlignmentError if the alignments aren't powers of two or the alignment
-   * requested is smaller than the minAlignment
-   *@throws pf::mem::OOMError if there isnt enough capacity to make the allocation
+   *@throws pf::mem::AlignmentError if the alignments aren't powers of two or
+   * the alignment requested is smaller than the minAlignment
+   *@throws pf::mem::OOMError if there isnt enough capacity to make the
+   * allocation
    */
   [[nodiscard]] constexpr void*
   alloc(std::size_t size, std::size_t alignment, std::size_t minAlignment) {

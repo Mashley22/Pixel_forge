@@ -95,14 +95,14 @@ TEST_CASE("RingQueue lifetimes", "[adapters][RingQueue]") {
 
       {
         pf_vh::LifeTimeTracker::OpInfo opInfo = {
-          .id = 0, .type = pf_vh::LifeTimeTracker::OpType::DEFAULT_CONSTRUCT};
+            .id = 0, .type = pf_vh::LifeTimeTracker::OpType::DEFAULT_CONSTRUCT};
         REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(M_p_buf)[0] == opInfo);
       }
 
       REQUIRE(stack.try_pop().has_value());
       {
-        pf_vh::LifeTimeTracker::OpInfo opInfo = {.id = 0,
-                                                 .type = pf_vh::LifeTimeTracker::OpType::DESTRUCT};
+        pf_vh::LifeTimeTracker::OpInfo opInfo = {
+            .id = 0, .type = pf_vh::LifeTimeTracker::OpType::DESTRUCT};
         REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(M_p_buf)[1] == opInfo);
       }
     }
@@ -134,10 +134,13 @@ TEST_CASE("RingQueue lifetimes", "[adapters][RingQueue]") {
         for (std::size_t i = 0; i < BUF_SIZE; i++) {
           REQUIRE(stack.size() == BUF_SIZE - i);
           REQUIRE(stack.try_pop().has_value());
-          REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[BUF_SIZE - i - 1]).size() ==
-                  2 * j + 2);
-          REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[BUF_SIZE - i - 1]).back().type ==
-                  pf_vh::LifeTimeTracker::OpType::DESTRUCT);
+          REQUIRE(
+              pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf[BUF_SIZE - i - 1]).size() ==
+              2 * j + 2);
+          REQUIRE(pf_vh::LifeTimeTracker::opLogs()
+                      .at(&M_p_buf[BUF_SIZE - i - 1])
+                      .back()
+                      .type == pf_vh::LifeTimeTracker::OpType::DESTRUCT);
         }
 
         REQUIRE(stack.empty());

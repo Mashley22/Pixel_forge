@@ -52,8 +52,10 @@ TEST_CASE("memzero_explicit_basic", "[core][mem]") {
   }
 
   SECTION("no null", "[core][mem]") {
-    REQUIRE_THROWS_AS(memzero_explicit(reinterpret_cast<void*>(NON_ZERO_VALUE), 0), RequireFail);
-    REQUIRE_THROWS_AS(memzero_explicit(reinterpret_cast<void*>(0), NON_ZERO_VALUE), RequireFail);
+    REQUIRE_THROWS_AS(memzero_explicit(reinterpret_cast<void*>(NON_ZERO_VALUE), 0),
+                      RequireFail);
+    REQUIRE_THROWS_AS(memzero_explicit(reinterpret_cast<void*>(0), NON_ZERO_VALUE),
+                      RequireFail);
   }
 }
 

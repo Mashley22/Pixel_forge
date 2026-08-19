@@ -40,13 +40,9 @@ public:
     }
   };
 
-  LifeTimeTracker() : m_id(s_counter++) {
-    log_(OpType::DEFAULT_CONSTRUCT);
-  }
+  LifeTimeTracker() : m_id(s_counter++) { log_(OpType::DEFAULT_CONSTRUCT); }
 
-  LifeTimeTracker(int /*unused*/) : m_id(s_counter++) {
-    log_(OpType::CONSTRUCT);
-  }
+  LifeTimeTracker(int /*unused*/) : m_id(s_counter++) { log_(OpType::CONSTRUCT); }
 
   LifeTimeTracker(LifeTimeTracker&& /*unused*/) : m_id(s_counter++) {
     log_(OpType::MOVE_CONSTRUCT);
@@ -68,9 +64,7 @@ public:
     return *this;
   }
 
-  ~LifeTimeTracker() {
-    log_(OpType::DESTRUCT);
-  }
+  ~LifeTimeTracker() { log_(OpType::DESTRUCT); }
 
 private:
   void
@@ -88,7 +82,7 @@ export struct alignas(LifeTimeTracker) LifeTimeTrackerStorage {
 };
 
 std::unordered_map<const LifeTimeTracker*, std::vector<LifeTimeTracker::OpInfo>>
-  LifeTimeTracker::s_opLogs;
+    LifeTimeTracker::s_opLogs;
 
 std::size_t LifeTimeTracker::s_counter{0};
 

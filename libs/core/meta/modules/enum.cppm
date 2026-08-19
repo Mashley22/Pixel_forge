@@ -9,7 +9,8 @@ export module PixelForge.core:meta.enumBits; // doesnt like being called .enum
 namespace pf {
 
 export template <typename T>
-concept EnumClass_c = std::is_enum_v<T> && !std::is_convertible_v<T, std::underlying_type_t<T>>;
+concept EnumClass_c =
+    std::is_enum_v<T> && !std::is_convertible_v<T, std::underlying_type_t<T>>;
 
 template <EnumClass_c T_Bit_t>
 class Flag {
@@ -66,8 +67,8 @@ public:
 
   [[nodiscard]]
   friend constexpr // no implied self
-    T_Bit_t
-    operator&(T_Bit_t lhs, T_Bit_t rhs) PF_NOEXCEPT {
+      T_Bit_t
+      operator&(T_Bit_t lhs, T_Bit_t rhs) PF_NOEXCEPT {
     return static_cast<T_Bit_t>(cast(lhs) | cast(rhs));
   }
 
