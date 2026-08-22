@@ -12,7 +12,8 @@ concurrency:
 jobs:
   test:
     name: ${{ matrix.preset }}
-    runs-on: ubuntu-latest
+    # clang 22 / gcc 15; ubuntu-latest (24.04) only has clang 18 / gcc 14
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -32,11 +33,14 @@ jobs:
         run: |
           sudo apt-get update
           if [[ "${{ matrix.preset }}" == gcc_* ]]; then
-            sudo apt-get install -y g++-14
-            sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
-            sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+            sudo apt-get install -y g++-15
+            # presets invoke bare gcc/g++, point them at the pinned version
+            sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 200
+            sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 200
           else
-            sudo apt-get install -y clang
+            sudo apt-get install -y clang-22
+            sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-22 200
+            sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-22 200
           fi
 
       - name: Configure

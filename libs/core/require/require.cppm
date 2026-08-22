@@ -31,7 +31,7 @@ struct RequireFail_doNothing {
 };
 
 struct RequireFail_terminate {
-  [[noreturn]] static void
+  [[noreturn]] constexpr static void
   fail(const std::string_view msg, const std::source_location loc) PF_NOEXCEPT {
     (void) msg;
     (void) loc;
