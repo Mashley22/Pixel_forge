@@ -28,10 +28,6 @@ function(target_cxx_modules_private TARGET_NAME)
 
 endfunction()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "clang")
-  add_compile_options(-Wno-interference-size)
-endif()
-
 set(PEDANTIC_COMPILE_OPTIONS
   -Wall 
   -Wextra 

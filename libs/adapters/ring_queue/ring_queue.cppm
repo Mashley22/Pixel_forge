@@ -384,7 +384,7 @@ public:
 
   template <typename T_Range, class T_ErrPolicy = ErrPolicy_throws<void, FullError>>
     requires CompatibleInputRange_c<RingQueue<T>, T_Range> &&
-             requires { VoidErrPolicy_c<T_ErrPolicy>; } && requires {
+             VoidErrPolicy_c<T_ErrPolicy> && requires {
                { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
              }
   constexpr T_ErrPolicy::return_type

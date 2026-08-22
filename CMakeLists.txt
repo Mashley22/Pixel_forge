@@ -12,6 +12,11 @@ elseif(CMAKE_CXX_STANDARD LESS ${PIXELFORGE_MINIMUM_CXX_STANDARD})
   message(FATAL_ERROR "c++ standard set too low: ${CMAKE_CXX_STANDARD}. Need ${PIXELFORGE_MINIMUM_CXX_STANDARD} atleast!")
 endif()
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # no stable abi
+  add_compile_options(-Wno-interference-size)
+endif()
+
 include(options.cmake)
 include(cmake/utils.cmake)
 
