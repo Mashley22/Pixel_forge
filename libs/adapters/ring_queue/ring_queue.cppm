@@ -257,7 +257,7 @@ public:
     }
   constexpr T_ErrPolicy::return_type
   push(const T& value)
-      PF_NOEXCEPT_COND(Traits::is_nothrow_copy_v && T_ErrPolicy::is_noexcept) {
+      PF_NOEXCEPT_COND(Traits::is_nothrow_copy_v&& T_ErrPolicy::is_noexcept) {
     if (full()) {
       return T_ErrPolicy::fail();
     }
@@ -276,7 +276,7 @@ public:
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
   constexpr T_ErrPolicy::return_type
-  push(T&& val) PF_NOEXCEPT_COND(Traits::is_nothrow_move_v && T_ErrPolicy::is_noexcept) {
+  push(T&& val) PF_NOEXCEPT_COND(Traits::is_nothrow_move_v&& T_ErrPolicy::is_noexcept) {
     if (full()) {
       return T_ErrPolicy::fail();
     }
@@ -362,7 +362,7 @@ public:
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
   constexpr T_ErrPolicy::return_type
-  pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && Traits::is_nothrow_move_v) {
+  pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept&& Traits::is_nothrow_move_v) {
     if (empty()) {
       return T_ErrPolicy::fail();
     }

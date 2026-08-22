@@ -43,8 +43,10 @@ public:
     using pointer = T*;
     using const_pointer = const T*;
 
-    static constexpr bool is_nothrow_copy_construct_v = std::is_nothrow_copy_constructible_v<T>;
-    static constexpr bool is_nothrow_move_construct_v = std::is_nothrow_move_constructible_v<T>;
+    static constexpr bool is_nothrow_copy_construct_v =
+        std::is_nothrow_copy_constructible_v<T>;
+    static constexpr bool is_nothrow_move_construct_v =
+        std::is_nothrow_move_constructible_v<T>;
     template <typename... V_args>
     static constexpr bool is_nothrow_construct_v =
         std::is_nothrow_constructible_v<T, V_args...>;
@@ -54,26 +56,24 @@ public:
 
   constexpr SPSCQueue() PF_NOEXCEPT = default;
 
-  constexpr SPSCQueue(T* pBuf, size_type capacity) PF_NOEXCEPT
-    : m_data(pBuf),
-      m_mask(capacity - 1) {
+  constexpr SPSCQueue(T* pBuf, size_type capacity) PF_NOEXCEPT : m_data(pBuf),
+                                                                 m_mask(capacity - 1) {
     PF_REQUIRE(valid_init_());
   }
 
-  constexpr SPSCQueue(std::span<T> buf) PF_NOEXCEPT
-    : m_data(buf.data()),
-      m_mask(buf.size() - 1) {
+  constexpr SPSCQueue(std::span<T> buf) PF_NOEXCEPT : m_data(buf.data()),
+                                                      m_mask(buf.size() - 1) {
     PF_REQUIRE(valid_init_());
   }
 
-  constexpr ~SPSCQueue() PF_NOEXCEPT {
-    clear();
-  }
+  constexpr ~SPSCQueue() PF_NOEXCEPT { clear(); }
 
   SPSCQueue(const SPSCQueue&) = delete;
   SPSCQueue(SPSCQueue&&) = delete;
-  SPSCQueue& operator=(const SPSCQueue&) = delete;
-  SPSCQueue& operator=(SPSCQueue&&) = delete;
+  SPSCQueue&
+  operator=(const SPSCQueue&) = delete;
+  SPSCQueue&
+  operator=(SPSCQueue&&) = delete;
 
   [[nodiscard]] constexpr pointer
   data() PF_NOEXCEPT {
@@ -104,7 +104,8 @@ public:
 
   [[nodiscard]] bool
   empty() const PF_NOEXCEPT {
-    return m_head.load(std::memory_order_acquire) == m_tail.load(std::memory_order_acquire);
+    return m_head.load(std::memory_order_acquire) ==
+           m_tail.load(std::memory_order_acquire);
   }
 
   [[nodiscard]] bool
@@ -146,7 +147,7 @@ public:
     }
   constexpr T_ErrPolicy::return_type
   push(const T& value)
-      PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v && T_ErrPolicy::is_noexcept) {
+      PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v&& T_ErrPolicy::is_noexcept) {
     if (full()) {
       return T_ErrPolicy::fail();
     }
@@ -171,7 +172,7 @@ public:
     }
   constexpr T_ErrPolicy::return_type
   push(T&& val)
-      PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v && T_ErrPolicy::is_noexcept) {
+      PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& T_ErrPolicy::is_noexcept) {
     if (full()) {
       return T_ErrPolicy::fail();
     }
@@ -195,9 +196,8 @@ public:
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
   constexpr T_ErrPolicy::return_type
-  emplace(V_args&&... args)
-      PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...> &&
-                       T_ErrPolicy::is_noexcept) {
+  emplace(V_args&&... args) PF_NOEXCEPT_COND(
+      Traits::template is_nothrow_construct_v<V_args...>&& T_ErrPolicy::is_noexcept) {
     if (full()) {
       return T_ErrPolicy::fail();
     }
@@ -235,8 +235,7 @@ public:
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
   constexpr T_ErrPolicy::return_type
-  pop()
-      PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v && T_ErrPolicy::is_noexcept) {
+  pop() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& T_ErrPolicy::is_noexcept) {
     if (empty()) {
       return T_ErrPolicy::fail();
     }
@@ -265,7 +264,8 @@ public:
     while (!empty()) {
       ASSUMPTIONS;
       std::destroy_at(&front());
-      m_tail.store((m_tail.load(std::memory_order_relaxed) + 1) % capacity(), std::memory_order_release);
+      m_tail.store((m_tail.load(std::memory_order_relaxed) + 1) % capacity(),
+                   std::memory_order_release);
     }
   }
 
