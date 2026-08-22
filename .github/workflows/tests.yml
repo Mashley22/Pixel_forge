@@ -1,0 +1,49 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.preset }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        preset:
+          - debug_validation
+          - release_validation
+          - gcc_debug_validation
+          - gcc_release_validation
+
+    steps:
+
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Install compilers
+        run: |
+          sudo apt-get update
+          if [[ "${{ matrix.preset }}" == gcc_* ]]; then
+            sudo apt-get install -y g++-14
+            sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+            sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+          else
+            sudo apt-get install -y clang
+          fi
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }} --parallel $(nproc)
+
+      - name: Test
+        run: ctest --test-dir build/${{ matrix.preset }} --output-on-failure
