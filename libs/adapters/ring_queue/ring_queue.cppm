@@ -149,11 +149,13 @@ public:
   [[nodiscard]] constexpr reference
   back() PF_NOEXCEPT {
     ASSUMPTIONS;
+    PF_REQUIRE_ASSUME(m_back != 0);
     return m_data[toIdx_(m_back - 1)];
   }
 
   [[nodiscard]] constexpr const_reference
   back() const PF_NOEXCEPT {
+    PF_REQUIRE_ASSUME(m_back != 0);
     ASSUMPTIONS;
     return m_data[toIdx_(m_back - 1)];
   }
