@@ -6,8 +6,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-import PixelForge.adapters.ringQueue;
-import PixelForge.adapters.utils.traits;
+import PixelForge.adapters;
 
 import PixelForge.validation_helpers;
 

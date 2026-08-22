@@ -12,9 +12,9 @@ module;
 #include <PixelForge/adapters/macros.hpp>
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.adapters.spscQueue;
+export module PixelForge.adapters:spscQueue;
 
-import PixelForge.adapters.utils.traits;
+import :utils.traits;
 
 import PixelForge.core;
 

@@ -2,7 +2,7 @@ module;
 
 #include <ranges>
 
-export module PixelForge.adapters.utils.traits;
+export module PixelForge.adapters:utils.traits;
 
 export namespace pf::adapters {
 
