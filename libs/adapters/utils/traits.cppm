@@ -20,12 +20,11 @@ concept Adapter_c = requires {
 template <typename Adapter, typename Range>
 concept CompatibleInputRange_c =
     Adapter_c<Adapter> && std::ranges::input_range<Range> &&
-    std::ranges::sized_range<Range> && requires {
+    std::ranges::sized_range<Range> && (
       std::constructible_from<typename Adapter::value_type,
                               std::ranges::range_value_t<Range>> ||
           std::constructible_from<typename Adapter::value_type,
-                                  std::ranges::range_reference_t<Range>>;
-    };
+                                  std::ranges::range_reference_t<Range>>);
 
 template <typename Adapter, typename Range>
 concept CompatibleOutputRange_c =
