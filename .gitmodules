@@ -1,6 +1,6 @@
 [submodule "extern/catch2"]
 	path = extern/catch2
-	url = https://github.com:catchorg/Catch2.git
+	url = https://github.com/catchorg/Catch2.git
 [submodule "extern/benchpp"]
 	path = extern/benchpp
-	url = https://github.com:Mashley22/Benchpp.git
+	url = https://github.com/Mashley22/Benchpp.git
