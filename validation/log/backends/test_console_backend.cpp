@@ -1,8 +1,8 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
-#include <cstdio>
-#include <fstream>
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -98,11 +98,10 @@ TEST_CASE("ConsoleBackend log writes every level", "[log][console]") {
 }
 
 TEST_CASE("ConsoleBackend log is line-atomic under concurrency", "[log][console]") {
-  const std::string_view capturePath = "/tmp/opencode/pf_console_backend_test.log";
-  std::remove(capturePath.data());
-
-  std::fflush(stdout);
-  REQUIRE(std::freopen(capturePath.data(), "w", stdout) != nullptr);
+  // redirect std::cout and std::cerr into one in-memory buffer
+  std::ostringstream captured;
+  auto* const oldOut = std::cout.rdbuf(captured.rdbuf());
+  auto* const oldErr = std::cerr.rdbuf(captured.rdbuf());
 
   {
     std::vector<std::jthread> threads;
@@ -115,16 +114,15 @@ TEST_CASE("ConsoleBackend log is line-atomic under concurrency", "[log][console]
     }
   }
 
-  std::fflush(stdout);
-
-  std::ifstream captured(capturePath.data());
-  REQUIRE(captured.is_open());
+  std::cout.rdbuf(oldOut);
+  std::cerr.rdbuf(oldErr);
 
   std::size_t counts[THREADS]{};
   std::size_t totalLines = 0;
+  std::istringstream stream(captured.str());
   std::string line;
-  while (std::getline(captured, line)) {
-    if (!line.starts_with('[')) { // skip catch2 footer noise
+  while (std::getline(stream, line)) {
+    if (line.empty()) {
       continue;
     }
     totalLines++;

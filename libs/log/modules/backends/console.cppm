@@ -3,7 +3,7 @@ module;
 #include <array>
 #include <chrono>
 #include <concepts>
-#include <cstdio>
+#include <iostream>
 #include <mutex>
 #include <span>
 
@@ -14,14 +14,6 @@ export module PixelForge.logging:backend.console;
 import :record;
 
 import PixelForge.core;
-
-// -Wstrict-overflow=5 fires inside libstdc++'s chrono formatter
-// (__formatter_chrono::_M_D_x) instantiated by formatLine(); GCC documents
-// level 5 as prone to false positives. The diagnostic is emitted at
-// end-of-TU, so it cannot be scoped around the call site.
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic ignored "-Wstrict-overflow"
-#endif
 
 export namespace pf::log {
 
@@ -69,28 +61,22 @@ public:
    *
    *@param record the record to log
    *
-   *@note thread-safe: formatting runs on purely local storage, and line
-   * emission is guarded by m_lock so concurrent producers cannot interleave
-   * within each other's lines. Records may still interleave at line
-   * granularity, and between stdout and stderr.
+   *@note thread-safe: formatting runs on purely local storage, and the
+   * single stream insertion is guarded by m_lock so concurrent producers
+   * cannot interleave within each other's lines. Records may still
+   * interleave at line granularity, and between std::cout and std::cerr.
    */
   static void
   log(const Record& record) PF_NOEXCEPT {
     std::array<char, lineBufSize> buf{};
 
     const std::size_t size = formatLine(record, buf);
-    const std::size_t written = (size < buf.size()) ? size : buf.size();
+    std::size_t len = (size < buf.size()) ? size : buf.size() - 1;
+    buf[len++] = '\n';
 
-    std::FILE* stream = (record.level >= Level::WARNING) ? stderr : stdout;
-    {
-      std::lock_guard<std::mutex> lock(m_lock);
-      (void) std::fwrite(buf.data(), 1, written, stream);
-      (void) std::fputc('\n', stream);
-    }
-
-    if (stream == stderr) {
-      (void) std::fflush(stream);
-    }
+    std::ostream& stream = (record.level >= Level::WARNING) ? std::cerr : std::cout;
+    const std::lock_guard<std::mutex> lock(m_lock);
+    stream.write(buf.data(), static_cast<std::streamsize>(len));
   }
 };
 
