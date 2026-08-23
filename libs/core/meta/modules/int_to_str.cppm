@@ -41,7 +41,8 @@ private:
     std::size_t digitCount = 1;
     T val = T_val;
 
-    while (val > T_base) {
+    while (val >= T_base) {
+      val /= T_base;
       digitCount++;
     }
 
@@ -57,26 +58,25 @@ private:
   [[nodiscard]]
   static consteval T
   maxBaseScale() {
-    T val = T_base;
-    while (static_cast<T>(val * T_base) < T_val) {
-      val *= T_base;
+    T scale = 1;
+    for (std::size_t i = 1; i < digits(); i++) {
+      scale *= T_base;
     }
 
-    return val;
+    return scale;
   }
 
   [[nodiscard]]
   static consteval std::array<char, len()>
   impl() {
     std::array<char, len()> retVal{};
-    T val = T_val;
+    T remaining = T_val;
     T scale = maxBaseScale();
 
     for (std::size_t i = 0; i < digits(); i++) {
-      val %= scale;
-      retVal[i] = T_digitSet[val];
+      retVal[i] = T_digitSet[remaining / scale];
+      remaining %= scale;
       scale /= T_base;
-      (void) scale;
     }
 
     retVal.back() = '\0';
@@ -136,13 +136,21 @@ struct IntToStr {
 private:
   using unsigned_t = std::make_unsigned_t<T>;
 
+  /**
+   *@brief Magnitude of T_val computed without signed overflow, so even the
+   * most negative value converts correctly
+   */
+  static constexpr unsigned_t magnitude =
+      (T_val < 0) ? static_cast<unsigned_t>(-static_cast<unsigned_t>(T_val))
+                  : static_cast<unsigned_t>(T_val);
+
   static constexpr auto UintArr =
-      UintToStr<unsigned_t, static_cast<unsigned_t>(T_val), T_base, T_digitSet>::arr;
+      UintToStr<unsigned_t, magnitude, T_base, T_digitSet>::arr;
 
   [[nodiscard]]
   static consteval std::size_t
   len() {
-    if constexpr (T_val > 0) {
+    if constexpr (T_val >= 0) {
       return UintArr.size();
     }
     return UintArr.size() + 1;
@@ -152,7 +160,7 @@ private:
   static consteval std::array<char, len()>
   impl() {
     std::array<char, len()> retVal;
-    if constexpr (T_val > 0) {
+    if constexpr (T_val >= 0) {
       std::copy(UintArr.begin(), UintArr.end(), retVal.begin());
       return retVal;
     }

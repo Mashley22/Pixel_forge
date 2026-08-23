@@ -1,4 +1,5 @@
 #include <array>
+#include <cstdint>
 #include <string_view>
 
 #include <catch2/catch_test_macros.hpp>
@@ -53,6 +54,26 @@ TEST_CASE("test svToInt", "[core][meta]") {
 
 TEST_CASE("test intToSv", "[core][meta]") {
   STATIC_REQUIRE(intToStrSuccessful() == true);
+}
+
+TEST_CASE("test UintToStr multi digit", "[core][meta]") {
+  STATIC_REQUIRE(UintToStr<unsigned int, 420>::sv() == "420");
+  STATIC_REQUIRE(UintToStr<unsigned int, 1000>::sv() == "1000");
+  STATIC_REQUIRE(UintToStr<unsigned int, 10>::sv() == "10");
+  STATIC_REQUIRE(UintToStr<unsigned int, 9>::sv() == "9");
+  STATIC_REQUIRE(UintToStr<unsigned int, 0>::sv() == "0");
+  STATIC_REQUIRE(UintToStr<unsigned long long, 18446744073709551615ULL>::sv() ==
+                 "18446744073709551615");
+  STATIC_REQUIRE(UintToStr<std::uint8_t, 255, 16>::sv() == "FF");
+  STATIC_REQUIRE(UintToStr<unsigned int, 36>::sv() == "36");
+}
+
+TEST_CASE("test IntToStr negatives and edge cases", "[core][meta]") {
+  STATIC_REQUIRE(IntToStr<int, -420>::sv() == "-420");
+  STATIC_REQUIRE(IntToStr<int, -1>::sv() == "-1");
+  STATIC_REQUIRE(IntToStr<int, -2147483647 - 1>::sv() == "-2147483648");
+  STATIC_REQUIRE(IntToStr<int, 2147483647>::sv() == "2147483647");
+  STATIC_REQUIRE(IntToStr<int, 0>::sv() == "0");
 }
 
 }
