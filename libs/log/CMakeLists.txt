@@ -13,5 +13,6 @@ if(PIXELFORGE_TEST)
 endif()
 
 target_cxx_modules_public(PixelForge_logging
-  modules/logging.cppm
+  modules/record.cppm
+  logging.cppm
 )
