@@ -92,9 +92,10 @@ public:
 
   [[nodiscard]] size_type
   size() const PF_NOEXCEPT {
-    size_type head = m_head.load(std::memory_order_acquire);
-    size_type tail = m_tail.load(std::memory_order_acquire);
-    return (head >= tail) ? (head - tail) : (capacity() - tail + head);
+    // m_head/m_tail are monotonically increasing; unsigned subtraction stays
+    // consistent across their wrap-around
+    return m_head.load(std::memory_order_acquire) -
+           m_tail.load(std::memory_order_acquire);
   }
 
   [[nodiscard]] size_type
@@ -104,8 +105,7 @@ public:
 
   [[nodiscard]] bool
   empty() const PF_NOEXCEPT {
-    return m_head.load(std::memory_order_acquire) ==
-           m_tail.load(std::memory_order_acquire);
+    return size() == 0;
   }
 
   [[nodiscard]] bool
@@ -128,17 +128,15 @@ public:
   [[nodiscard]] constexpr reference
   back() PF_NOEXCEPT {
     ASSUMPTIONS;
-    size_type head = m_head.load(std::memory_order_acquire);
-    PF_REQUIRE(head != 0, "queue empty");
-    return m_data[idx_(head - 1)];
+    PF_REQUIRE(!empty(), "queue empty");
+    return m_data[idx_(m_head.load(std::memory_order_acquire) - 1)];
   }
 
   [[nodiscard]] constexpr const_reference
   back() const PF_NOEXCEPT {
     ASSUMPTIONS;
-    size_type head = m_head.load(std::memory_order_acquire);
-    PF_REQUIRE(head != 0, "queue empty");
-    return m_data[idx_(head - 1)];
+    PF_REQUIRE(!empty(), "queue empty");
+    return m_data[idx_(m_head.load(std::memory_order_acquire) - 1)];
   }
 
   template <class T_ErrPolicy = ErrPolicy_throws<void, FullError>>
@@ -152,7 +150,7 @@ public:
       return T_ErrPolicy::fail();
     }
 
-    emplace<ErrPolicy_nothing<void>>(value);
+    static_cast<void>(emplace<ErrPolicy_nothing<pointer>>(value));
     return T_ErrPolicy::success();
   }
 
@@ -177,7 +175,7 @@ public:
       return T_ErrPolicy::fail();
     }
 
-    emplace<ErrPolicy_nothing<void>>(std::forward<T>(val));
+    static_cast<void>(emplace<ErrPolicy_nothing<pointer>>(std::forward<T>(val)));
     return T_ErrPolicy::success();
   }
 
@@ -205,7 +203,7 @@ public:
     ASSUMPTIONS;
     size_type head = m_head.load(std::memory_order_relaxed);
     new (&m_data[idx_(head)]) T(std::forward<V_args>(args)...);
-    m_head.store((head + 1) % capacity(), std::memory_order_release);
+    m_head.store(head + 1, std::memory_order_release);
 
     return T_ErrPolicy::success(&m_data[idx_(head)]);
   }
@@ -244,7 +242,7 @@ public:
     size_type tail = m_tail.load(std::memory_order_relaxed);
     T temp = std::move(m_data[idx_(tail)]);
     std::destroy_at(&m_data[idx_(tail)]);
-    m_tail.store((tail + 1) % capacity(), std::memory_order_release);
+    m_tail.store(tail + 1, std::memory_order_release);
 
     return T_ErrPolicy::success(std::move(temp));
   }
@@ -264,8 +262,7 @@ public:
     while (!empty()) {
       ASSUMPTIONS;
       std::destroy_at(&front());
-      m_tail.store((m_tail.load(std::memory_order_relaxed) + 1) % capacity(),
-                   std::memory_order_release);
+      m_tail.store(m_tail.load(std::memory_order_relaxed) + 1, std::memory_order_release);
     }
   }
 
