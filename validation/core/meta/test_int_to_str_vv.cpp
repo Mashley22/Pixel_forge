@@ -1,9 +1,9 @@
-import PixelForge.core;
-
 #include <array>
 #include <string_view>
 
 #include <catch2/catch_test_macros.hpp>
+
+import PixelForge.core;
 
 constexpr auto TEST_VALS_NUM = 3;
 

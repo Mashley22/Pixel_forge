@@ -1,8 +1,8 @@
-import PixelForge.core;
-
 #include <cstdint>
 
 #include <catch2/catch_test_macros.hpp>
+
+import PixelForge.core;
 
 namespace pf {
 

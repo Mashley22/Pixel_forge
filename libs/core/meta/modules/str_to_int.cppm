@@ -25,8 +25,14 @@ strToInt(std::string_view sv)
 
   T retVal = 0;
   std::size_t multiplier = 1;
+
+  auto retValIncrement = [](char val, std::size_t mult) {
+    return static_cast<T>(static_cast<std::size_t>(charToInt<T_base, T_digitSet>(val)) *
+                          mult);
+  };
+
   for (auto it = sv.rbegin(); it != sv.rend() - 1; it++) {
-    retVal += static_cast<std::size_t>(charToInt<T_base, T_digitSet>(*it)) * multiplier;
+    retVal += retValIncrement(*it, multiplier);
     multiplier *= T_base;
   }
 
@@ -34,14 +40,13 @@ strToInt(std::string_view sv)
     if (sv[0] == '-') {
       throw "Signed input with unsigned type!";
     }
-    retVal += static_cast<std::size_t>(charToInt<T_base, T_digitSet>(sv[0])) * multiplier;
+    retVal += retValIncrement(sv[0], multiplier);
     return retVal;
   } else {
     if (sv[0] == '-') {
       return retVal * -1;
     } else {
-      retVal +=
-          static_cast<std::size_t>(charToInt<T_base, T_digitSet>(sv[0])) * multiplier;
+      retVal += retValIncrement(sv[0], multiplier);
       return retVal;
     }
   }

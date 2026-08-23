@@ -1,8 +1,8 @@
-import PixelForge.core;
-
 #include <catch2/catch_test_macros.hpp>
 
 #include <string_view>
+
+import PixelForge.core;
 
 #define HELLO "hello"
 #define SPACE " "

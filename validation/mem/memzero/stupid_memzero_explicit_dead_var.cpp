@@ -1,6 +1,6 @@
-import PixelForge.mem.memzero;
-
 #include <cstddef>
+
+import PixelForge.mem.memzero;
 
 namespace pf {
 

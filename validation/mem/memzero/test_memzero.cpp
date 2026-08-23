@@ -1,8 +1,8 @@
+#include <catch2/catch_test_macros.hpp>
+
 import PixelForge.mem.memzero;
 
 import PixelForge.core;
-
-#include <catch2/catch_test_macros.hpp>
 
 constexpr auto NON_ZERO_VALUE = 8;
 constexpr auto TEST_ARR_LEN = 1000;

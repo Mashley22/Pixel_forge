@@ -1,9 +1,9 @@
-import PixelForge.mem;
-import PixelForge.core;
-
 #include <cstddef>
 
 #include <catch2/catch_test_macros.hpp>
+
+import PixelForge.mem;
+import PixelForge.core;
 
 #define CAST_TO_BYTE_PTR(val) reinterpret_cast<std::byte*>(val);
 
