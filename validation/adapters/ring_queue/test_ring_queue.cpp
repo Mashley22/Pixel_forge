@@ -211,8 +211,10 @@ TEST_CASE("RingQueue lifetimes", "[adapters][RingQueue]") {
 }
 
 TEST_CASE("RingQueue move only elements", "[adapters][RingQueue]") {
-  std::unique_ptr<int> buf[BUF_SIZE]{};
-  RingQueue<std::unique_ptr<int>> queue(buf, BUF_SIZE);
+  alignas(std::unique_ptr<int>)
+      unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
+  RingQueue<std::unique_ptr<int>> queue(reinterpret_cast<std::unique_ptr<int>*>(buf),
+                                        BUF_SIZE);
 
   REQUIRE(queue.try_push(std::make_unique<int>(42)));
   REQUIRE(queue.try_push(std::make_unique<int>(43)));
@@ -292,8 +294,10 @@ TEST_CASE("RingQueue push_range basic", "[adapters][RingQueue]") {
 }
 
 TEST_CASE("RingQueue push_range move only", "[adapters][RingQueue]") {
-  std::unique_ptr<int> buf[BUF_SIZE]{};
-  RingQueue<std::unique_ptr<int>> queue(buf, BUF_SIZE);
+  alignas(std::unique_ptr<int>)
+      unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
+  RingQueue<std::unique_ptr<int>> queue(reinterpret_cast<std::unique_ptr<int>*>(buf),
+                                        BUF_SIZE);
 
   std::vector<std::unique_ptr<int>> input;
   input.push_back(std::make_unique<int>(42));

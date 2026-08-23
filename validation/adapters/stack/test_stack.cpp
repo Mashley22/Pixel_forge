@@ -268,8 +268,10 @@ TEST_CASE("Stack push_range basic", "[adapters][Stack]") {
     ptrs.push_back(std::make_unique<int>(42));
     ptrs.push_back(std::make_unique<int>(43));
 
-    std::unique_ptr<int> ptrBuf[BUF_SIZE]{};
-    Stack<std::unique_ptr<int>> ptrStack(ptrBuf, BUF_SIZE);
+    alignas(std::unique_ptr<int>)
+        unsigned char ptrBuf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
+    Stack<std::unique_ptr<int>> ptrStack(reinterpret_cast<std::unique_ptr<int>*>(ptrBuf),
+                                         BUF_SIZE);
     ptrStack.push_range(std::move(ptrs));
 
     REQUIRE(ptrs[0] == nullptr);

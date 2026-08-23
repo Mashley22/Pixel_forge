@@ -43,7 +43,7 @@ TEST_CASE("SPSCQueue basic", "[adapters][SPSCQueue]") {
   }
 
   SECTION("span constructor") {
-    std::span<std::uint32_t> spanBuf(buf);
+    std::span<char> spanBuf(reinterpret_cast<char*>(buf), BUF_SIZE * sizeof(std::uint32_t));
     SPSCQueue<std::uint32_t> spanQueue(spanBuf);
     REQUIRE(spanQueue.capacity() == BUF_SIZE);
     REQUIRE(spanQueue.data() == buf);
@@ -349,8 +349,10 @@ TEST_CASE("SPSCQueue lifetimes", "[adapters][SPSCQueue]") {
 }
 
 TEST_CASE("SPSCQueue move only elements", "[adapters][SPSCQueue]") {
-  std::unique_ptr<int> buf[BUF_SIZE]{};
-  SPSCQueue<std::unique_ptr<int>> queue(buf, BUF_SIZE);
+  alignas(std::unique_ptr<int>)
+      unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
+  SPSCQueue<std::unique_ptr<int>> queue(reinterpret_cast<std::unique_ptr<int>*>(buf),
+                                        BUF_SIZE);
 
   REQUIRE(queue.try_push(std::make_unique<int>(42)));
   REQUIRE(queue.try_push(std::make_unique<int>(43)));
