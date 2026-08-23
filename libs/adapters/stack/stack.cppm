@@ -2,7 +2,9 @@ module;
 
 #include <concepts>
 #include <cstdint>
+#include <iterator>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <type_traits>
 
@@ -20,7 +22,9 @@ export namespace pf::adapters {
 template <class T>
 class Stack {
 public:
-  struct Error : public Exception {};
+  struct Error : public Exception {
+    Error() : Exception("Stack error") {}
+  };
 
   struct FullError : public Error {};
   struct EmptyError : public Error {};
@@ -59,6 +63,8 @@ public:
     PF_REQUIRE(valid_init_());
   }
 
+  constexpr ~Stack() PF_NOEXCEPT { clear(); }
+
   Stack(const Stack&) = delete;
   Stack(Stack&&) = delete;
   Stack&
@@ -66,12 +72,22 @@ public:
   Stack&
   operator=(Stack&&) = delete;
 
-  [[nodiscard]] constexpr const T*
+  [[nodiscard]] constexpr pointer
+  data() PF_NOEXCEPT {
+    return m_data;
+  }
+
+  [[nodiscard]] constexpr const_pointer
   data() const PF_NOEXCEPT {
     return m_data;
   }
 
-  [[nodiscard]] constexpr const T*
+  [[nodiscard]] constexpr pointer
+  end() PF_NOEXCEPT {
+    return m_end;
+  }
+
+  [[nodiscard]] constexpr const_pointer
   end() const PF_NOEXCEPT {
     return m_end;
   }
@@ -102,6 +118,18 @@ public:
   [[nodiscard]] constexpr bool
   empty() const PF_NOEXCEPT {
     return size() == 0;
+  }
+
+  [[nodiscard]] constexpr reference
+  top() PF_NOEXCEPT {
+    PF_REQUIRE(!empty(), "stack empty");
+    return *(m_top - 1);
+  }
+
+  [[nodiscard]] constexpr const_reference
+  top() const PF_NOEXCEPT {
+    PF_REQUIRE(!empty(), "stack empty");
+    return *(m_top - 1);
   }
 
   template <class T_ErrPolicy = ErrPolicy_throws<void, FullError>>
@@ -136,7 +164,7 @@ public:
     }
   constexpr T_ErrPolicy::return_type
   push(T&& value)
-      PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v&& T_ErrPolicy::is_noexcept) {
+      PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& T_ErrPolicy::is_noexcept) {
     if (full()) {
       return T_ErrPolicy::fail();
     }
@@ -216,6 +244,47 @@ public:
   emplace_unchecked(V_args&&... args)
       PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...>) {
     return emplace<ErrPolicy_nothing<pointer>>(std::forward<V_args>(args)...);
+  }
+
+  template <typename T_Range>
+    requires CompatibleInputRange_c<Stack<T>, T_Range>
+  constexpr void
+  push_range_unchecked(T_Range&& range) {
+    push_range<T_Range, ErrPolicy_nothing<void>>(std::forward<T_Range>(range));
+  }
+
+  template <typename T_Range, class T_ErrPolicy = ErrPolicy_throws<void, FullError>>
+    requires CompatibleInputRange_c<Stack<T>, T_Range> && VoidErrPolicy_c<T_ErrPolicy> &&
+             requires {
+               { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
+             }
+  constexpr T_ErrPolicy::return_type
+  push_range(T_Range&& range) {
+    if (std::ranges::size(range) > remaining()) {
+      return T_ErrPolicy::fail();
+    }
+
+    auto first = std::make_move_iterator(std::ranges::begin(range));
+    auto last = std::make_move_iterator(std::ranges::end(range));
+    for (; first != last; ++first) {
+      emplace_unchecked(*first);
+    }
+
+    return T_ErrPolicy::success();
+  }
+
+  template <typename T_Range>
+    requires CompatibleInputRange_c<Stack<T>, T_Range>
+  [[nodiscard]] constexpr bool
+  try_push_range(T_Range&& range) {
+    return push_range<T_Range, ErrPolicy_optional<void>>(std::forward<T_Range>(range));
+  }
+
+  constexpr void
+  clear() PF_NOEXCEPT {
+    while (!empty()) {
+      std::destroy_at(--m_top);
+    }
   }
 
 private:

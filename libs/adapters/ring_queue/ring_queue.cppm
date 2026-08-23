@@ -191,8 +191,8 @@ public:
 
   template <class... V_args>
   pointer
-  emplace_unchecked(V_args&&... args) PF_NOEXCEPT_COND(
-      Traits::template is_nothrow_construct_v<T>&& T_ErrPolicy::is_noexcept) {
+  emplace_unchecked(V_args&&... args)
+      PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<T>) {
     return emplace<ErrPolicy_nothing<pointer>, V_args...>(std::forward<V_args>(args)...);
   }
 
