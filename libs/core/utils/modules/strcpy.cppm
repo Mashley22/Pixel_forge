@@ -11,6 +11,12 @@ import :require;
 
 namespace pf {
 
+/**
+ *@brief Concept for callables deciding whether an element is a terminator
+ *
+ *@tparam T element type examined
+ *@tparam T_val the value passed to the predicate
+ */
 export template <typename T, typename T_val>
 concept IsTerminator_c = requires(T isTerminatorFunc, T_val val) {
   { isTerminatorFunc(val) } -> std::convertible_to<bool>;
@@ -20,6 +26,15 @@ concept IsTerminator_c = requires(T isTerminatorFunc, T_val val) {
  * @brief Copies by value each element, from src to dest until:
  *        1. end of @p src 2. end of @p dest 3. the amount of elements copied
  *        that satisfy @p isTerminator is greater than @p maxTerminators
+ *
+ *@tparam T element type
+ *@tparam T_isTerminatorFunc type of the terminator predicate
+ *
+ *@param dest destination buffer, its size bounds the copy
+ *@param src source buffer
+ *@param isTerminator predicate signalling terminator elements
+ *@param maxTerminators copy stops once this many terminators have been
+ * seen; 0 disables the limit
  *
  * @return The number of elements copied, including the terminators
  */
@@ -48,6 +63,11 @@ copy_until(std::span<T> dest,
  *        null terminators. Copies until the end of the end of @p dest buffer or
  * the end of @p src buffer or a null terminator in @p src, while guaranteeing
  * that @p dest is null terminated
+ *
+ *@param dest destination buffer, always null terminated on return
+ *@param src source string
+ *@param maxNullTerminators stop early after this many terminators in
+ * @p src; 0 disables the limit
  *
  * @return The number of characters copied, including the null terminator
  */
