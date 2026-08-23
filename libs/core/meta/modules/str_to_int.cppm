@@ -15,6 +15,24 @@ namespace meta {
 
 // use std::stoll etc. for runtime
 // may add overflow checking but should be pretty obvious yourself :/
+
+/**
+ *@brief Parses a compile time string into an integral value in an arbitrary
+ * base
+ *
+ * Digits are consumed from the right, so the string must not be empty and
+ * only a single leading '-' is understood (signed types only). Any other
+ * character must exist in @p T_digitSet or compilation fails via
+ * InvalidCharToHexError.
+ *
+ *@tparam T integral result type
+ *@tparam T_base numeric base the string is written in
+ *@tparam T_digitSet character set mapping glyphs to digit values
+ *
+ *@param sv the compile time string to parse
+ *
+ *@return the parsed value
+ */
 export template <std::integral T,
                  std::size_t T_base = 10,
                  const std::string_view& T_digitSet = digitSetUpper>

@@ -11,8 +11,10 @@ import :require;
 export namespace pf {
 
 /**
- *@brief ErrPolicy concept for non void types and the failure
- *       should be cosntrained independently
+ *@brief Concept for policies returning a non-void result on success
+ *
+ *@tparam Policy the policy type
+ *@tparam T_result_type value produced on the success path
  */
 template <class Policy, typename T_result_type>
 concept ErrPolicy_c = !std::is_same_v<T_result_type, void> &&
@@ -39,6 +41,11 @@ concept ErrPolicy_c = !std::is_same_v<T_result_type, void> &&
                         } -> std::same_as<typename Policy::return_type>;
                       };
 
+/**
+ *@brief Concept for policies whose success path carries no value
+ *
+ *@tparam VoidPolicy the policy type
+ */
 template <class VoidPolicy>
 concept VoidErrPolicy_c = requires() {
   typename std::bool_constant<VoidPolicy::is_noexcept>;
@@ -48,6 +55,14 @@ concept VoidErrPolicy_c = requires() {
   { VoidPolicy::success() } -> std::same_as<typename VoidPolicy::return_type>;
 };
 
+/**
+ *@brief Policy treating failure as unreachable: fail() traps via pf::require
+ * in debug and is UB otherwise. Only use where the error path cannot occur.
+ *
+ *@note success returns the value unchanged, adding no overhead
+ *
+ *@tparam T_result_type value produced on the success path
+ */
 template <typename T_result_type>
 struct ErrPolicy_nothing {
   static constexpr bool is_noexcept = true;
@@ -73,6 +88,10 @@ struct ErrPolicy_nothing {
   }
 };
 
+/**
+ *@brief Void specialisation of ErrPolicy_nothing for operations without a
+ * meaningful result
+ */
 template <>
 struct ErrPolicy_nothing<void> {
   static constexpr bool is_noexcept = true;
@@ -90,6 +109,12 @@ struct ErrPolicy_nothing<void> {
   }
 };
 
+/**
+ *@brief Policy reporting failure as an empty std::optional instead of
+ * throwing; introduces no new exceptions itself
+ *
+ *@tparam T_result_type element type of the returned optional
+ */
 template <typename T_result_type>
 struct ErrPolicy_optional {
   static_assert(!std::is_same_v<T_result_type, void>, "A little silly");
@@ -115,6 +140,10 @@ struct ErrPolicy_optional {
   }
 };
 
+/**
+ *@brief Void specialisation of ErrPolicy_optional, maps success/failure onto
+ * plain bool
+ */
 template <>
 struct ErrPolicy_optional<void> {
 
@@ -134,6 +163,13 @@ struct ErrPolicy_optional<void> {
   }
 };
 
+/**
+ *@brief Policy throwing @p T_exception on failure
+ *
+ *@tparam T_result_type value produced on the success path
+ *@tparam T_exception exception type thrown by fail(), forwarded any extra
+ * arguments fail() received
+ */
 template <typename T_result_type, class T_exception>
 struct ErrPolicy_throws {
   static constexpr bool is_noexcept = false;
@@ -156,6 +192,12 @@ struct ErrPolicy_throws {
   }
 };
 
+/**
+ *@brief Void specialisation of ErrPolicy_throws for operations without a
+ * meaningful result
+ *
+ *@tparam T_exception exception type thrown by fail()
+ */
 template <class T_exception>
 struct ErrPolicy_throws<void, T_exception> {
   static constexpr bool is_noexcept = false;
