@@ -31,7 +31,8 @@ enum class Level : Level_t {
 [[nodiscard]] constexpr const char*
 toStr(const Level& lvl) PF_NOEXCEPT {
 #define PF_LOG_LEVEL_X_MACRO(name, val, str) \
-  case Level::name: return str;
+  case Level::name:                          \
+    return str;
 
   switch (lvl) {
     PF_DEFAULT_LOG_LEVEL_LIST
@@ -60,11 +61,11 @@ struct std::formatter<pf::log::Level> : std::formatter<std::string_view> {
 
 export namespace pf::log {
 
-constexpr std::format_string<std::chrono::system_clock::time_point,
-                             Level,
-                             LogIdentifier,
-                             std::string_view>
-   defaultFormat = "[{:%Y-%m-%d %H:%M:%S}] [{:>3}] [thread-{:02X}] {}";
+// kept as string_view so backends can pass it through pf::fmt without
+// clashing with its template argument deduction
+
+constexpr std::string_view defaultFormat =
+    "[{:%Y-%m-%d %H:%M:%S}] [{:>3}] [thread-{:02X}] {}";
 
 template <class LoggerBackend>
 concept Backend_c = requires(const Record& record) {
