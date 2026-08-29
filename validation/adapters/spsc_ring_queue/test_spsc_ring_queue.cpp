@@ -22,10 +22,10 @@ pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_bu
 
 }
 
-TEST_CASE("SPSCQueue basic", "[adapters][SPSCQueue]") {
+TEST_CASE("SPSCRingQueue basic", "[adapters][SPSCQueue]") {
 
   std::uint32_t buf[BUF_SIZE]{};
-  SPSCQueue<std::uint32_t> queue(buf, BUF_SIZE);
+  SPSCRingQueue<std::uint32_t> queue(buf, BUF_SIZE);
 
   SECTION("buffer untouched") {
     for (unsigned int i : buf) {
@@ -45,7 +45,7 @@ TEST_CASE("SPSCQueue basic", "[adapters][SPSCQueue]") {
   SECTION("span constructor") {
     std::span<char> spanBuf(reinterpret_cast<char*>(buf),
                             BUF_SIZE * sizeof(std::uint32_t));
-    SPSCQueue<std::uint32_t> spanQueue(spanBuf);
+    SPSCRingQueue<std::uint32_t> spanQueue(spanBuf);
     REQUIRE(spanQueue.capacity() == BUF_SIZE);
     REQUIRE(spanQueue.data() == buf);
     REQUIRE(spanQueue.empty());
@@ -87,12 +87,12 @@ TEST_CASE("SPSCQueue basic", "[adapters][SPSCQueue]") {
   }
 }
 
-TEST_CASE("SPSCQueue fifo order across wraps", "[adapters][SPSCQueue]") {
+TEST_CASE("SPSCRingQueue fifo order across wraps", "[adapters][SPSCQueue]") {
 
   constexpr auto ROUNDS = 5;
 
   std::uint32_t buf[BUF_SIZE]{};
-  SPSCQueue<std::uint32_t> queue(buf, BUF_SIZE);
+  SPSCRingQueue<std::uint32_t> queue(buf, BUF_SIZE);
 
   SECTION("full rounds") {
     std::uint32_t nextValue = 0;
@@ -149,9 +149,9 @@ TEST_CASE("SPSCQueue fifo order across wraps", "[adapters][SPSCQueue]") {
   }
 }
 
-TEST_CASE("SPSCQueue error policies", "[adapters][SPSCQueue]") {
+TEST_CASE("SPSCRingQueue error policies", "[adapters][SPSCQueue]") {
 
-  using Queue = SPSCQueue<std::uint32_t>;
+  using Queue = SPSCRingQueue<std::uint32_t>;
 
   std::uint32_t buf[BUF_SIZE]{};
   Queue queue(buf, BUF_SIZE);
@@ -203,13 +203,13 @@ TEST_CASE("SPSCQueue error policies", "[adapters][SPSCQueue]") {
   }
 }
 
-TEST_CASE("SPSCQueue lifetimes", "[adapters][SPSCQueue]") {
+TEST_CASE("SPSCRingQueue lifetimes", "[adapters][SPSCQueue]") {
 
   SECTION("single push, single pop") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
-      SPSCQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+      SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
 
       REQUIRE(queue.try_emplace().has_value());
 
@@ -236,7 +236,7 @@ TEST_CASE("SPSCQueue lifetimes", "[adapters][SPSCQueue]") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
-      SPSCQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+      SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
 
       for (std::size_t j = 0; j < 5; j++) {
 
@@ -267,7 +267,7 @@ TEST_CASE("SPSCQueue lifetimes", "[adapters][SPSCQueue]") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer;
-      SPSCQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+      SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
 
       for (std::size_t j = 0; j < 5; j++) {
 
@@ -292,7 +292,7 @@ TEST_CASE("SPSCQueue lifetimes", "[adapters][SPSCQueue]") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
-      SPSCQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+      SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
 
       for (std::size_t i = 0; i < 4; i++) {
         REQUIRE(queue.try_emplace(static_cast<int>(i)).has_value());
@@ -328,7 +328,7 @@ TEST_CASE("SPSCQueue lifetimes", "[adapters][SPSCQueue]") {
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
       {
-        SPSCQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+        SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
         for (std::size_t i = 0; i < 4; i++) {
           REQUIRE(queue.try_emplace().has_value());
         }
@@ -349,10 +349,10 @@ TEST_CASE("SPSCQueue lifetimes", "[adapters][SPSCQueue]") {
   }
 }
 
-TEST_CASE("SPSCQueue move only elements", "[adapters][SPSCQueue]") {
+TEST_CASE("SPSCRingQueue move only elements", "[adapters][SPSCQueue]") {
   alignas(
       std::unique_ptr<int>) unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
-  SPSCQueue<std::unique_ptr<int>> queue(reinterpret_cast<std::unique_ptr<int>*>(buf),
+  SPSCRingQueue<std::unique_ptr<int>> queue(reinterpret_cast<std::unique_ptr<int>*>(buf),
                                         BUF_SIZE);
 
   REQUIRE(queue.try_push(std::make_unique<int>(42)));
@@ -370,38 +370,38 @@ TEST_CASE("SPSCQueue move only elements", "[adapters][SPSCQueue]") {
   REQUIRE(queue.empty());
 }
 
-TEST_CASE("SPSCQueue construction validation", "[adapters][SPSCQueue]") {
+TEST_CASE("SPSCRingQueue construction validation", "[adapters][SPSCQueue]") {
   std::uint32_t buf[BUF_SIZE]{};
 
   SECTION("null buffer rejected") {
     REQUIRE_THROWS(
-        (SPSCQueue<std::uint32_t>(static_cast<std::uint32_t*>(nullptr), BUF_SIZE)));
+        (SPSCRingQueue<std::uint32_t>(static_cast<std::uint32_t*>(nullptr), BUF_SIZE)));
   }
 
   SECTION("zero capacity rejected") {
-    REQUIRE_THROWS((SPSCQueue<std::uint32_t>(buf, 0)));
+    REQUIRE_THROWS((SPSCRingQueue<std::uint32_t>(buf, 0)));
   }
 
   SECTION("misaligned buffer rejected") {
     alignas(std::uint32_t) unsigned char raw[2 * sizeof(std::uint32_t)]{};
     void* misalignedPtr = raw + 1;
     auto* misaligned = static_cast<std::uint32_t*>(misalignedPtr);
-    REQUIRE_THROWS((SPSCQueue<std::uint32_t>(misaligned, 2)));
+    REQUIRE_THROWS((SPSCRingQueue<std::uint32_t>(misaligned, 2)));
   }
 
   SECTION("power of two enforced only when requested") {
-    REQUIRE_NOTHROW((SPSCQueue<std::uint32_t>(buf, BUF_SIZE)));
-    REQUIRE_NOTHROW((SPSCQueue<std::uint32_t, true>(buf, BUF_SIZE)));
-    REQUIRE_THROWS((SPSCQueue<std::uint32_t, true>(buf, BUF_SIZE - 1)));
+    REQUIRE_NOTHROW((SPSCRingQueue<std::uint32_t>(buf, BUF_SIZE)));
+    REQUIRE_NOTHROW((SPSCRingQueue<std::uint32_t, true>(buf, BUF_SIZE)));
+    REQUIRE_THROWS((SPSCRingQueue<std::uint32_t, true>(buf, BUF_SIZE - 1)));
   }
 }
 
-TEST_CASE("SPSCQueue non power of two capacity", "[adapters][SPSCQueue]") {
+TEST_CASE("SPSCRingQueue non power of two capacity", "[adapters][SPSCQueue]") {
 
   constexpr auto CAPACITY = 100;
 
   std::uint32_t buf[CAPACITY]{};
-  SPSCQueue<std::uint32_t> queue(buf, CAPACITY);
+  SPSCRingQueue<std::uint32_t> queue(buf, CAPACITY);
   REQUIRE(queue.capacity() == CAPACITY);
 
   std::uint32_t nextValue = 0;
@@ -426,12 +426,12 @@ TEST_CASE("SPSCQueue non power of two capacity", "[adapters][SPSCQueue]") {
   }
 }
 
-TEST_CASE("SPSCQueue concurrent producer consumer", "[adapters][SPSCQueue]") {
+TEST_CASE("SPSCRingQueue concurrent producer consumer", "[adapters][SPSCQueue]") {
 
   constexpr auto COUNT = 20000;
 
   std::uint32_t buf[BUF_SIZE]{};
-  SPSCQueue<std::uint32_t> queue(buf, BUF_SIZE);
+  SPSCRingQueue<std::uint32_t> queue(buf, BUF_SIZE);
 
   std::vector<std::uint32_t> consumed;
   consumed.reserve(COUNT);

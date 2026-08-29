@@ -20,5 +20,5 @@ function(add_adapters_unit_test TEST_NAME)
 endfunction()
 
 add_subdirectory(ring_queue)
-add_subdirectory(spsc_queue)
+add_subdirectory(spsc_ring_queue)
 add_subdirectory(stack)

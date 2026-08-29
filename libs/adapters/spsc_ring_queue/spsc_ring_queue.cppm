@@ -12,7 +12,7 @@ module;
 #include <PixelForge/adapters/macros.hpp>
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.adapters:spscQueue;
+export module PixelForge.adapters:spscRingQueue;
 
 import :utils.traits;
 
@@ -25,10 +25,10 @@ import PixelForge.core;
 export namespace pf::adapters {
 
 template <typename T, bool T_isPowerOfTwo = false>
-class SPSCQueue {
+class SPSCRingQueue {
 public:
   struct Error : public Exception {
-    Error() : Exception("SPSC queue error") {}
+    Error() : Exception("SPSC ring queue error") {}
   };
 
   struct FullError : public Error {};
@@ -54,7 +54,7 @@ public:
 
   PF_ADAPTERS_INHERIT_TRAITS(Traits);
 
-  constexpr SPSCQueue() PF_NOEXCEPT = default;
+  constexpr SPSCRingQueue() PF_NOEXCEPT = default;
 
   /**
    *@brief Constructs a queue over raw storage
@@ -63,19 +63,19 @@ public:
    * any live objects; typed buffers are therefore rejected (see the deleted
    * overload below). Storage must be aligned for @p T and outlive the queue
    */
-  explicit constexpr SPSCQueue(void* pBuf, size_type capacity) PF_NOEXCEPT
+  explicit constexpr SPSCRingQueue(void* pBuf, size_type capacity) PF_NOEXCEPT
     : m_data(static_cast<T*>(pBuf)),
       m_mask(capacity - 1) {
     PF_REQUIRE(valid_init_());
   }
 
   /**@overload */
-  explicit constexpr SPSCQueue(char* pBuf, size_type capacity) PF_NOEXCEPT
-    : SPSCQueue(static_cast<void*>(pBuf), capacity) {}
+  explicit constexpr SPSCRingQueue(char* pBuf, size_type capacity) PF_NOEXCEPT
+    : SPSCRingQueue(static_cast<void*>(pBuf), capacity) {}
 
   /**@overload */
-  explicit constexpr SPSCQueue(std::byte* pBuf, size_type capacity) PF_NOEXCEPT
-    : SPSCQueue(static_cast<void*>(pBuf), capacity) {}
+  explicit constexpr SPSCRingQueue(std::byte* pBuf, size_type capacity) PF_NOEXCEPT
+    : SPSCRingQueue(static_cast<void*>(pBuf), capacity) {}
 
   /**
    *@brief Constructs a queue over a byte span
@@ -83,7 +83,7 @@ public:
    * The element capacity is derived as @p buf.size() / sizeof(T); the span
    * must cover a whole number of elements and be aligned for @p T
    */
-  explicit constexpr SPSCQueue(std::span<char> buf) PF_NOEXCEPT
+  explicit constexpr SPSCRingQueue(std::span<char> buf) PF_NOEXCEPT
     : m_data(reinterpret_cast<T*>(buf.data())),
       m_mask((buf.size() / sizeof(T)) - 1) {
     PF_REQUIRE((buf.size() % sizeof(T)) == 0);
@@ -91,21 +91,21 @@ public:
   }
 
   /**@overload */
-  explicit constexpr SPSCQueue(std::span<std::byte> buf) PF_NOEXCEPT
+  explicit constexpr SPSCRingQueue(std::span<std::byte> buf) PF_NOEXCEPT
     : m_data(reinterpret_cast<T*>(buf.data())),
       m_mask((buf.size() / sizeof(T)) - 1) {
     PF_REQUIRE((buf.size() % sizeof(T)) == 0);
     PF_REQUIRE(valid_init_());
   }
 
-  constexpr ~SPSCQueue() PF_NOEXCEPT { clear(); }
+  constexpr ~SPSCRingQueue() PF_NOEXCEPT { clear(); }
 
-  SPSCQueue(const SPSCQueue&) = delete;
-  SPSCQueue(SPSCQueue&&) = delete;
-  SPSCQueue&
-  operator=(const SPSCQueue&) = delete;
-  SPSCQueue&
-  operator=(SPSCQueue&&) = delete;
+  SPSCRingQueue(const SPSCRingQueue&) = delete;
+  SPSCRingQueue(SPSCRingQueue&&) = delete;
+  SPSCRingQueue&
+  operator=(const SPSCRingQueue&) = delete;
+  SPSCRingQueue&
+  operator=(SPSCRingQueue&&) = delete;
 
   [[nodiscard]] constexpr pointer
   data() PF_NOEXCEPT {
