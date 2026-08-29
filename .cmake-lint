@@ -1,0 +1,4 @@
+filter=-whitespace/eol
+linelength=120
+spaces=2
+quiet

@@ -33,3 +33,9 @@ jobs:
 
       - name: Check linter
         run: ./tools/lint.sh
+
+      - name: Install cmakelint
+        run: pip install cmakelint
+
+      - name: Check cmake-lint
+        run: ./tools/cmake_lint.sh
