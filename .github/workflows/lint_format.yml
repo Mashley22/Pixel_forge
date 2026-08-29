@@ -1,0 +1,35 @@
+name: lint and format
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-format:
+    name: Lint and Format
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Install compilers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-22
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-22 200
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-22 200
+
+      - name: Configure
+        run: cmake --preset debug_validation
+
+      - name: Check formatter
+        run: ./tools/format.sh
+
+      - name: Check linter
+        run: ./tools/lint.sh
