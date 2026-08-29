@@ -302,8 +302,8 @@ private:
   pointer m_data{nullptr};
   size_type m_mask{0};
 
-  PF_CACHE_LINE_ALIGN std::atomic<size_type> m_head{0};
-  PF_CACHE_LINE_ALIGN std::atomic<size_type> m_tail{0};
+  PF_CACHE_LINE_ALIGN_VAR std::atomic<size_type> m_head{0};
+  PF_CACHE_LINE_ALIGN_VAR std::atomic<size_type> m_tail{0};
 
   [[nodiscard]] constexpr size_type
   idx_(size_type num) const PF_NOEXCEPT {

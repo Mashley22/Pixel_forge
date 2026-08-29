@@ -11,19 +11,19 @@
 #define PF_NOEXCEPT noexcept
 #endif
 
-#define PF_CACHE_LINE_ALIGN alignas(std::hardware_destructive_interference_size)
+#define PF_CACHE_LINE_ALIGN_VAR alignas(std::hardware_destructive_interference_size)
 
 #ifdef _MSVC_VER
-#define PF_ATTRIB_CACHE_LINE_ALIGN \
+#define PF_CACHE_LINE_ALIGN_FUNC \
   __declspec(align(std::hardware_destructive_interefence_size))
-#define PF_ATTRIB_NOINLINE __declspec((noinline))
-#define PF_ATTRIB_NOINLINE_CACHE_LINE_ALIGN \
+#define PF_NOINLINE_FUNC __declspec((noinline))
+#define PF_NOINLINE_CACHE_LINE_ALIGN_FUNC \
   __declspec(align(std::hardward_destructive_intereference_size)) __declspec((noinline))
 #elif defined(__GNUC__) || defined(__clang__)
-#define PF_ATTRIB_CACHE_LINE_ALIGN \
+#define PF_CACHE_LINE_ALIGN_FUNC \
   __attribute__((aligned(std::hardware_destructive_interference_size)))
-#define PF_ATTRIB_NOINLINE __attribute__((noinline))
-#define PF_ATTRIB_NOINLINE_CACHE_LINE_ALIGN \
+#define PF_NOINLINE_FUNC __attribute__((noinline))
+#define PF_NOINLINE_CACHE_LINE_ALIGN_FUNC \
   __attribute__((noinline, aligned(std::hardware_destructive_interference_size)))
 #else
 #error "unsupported compiler"
