@@ -1,19 +1,40 @@
 module;
 
 #include <cstddef>
+#include <span>
 
-export module PixelForge.mem.memzero;
+#include <PixelForge/core/macros.hpp>
 
-namespace pf {
+export module PixelForge.mem:memzero;
 
-namespace mem {
+import PixelForge.core;
 
-export void
-memzero(void* dest, std::size_t count);
+export namespace pf::mem {
 
-export void
-memzero_explicit(void* dest, std::size_t count);
+constexpr void
+memzero(void* dest, std::size_t count) PF_NOEXCEPT {
+  PF_REQUIRE(dest != nullptr);
+  PF_REQUIRE(count != 0);
 
+  volatile std::byte* p = static_cast<volatile std::byte*>(dest);
+
+  for (std::size_t i = 0; i < count; i++) {
+    p[i] = std::byte{0};
+  }
+}
+
+constexpr void
+memzero(std::span<char> buf) PF_NOEXCEPT {
+  PF_REQUIRE(buf.data() != nullptr);
+  PF_REQUIRE(buf.size() != 0);
+  memzero(buf.data(), buf.size());
+}
+
+constexpr void
+memzero(std::span<std::byte> buf) PF_NOEXCEPT {
+  PF_REQUIRE(buf.data() != nullptr);
+  PF_REQUIRE(buf.size() != 0);
+  memzero(buf.data(), buf.size());
 }
 
 }

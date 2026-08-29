@@ -20,9 +20,3 @@ target_cxx_modules_public(PixelForge_mem
   modules/align.cppm
   modules/linear_allocator.cppm
 )
-
-target_sources(PixelForge_mem
-  PRIVATE
-    src/exception.cpp
-    src/memzero.cpp
-)

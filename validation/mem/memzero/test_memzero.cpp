@@ -1,6 +1,8 @@
+#include <span>
+
 #include <catch2/catch_test_macros.hpp>
 
-import PixelForge.mem.memzero;
+import PixelForge.mem;
 
 import PixelForge.core;
 
@@ -9,9 +11,7 @@ constexpr auto TEST_ARR_LEN = 1000;
 
 static_assert(NON_ZERO_VALUE != 0);
 
-namespace pf {
-
-namespace mem {
+namespace pf::mem {
 
 namespace {
 
@@ -33,32 +33,45 @@ TEST_CASE("memzero", "[core][mem]") {
     }
   }
 
-  SECTION("no null", "[core][mem]") {
+  SECTION("no null") {
     REQUIRE_THROWS_AS(memzero(reinterpret_cast<void*>(NON_ZERO_VALUE), 0), RequireFail);
     REQUIRE_THROWS_AS(memzero(reinterpret_cast<void*>(0), NON_ZERO_VALUE), RequireFail);
   }
-}
 
-TEST_CASE("memzero_explicit_basic", "[core][mem]") {
+  SECTION("span<char>") {
+    char arr[TEST_ARR_LEN] = {static_cast<char>(NON_ZERO_VALUE)};
 
-  SECTION("basic usage") {
-    NotZeroByte arr[TEST_ARR_LEN] = {};
+    memzero(std::span<char>{arr});
 
-    memzero_explicit(arr, TEST_ARR_LEN * sizeof(NotZeroByte));
-
-    for (auto& i : arr) {
-      REQUIRE(i.data == std::byte{0});
+    for (auto c : arr) {
+      REQUIRE(c == char{0});
     }
   }
 
-  SECTION("no null", "[core][mem]") {
-    REQUIRE_THROWS_AS(memzero_explicit(reinterpret_cast<void*>(NON_ZERO_VALUE), 0),
-                      RequireFail);
-    REQUIRE_THROWS_AS(memzero_explicit(reinterpret_cast<void*>(0), NON_ZERO_VALUE),
-                      RequireFail);
-  }
-}
+  SECTION("span<std::byte>") {
+    std::byte arr[TEST_ARR_LEN] = {std::byte{NON_ZERO_VALUE}};
 
+    memzero(std::span<std::byte>{arr});
+
+    for (auto b : arr) {
+      REQUIRE(b == std::byte{0});
+    }
+  }
+
+  SECTION("span no null") {
+    REQUIRE_THROWS_AS(
+        memzero(std::span<char>{reinterpret_cast<char*>(NON_ZERO_VALUE), 0}),
+        RequireFail);
+    REQUIRE_THROWS_AS(
+        memzero(std::span<char>{reinterpret_cast<char*>(NULL), NON_ZERO_VALUE}),
+        RequireFail);
+    REQUIRE_THROWS_AS(
+        memzero(std::span<std::byte>{reinterpret_cast<std::byte*>(NON_ZERO_VALUE), 0}),
+        RequireFail);
+    REQUIRE_THROWS_AS(
+        memzero(std::span<std::byte>{reinterpret_cast<std::byte*>(NULL), NON_ZERO_VALUE}),
+        RequireFail);
+  }
 }
 
 }
