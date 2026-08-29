@@ -211,8 +211,8 @@ TEST_CASE("RingQueue lifetimes", "[adapters][RingQueue]") {
 }
 
 TEST_CASE("RingQueue move only elements", "[adapters][RingQueue]") {
-  alignas(std::unique_ptr<int>)
-      unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
+  alignas(
+      std::unique_ptr<int>) unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
   RingQueue<std::unique_ptr<int>> queue(reinterpret_cast<std::unique_ptr<int>*>(buf),
                                         BUF_SIZE);
 
@@ -294,8 +294,8 @@ TEST_CASE("RingQueue push_range basic", "[adapters][RingQueue]") {
 }
 
 TEST_CASE("RingQueue push_range move only", "[adapters][RingQueue]") {
-  alignas(std::unique_ptr<int>)
-      unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
+  alignas(
+      std::unique_ptr<int>) unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
   RingQueue<std::unique_ptr<int>> queue(reinterpret_cast<std::unique_ptr<int>*>(buf),
                                         BUF_SIZE);
 

@@ -61,7 +61,8 @@ public:
    * any live objects; typed buffers are therefore rejected (see the deleted
    * overload below). Storage must be aligned for @p T and outlive the queue
    */
-  explicit constexpr RingQueue(void* pBuf, size_type capacity,
+  explicit constexpr RingQueue(void* pBuf,
+                               size_type capacity,
                                size_type startIdx = 0) PF_NOEXCEPT
     : m_data(static_cast<pointer>(pBuf)),
       m_capMask(capacity - 1),
@@ -71,12 +72,14 @@ public:
   }
 
   /**@overload */
-  explicit constexpr RingQueue(char* pBuf, size_type capacity, size_type startIdx = 0)
-      PF_NOEXCEPT
+  explicit constexpr RingQueue(char* pBuf,
+                               size_type capacity,
+                               size_type startIdx = 0) PF_NOEXCEPT
     : RingQueue(static_cast<void*>(pBuf), capacity, startIdx) {}
 
   /**@overload */
-  explicit constexpr RingQueue(std::byte* pBuf, size_type capacity,
+  explicit constexpr RingQueue(std::byte* pBuf,
+                               size_type capacity,
                                size_type startIdx = 0) PF_NOEXCEPT
     : RingQueue(static_cast<void*>(pBuf), capacity, startIdx) {}
 
@@ -96,7 +99,8 @@ public:
   }
 
   /**@overload */
-  explicit constexpr RingQueue(std::span<std::byte> buf, size_type startIdx = 0) PF_NOEXCEPT
+  explicit constexpr RingQueue(std::span<std::byte> buf,
+                               size_type startIdx = 0) PF_NOEXCEPT
     : m_data(reinterpret_cast<pointer>(buf.data())),
       m_capMask((buf.size() / sizeof(T)) - 1),
       m_front(startIdx),

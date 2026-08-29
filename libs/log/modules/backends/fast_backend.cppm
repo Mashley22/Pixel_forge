@@ -14,13 +14,13 @@ export namespace pf::log {
 /**
  *@brief A fast logger backend. Each thread owns its own logging instance
  *       and a background thread collects logs from each thread and writes
- *       them to a log file (WITHOUT SORTING). The log file should later be 
+ *       them to a log file (WITHOUT SORTING). The log file should later be
  *       serialised
  */
 class FastBackend {
 
   using Clock = std::chrono::system_clock;
-  
+
   using TimePoint_t = Clock::time_point;
 
   static_assert(sizeof(TimePoint_t) == 8);
@@ -38,9 +38,8 @@ class FastBackend {
 
   struct Payload {
     Header header;
-    const char * data;
+    const char* data;
   };
-
 };
 
 }
