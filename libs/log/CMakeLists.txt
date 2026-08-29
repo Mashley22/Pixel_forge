@@ -26,5 +26,6 @@ endif()
 target_cxx_modules_public(PixelForge_logging
   modules/record.cppm
   modules/backends/console.cppm
+  modules/backends/fast_backend.cppm
   logging.cppm
 )
