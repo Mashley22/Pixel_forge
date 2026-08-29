@@ -353,7 +353,7 @@ TEST_CASE("SPSCRingQueue move only elements", "[adapters][SPSCQueue]") {
   alignas(
       std::unique_ptr<int>) unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
   SPSCRingQueue<std::unique_ptr<int>> queue(reinterpret_cast<std::unique_ptr<int>*>(buf),
-                                        BUF_SIZE);
+                                            BUF_SIZE);
 
   REQUIRE(queue.try_push(std::make_unique<int>(42)));
   REQUIRE(queue.try_push(std::make_unique<int>(43)));

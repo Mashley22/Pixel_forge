@@ -106,7 +106,7 @@ TEST_CASE("ConsoleBackend log is line-atomic under concurrency", "[log][console]
   {
     std::vector<std::jthread> threads;
     threads.reserve(THREADS);
-for (std::size_t t = 0; t < THREADS; t++) {
+    for (std::size_t t = 0; t < THREADS; t++) {
       threads.emplace_back([t] {
         for (int i = 0; i < PER_THREAD; i++) {
           ConsoleBackend::log(makeRecord(Level::DEBUG, THREAD_MSGS[t]));
