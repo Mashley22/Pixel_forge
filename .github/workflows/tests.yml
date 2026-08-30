@@ -49,5 +49,17 @@ jobs:
       - name: Build
         run: cmake --build --preset ${{ matrix.preset }} --parallel $(nproc)
 
+      - name: Install cmakelint
+        if: matrix.preset == 'debug_validation'
+        run: pip install cmakelint
+
+      - name: Lint and Format
+        if: matrix.preset == 'debug_validation'
+        continue-on-error: true
+        run: |
+          ./tools/format.sh
+          ./tools/lint.sh
+          ./tools/cmake_lint.sh
+
       - name: Test
         run: ctest --test-dir build/${{ matrix.preset }} --output-on-failure
