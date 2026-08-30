@@ -2,6 +2,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <PixelForgeValidationHelpers/helpers.hpp>
+
 import PixelForge.mem;
 
 import PixelForge.core;
@@ -34,8 +36,8 @@ TEST_CASE("memzero", "[core][mem]") {
   }
 
   SECTION("no null") {
-    REQUIRE_THROWS_AS(memzero(reinterpret_cast<void*>(NON_ZERO_VALUE), 0), RequireFail);
-    REQUIRE_THROWS_AS(memzero(reinterpret_cast<void*>(0), NON_ZERO_VALUE), RequireFail);
+    REQUIRE_PF_REQUIRE_FAIL(memzero(reinterpret_cast<void*>(NON_ZERO_VALUE), 0));
+    REQUIRE_PF_REQUIRE_FAIL(memzero(reinterpret_cast<void*>(0), NON_ZERO_VALUE));
   }
 
   SECTION("span<char>") {
@@ -59,18 +61,14 @@ TEST_CASE("memzero", "[core][mem]") {
   }
 
   SECTION("span no null") {
-    REQUIRE_THROWS_AS(
-        memzero(std::span<char>{reinterpret_cast<char*>(NON_ZERO_VALUE), 0}),
-        RequireFail);
-    REQUIRE_THROWS_AS(
-        memzero(std::span<char>{reinterpret_cast<char*>(NULL), NON_ZERO_VALUE}),
-        RequireFail);
-    REQUIRE_THROWS_AS(
-        memzero(std::span<std::byte>{reinterpret_cast<std::byte*>(NON_ZERO_VALUE), 0}),
-        RequireFail);
-    REQUIRE_THROWS_AS(
-        memzero(std::span<std::byte>{reinterpret_cast<std::byte*>(NULL), NON_ZERO_VALUE}),
-        RequireFail);
+    REQUIRE_PF_REQUIRE_FAIL(
+        memzero(std::span<char>{reinterpret_cast<char*>(NON_ZERO_VALUE), 0}));
+    REQUIRE_PF_REQUIRE_FAIL(
+        memzero(std::span<char>{reinterpret_cast<char*>(NULL), NON_ZERO_VALUE}));
+    REQUIRE_PF_REQUIRE_FAIL(
+        memzero(std::span<std::byte>{reinterpret_cast<std::byte*>(NON_ZERO_VALUE), 0}));
+    REQUIRE_PF_REQUIRE_FAIL(memzero(
+        std::span<std::byte>{reinterpret_cast<std::byte*>(NULL), NON_ZERO_VALUE}));
   }
 }
 

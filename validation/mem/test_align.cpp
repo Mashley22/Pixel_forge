@@ -5,6 +5,8 @@
 import PixelForge.mem;
 import PixelForge.core;
 
+#include <PixelForgeValidationHelpers/helpers.hpp>
+
 #define CAST_TO_BYTE_PTR(val) reinterpret_cast<std::byte*>(val);
 
 namespace pf {
@@ -17,12 +19,12 @@ TEST_CASE("align", "[core][mem]") {
   REQUIRE(p_val != nullptr);
 
   SECTION("require fail for nullptr input") {
-    REQUIRE_THROWS_AS(align(nullptr, 1), RequireFail);
+    REQUIRE_PF_REQUIRE_FAIL(align(nullptr, 1));
   }
 
   SECTION("require fail for non power of two alignments") {
     auto test = [&](std::size_t alignment) {
-      REQUIRE_THROWS_AS(align(p_val, alignment), RequireFail);
+      REQUIRE_PF_REQUIRE_FAIL(align(p_val, alignment));
     };
 
     constexpr std::size_t invalidAlignments[] = {0, 3, 9, 199, 3789, 1203981905};

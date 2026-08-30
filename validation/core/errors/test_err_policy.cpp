@@ -6,6 +6,8 @@
 
 import PixelForge.core;
 
+#include <PixelForgeValidationHelpers/helpers.hpp>
+
 namespace pf {
 
 namespace {
@@ -40,7 +42,7 @@ TEST_CASE("nothing policy fail requires", "[core][errPolicy]") {
   // PF_REQUIRE(false) throws RequireFail when
   // PIXELFORGE_REQUIRE_THROWS_ON_FAILURE is defined
   auto dummy = []() { ErrPolicy_nothing<int, dummyStrView>::fail(0); };
-  REQUIRE_THROWS_AS(dummy(), RequireFail);
+  REQUIRE_PF_REQUIRE_FAIL(dummy());
 }
 
 TEST_CASE("nothing policy void", "[core][errPolicy]") {
@@ -49,7 +51,7 @@ TEST_CASE("nothing policy void", "[core][errPolicy]") {
 
   REQUIRE_NOTHROW(ErrPolicy_nothing<void, dummyStrView>::success());
   auto dummy = []() { ErrPolicy_nothing<int, dummyStrView>::fail(0); };
-  REQUIRE_THROWS_AS(dummy(), RequireFail);
+  REQUIRE_PF_REQUIRE_FAIL(dummy());
 }
 
 TEST_CASE("optional policy", "[core][errPolicy]") {
