@@ -102,4 +102,12 @@
     [[nodiscard]] constexpr const type& accessor_name() const PF_NOEXCEPT \
     { return name; } \
 
+#ifdef _MSVC_VER
+#define PF_FUNC_INFO __FUNCSIG__
+#elif defined(__GNUC__) || defined(__clang__)
+#define PF_FUNC_INFO __PRETTY_FUNCTION__
+#else
+#error "unsupported compiler"
+#endif
+
 #endif /* PIXELFORGE_CORE_MACROS_HPP */
