@@ -187,9 +187,10 @@ public:
     return push<ErrPolicy_optional<void>>(value);
   }
 
-  constexpr ErrPolicy_nothing<void>::return_type
+  constexpr void
   push_unchecked(const T& value) PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
-    return push<ErrPolicy_nothing<void>>(value);
+    static constexpr std::string_view funcInfo{PF_FUNC_INFO};
+    return push<ErrPolicy_nothing<void, funcInfo>>(value);
   }
 
   template <class T_ErrPolicy = ErrPolicy_throws<void, FullError>>
@@ -207,9 +208,10 @@ public:
     return T_ErrPolicy::success();
   }
 
-  constexpr ErrPolicy_nothing<void>::return_type
+  constexpr void
   push_unchecked(T&& value) PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
-    return push<ErrPolicy_nothing<void>>(std::forward<T>(value));
+    static constexpr std::string_view funcInfo{PF_FUNC_INFO};
+    return push<ErrPolicy_nothing<void, funcInfo>>(std::forward<T>(value));
   }
 
   constexpr ErrPolicy_optional<void>::return_type
@@ -238,9 +240,10 @@ public:
     return pop<ErrPolicy_optional<T>>();
   }
 
-  constexpr ErrPolicy_nothing<T>::return_type
+  constexpr T
   pop_unchecked() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
-    return pop<ErrPolicy_nothing<T>>();
+    static constexpr std::string_view funcInfo{PF_FUNC_INFO};
+    return pop<ErrPolicy_nothing<T, funcInfo>>();
   }
 
   template <class T_ErrPolicy, class... V_args>
@@ -274,17 +277,19 @@ public:
   }
 
   template <class... V_args>
-  constexpr ErrPolicy_nothing<pointer>::return_type
+  pointer
   emplace_unchecked(V_args&&... args)
       PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...>) {
-    return emplace<ErrPolicy_nothing<pointer>>(std::forward<V_args>(args)...);
+    static constexpr std::string_view funcInfo{PF_FUNC_INFO};
+    return emplace<ErrPolicy_nothing<pointer, funcInfo>>(std::forward<V_args>(args)...);
   }
 
   template <typename T_Range>
     requires CompatibleInputRange_c<Stack<T>, T_Range>
   constexpr void
   push_range_unchecked(T_Range&& range) {
-    push_range<T_Range, ErrPolicy_nothing<void>>(std::forward<T_Range>(range));
+    static constexpr std::string_view funcInfo{PF_FUNC_INFO};
+    push_range<T_Range, ErrPolicy_nothing<void, funcInfo>>(std::forward<T_Range>(range));
   }
 
   template <typename T_Range, class T_ErrPolicy = ErrPolicy_throws<void, FullError>>

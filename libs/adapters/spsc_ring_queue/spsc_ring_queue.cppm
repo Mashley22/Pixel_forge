@@ -182,13 +182,15 @@ public:
       return T_ErrPolicy::fail();
     }
 
-    static_cast<void>(emplace<ErrPolicy_nothing<pointer>>(value));
+    static constexpr std::string_view funcInfo{PF_FUNC_INFO};
+    static_cast<void>(emplace<ErrPolicy_nothing<pointer, funcInfo>>(value));
     return T_ErrPolicy::success();
   }
 
   constexpr void
   push_unchecked(const T& value) PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
-    push<ErrPolicy_nothing<void>>(value);
+    static constexpr std::string_view funcInfo{PF_FUNC_INFO};
+    push<ErrPolicy_nothing<void, funcInfo>>(value);
   }
 
   constexpr ErrPolicy_optional<void>::return_type
@@ -207,13 +209,16 @@ public:
       return T_ErrPolicy::fail();
     }
 
-    static_cast<void>(emplace<ErrPolicy_nothing<pointer>>(std::forward<T>(val)));
+    static constexpr std::string_view funcInfo{PF_FUNC_INFO};
+    static_cast<void>(
+        emplace<ErrPolicy_nothing<pointer, funcInfo>>(std::forward<T>(val)));
     return T_ErrPolicy::success();
   }
 
   constexpr void
   push_unchecked(T&& val) PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
-    push<ErrPolicy_nothing<void>>(std::forward<T>(val));
+    static constexpr std::string_view funcInfo{PF_FUNC_INFO};
+    push<ErrPolicy_nothing<void, funcInfo>>(std::forward<T>(val));
   }
 
   constexpr ErrPolicy_optional<void>::return_type
@@ -244,7 +249,9 @@ public:
   pointer
   emplace_unchecked(V_args&&... args)
       PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...>) {
-    return emplace<ErrPolicy_nothing<pointer>, V_args...>(std::forward<V_args>(args)...);
+    static constexpr std::string_view funcInfo{PF_FUNC_INFO};
+    return emplace<ErrPolicy_nothing<pointer, funcInfo>, V_args...>(
+        std::forward<V_args>(args)...);
   }
 
   template <class... V_args>
@@ -281,7 +288,8 @@ public:
 
   constexpr T
   pop_unchecked() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
-    return pop<ErrPolicy_nothing<T>>();
+    static constexpr std::string_view funcInfo{PF_FUNC_INFO};
+    return pop<ErrPolicy_nothing<T, funcInfo>>();
   }
 
   constexpr ErrPolicy_optional<T>::return_type

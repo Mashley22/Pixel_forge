@@ -1,6 +1,7 @@
 module;
 
 #include <optional>
+#include <string_view>
 
 #include <PixelForge/core/macros.hpp>
 
@@ -13,7 +14,7 @@ export namespace pf {
 /**
  *@brief Concept for policies returning a non-void result on success
  *
- *@note Fail is defined per use since that can get quite specific depending 
+ *@note Fail is defined per use since that can get quite specific depending
  *      on different failure coniditions
  *
  *@tparam Policy the policy type
@@ -66,7 +67,7 @@ concept VoidErrPolicy_c = requires() {
  *
  *@tparam T_result_type value produced on the success path
  */
-template <typename T_result_type>
+template <typename T_result_type, const std::string_view& T_fail_msg>
 struct ErrPolicy_nothing {
   static constexpr bool is_noexcept = true;
 
@@ -85,7 +86,7 @@ struct ErrPolicy_nothing {
   template <class... V_args>
   static constexpr return_type
   fail(V_args... args) PF_NOEXCEPT {
-    PF_REQUIRE(false);
+    PF_REQUIRE(false, T_fail_msg);
     ((void) args, ...);
     return return_type{};
   }
@@ -95,8 +96,8 @@ struct ErrPolicy_nothing {
  *@brief Void specialisation of ErrPolicy_nothing for operations without a
  * meaningful result
  */
-template <>
-struct ErrPolicy_nothing<void> {
+template <const std::string_view& T_fail_msg>
+struct ErrPolicy_nothing<void, T_fail_msg> {
   static constexpr bool is_noexcept = true;
 
   using return_type = void;
@@ -107,6 +108,7 @@ struct ErrPolicy_nothing<void> {
   template <class... V_args>
   static constexpr return_type
   fail(V_args... args) PF_NOEXCEPT {
+    PF_REQUIRE(false, T_fail_msg);
     ((void) args, ...);
     return;
   }
@@ -216,9 +218,16 @@ struct ErrPolicy_throws<void, T_exception> {
   }
 };
 
-static_assert(ErrPolicy_c<ErrPolicy_nothing<int>, int>);
-static_assert(!ErrPolicy_c<ErrPolicy_nothing<void>, void>);
-static_assert(VoidErrPolicy_c<ErrPolicy_nothing<void>>);
+}
+
+namespace pf {
+
+namespace {
+
+constexpr std::string_view dummyStrView = "";
+static_assert(ErrPolicy_c<ErrPolicy_nothing<int, dummyStrView>, int>);
+static_assert(!ErrPolicy_c<ErrPolicy_nothing<void, dummyStrView>, void>);
+static_assert(VoidErrPolicy_c<ErrPolicy_nothing<void, dummyStrView>>);
 
 static_assert(ErrPolicy_c<ErrPolicy_optional<int>, int>);
 static_assert(!ErrPolicy_c<ErrPolicy_optional<void>, void>);
@@ -227,5 +236,7 @@ static_assert(VoidErrPolicy_c<ErrPolicy_optional<void>>);
 static_assert(ErrPolicy_c<ErrPolicy_throws<int, int>, int>);
 static_assert(!ErrPolicy_c<ErrPolicy_throws<void, int>, void>);
 static_assert(VoidErrPolicy_c<ErrPolicy_throws<void, int>>);
+
+}
 
 }

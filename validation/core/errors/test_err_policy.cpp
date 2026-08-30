@@ -8,41 +8,48 @@ import PixelForge.core;
 
 namespace pf {
 
+namespace {
+constexpr std::string_view dummyStrView = "";
+}
+
 TEST_CASE("policy concepts", "[core][errPolicy]") {
-  STATIC_REQUIRE(ErrPolicy_c<ErrPolicy_nothing<int>, int>);
+  STATIC_REQUIRE(ErrPolicy_c<ErrPolicy_nothing<int, dummyStrView>, int>);
   STATIC_REQUIRE(ErrPolicy_c<ErrPolicy_optional<int>, int>);
   STATIC_REQUIRE(ErrPolicy_c<ErrPolicy_throws<int, Exception>, int>);
 
-  STATIC_REQUIRE(!ErrPolicy_c<ErrPolicy_nothing<void>, void>);
+  STATIC_REQUIRE(!ErrPolicy_c<ErrPolicy_nothing<void, dummyStrView>, void>);
   STATIC_REQUIRE(!ErrPolicy_c<ErrPolicy_optional<void>, void>);
   STATIC_REQUIRE(!ErrPolicy_c<ErrPolicy_throws<void, Exception>, void>);
 
-  STATIC_REQUIRE(VoidErrPolicy_c<ErrPolicy_nothing<void>>);
+  STATIC_REQUIRE(VoidErrPolicy_c<ErrPolicy_nothing<void, dummyStrView>>);
   STATIC_REQUIRE(VoidErrPolicy_c<ErrPolicy_optional<void>>);
   STATIC_REQUIRE(VoidErrPolicy_c<ErrPolicy_throws<void, Exception>>);
 }
 
 TEST_CASE("nothing policy", "[core][errPolicy]") {
-  STATIC_REQUIRE(ErrPolicy_nothing<int>::is_noexcept);
-  STATIC_REQUIRE(std::is_same_v<ErrPolicy_nothing<int>::return_type, int>);
+  STATIC_REQUIRE(ErrPolicy_nothing<int, dummyStrView>::is_noexcept);
+  STATIC_REQUIRE(std::is_same_v<ErrPolicy_nothing<int, dummyStrView>::return_type, int>);
 
-  REQUIRE(ErrPolicy_nothing<int>::success(42) == 42);
+  REQUIRE(ErrPolicy_nothing<int, dummyStrView>::success(42) == 42);
 
   int lvalue = 7;
-  REQUIRE(ErrPolicy_nothing<int>::success(lvalue) == 7);
+  REQUIRE(ErrPolicy_nothing<int, dummyStrView>::success(lvalue) == 7);
 }
 
 TEST_CASE("nothing policy fail requires", "[core][errPolicy]") {
   // PF_REQUIRE(false) throws RequireFail when
   // PIXELFORGE_REQUIRE_THROWS_ON_FAILURE is defined
-  REQUIRE_THROWS_AS(ErrPolicy_nothing<int>::fail(0), RequireFail);
+  auto dummy = []() { ErrPolicy_nothing<int, dummyStrView>::fail(0); };
+  REQUIRE_THROWS_AS(dummy(), RequireFail);
 }
 
 TEST_CASE("nothing policy void", "[core][errPolicy]") {
-  STATIC_REQUIRE(std::is_same_v<ErrPolicy_nothing<void>::return_type, void>);
+  STATIC_REQUIRE(
+      std::is_same_v<ErrPolicy_nothing<void, dummyStrView>::return_type, void>);
 
-  REQUIRE_NOTHROW(ErrPolicy_nothing<void>::success());
-  REQUIRE_NOTHROW(ErrPolicy_nothing<void>::fail());
+  REQUIRE_NOTHROW(ErrPolicy_nothing<void, dummyStrView>::success());
+  auto dummy = []() { ErrPolicy_nothing<int, dummyStrView>::fail(0); };
+  REQUIRE_THROWS_AS(dummy(), RequireFail);
 }
 
 TEST_CASE("optional policy", "[core][errPolicy]") {
