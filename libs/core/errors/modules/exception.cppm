@@ -38,7 +38,7 @@ public:
       msgBufSizeDefault;
 #endif
 private:
-  static std::array<char, msgBufSize> m_msgBuf;
+  inline static thread_local std::array<char, msgBufSize> m_msgBuf{};
 
 public:
   Exception() PF_NOEXCEPT = delete;
@@ -75,7 +75,5 @@ public:
     return m_msgBuf.data();
   }
 };
-
-std::array<char, Exception::msgBufSize> Exception::m_msgBuf = {};
 
 }
