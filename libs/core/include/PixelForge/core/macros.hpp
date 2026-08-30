@@ -95,4 +95,11 @@
     PF_ASSUME(expr);                                                          \
   } while (0)
 
+#define PF_READONLY_VAR(type, name, accessor_name, default_val) \
+  private: \
+    type name{default_val}; \
+  public: \
+    [[nodiscard]] constexpr const type& accessor_name() const PF_NOEXCEPT \
+    { return name; } \
+
 #endif /* PIXELFORGE_CORE_MACROS_HPP */
