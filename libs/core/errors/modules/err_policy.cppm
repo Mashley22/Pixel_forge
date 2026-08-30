@@ -13,6 +13,9 @@ export namespace pf {
 /**
  *@brief Concept for policies returning a non-void result on success
  *
+ *@note Fail is defined per use since that can get quite specific depending 
+ *      on different failure coniditions
+ *
  *@tparam Policy the policy type
  *@tparam T_result_type value produced on the success path
  */
