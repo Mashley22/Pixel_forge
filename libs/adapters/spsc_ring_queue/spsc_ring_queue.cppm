@@ -178,11 +178,7 @@ public:
   constexpr T_ErrPolicy::return_type
   push(const T& value)
       PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v&& T_ErrPolicy::is_noexcept) {
-    if constexpr (T_ErrPolicy::enabled) {
-      if (full()) {
-        return T_ErrPolicy::fail();
-      }
-    }
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, full());
 
     static constexpr std::string_view funcInfo{PF_FUNC_INFO};
     static_cast<void>(emplace<ErrPolicy_nothing<pointer, funcInfo>>(value));
@@ -207,11 +203,7 @@ public:
   constexpr T_ErrPolicy::return_type
   push(T&& val)
       PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& T_ErrPolicy::is_noexcept) {
-    if constexpr (T_ErrPolicy::enabled) {
-      if (full()) {
-        return T_ErrPolicy::fail();
-      }
-    }
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, full());
 
     static constexpr std::string_view funcInfo{PF_FUNC_INFO};
     static_cast<void>(
@@ -237,11 +229,7 @@ public:
   constexpr T_ErrPolicy::return_type
   emplace(V_args&&... args) PF_NOEXCEPT_COND(
       Traits::template is_nothrow_construct_v<V_args...>&& T_ErrPolicy::is_noexcept) {
-    if constexpr (T_ErrPolicy::enabled) {
-      if (full()) {
-        return T_ErrPolicy::fail();
-      }
-    }
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, full());
 
     ASSUMPTIONS;
     size_type head = m_head.load(std::memory_order_relaxed);
@@ -279,11 +267,7 @@ public:
     }
   constexpr T_ErrPolicy::return_type
   pop() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& T_ErrPolicy::is_noexcept) {
-    if constexpr (T_ErrPolicy::enabled) {
-      if (empty()) {
-        return T_ErrPolicy::fail();
-      }
-    }
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, empty());
 
     ASSUMPTIONS;
     size_type tail = m_tail.load(std::memory_order_relaxed);

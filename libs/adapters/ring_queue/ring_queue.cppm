@@ -217,11 +217,7 @@ public:
   constexpr T_ErrPolicy::return_type
   emplace(V_args&&... args) PF_NOEXCEPT_COND(
       Traits::template is_nothrow_construct_v<V_args...>&& T_ErrPolicy::is_noexcept) {
-    if constexpr (T_ErrPolicy::enabled) {
-      if (full()) {
-        return T_ErrPolicy::fail();
-      }
-    }
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, full());
 
     ASSUMPTIONS;
     const size_type idx = toIdx_(m_back);
@@ -304,11 +300,8 @@ public:
   constexpr T_ErrPolicy::return_type
   push(const T& value)
       PF_NOEXCEPT_COND(Traits::is_nothrow_copy_v&& T_ErrPolicy::is_noexcept) {
-    if constexpr (T_ErrPolicy::enabled) {
-      if (full()) {
-        return T_ErrPolicy::fail();
-      }
-    }
+
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, full());
 
     ASSUMPTIONS;
     emplace_unchecked(value);
@@ -325,11 +318,7 @@ public:
     }
   constexpr T_ErrPolicy::return_type
   push(T&& val) PF_NOEXCEPT_COND(Traits::is_nothrow_move_v&& T_ErrPolicy::is_noexcept) {
-    if constexpr (T_ErrPolicy::enabled) {
-      if (full()) {
-        return T_ErrPolicy::fail();
-      }
-    }
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, full());
 
     ASSUMPTIONS;
     emplace_unchecked(std::forward<T>(val));
@@ -414,11 +403,7 @@ public:
     }
   constexpr T_ErrPolicy::return_type
   pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept&& Traits::is_nothrow_move_v) {
-    if constexpr (T_ErrPolicy::enabled) {
-      if (empty()) {
-        return T_ErrPolicy::fail();
-      }
-    }
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, empty());
 
     ASSUMPTIONS;
     T temp = std::move(front());
@@ -443,11 +428,7 @@ public:
              }
   constexpr T_ErrPolicy::return_type
   push_range(T_Range&& range) {
-    if constexpr (T_ErrPolicy::enabled) {
-      if (std::ranges::size(range) > remaining()) {
-        return T_ErrPolicy::fail();
-      }
-    }
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, std::ranges::size(range) > remaining());
     auto first = std::make_move_iterator(std::ranges::begin(range));
     auto last = std::make_move_iterator(std::ranges::end(range));
     for (; first != last; ++first) {

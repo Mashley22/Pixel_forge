@@ -110,4 +110,13 @@ public:                                                         \
 #error "unsupported compiler"
 #endif
 
+#define PF_CHECK_ERR_POLICY(policy, cond, ...) \
+  do {                                         \
+    if constexpr (policy::enabled) {           \
+      if (cond) {                              \
+        return policy::fail(__VA_ARGS__);      \
+      }                                        \
+    }                                          \
+  } while (0)
+
 #endif /* PIXELFORGE_CORE_MACROS_HPP */

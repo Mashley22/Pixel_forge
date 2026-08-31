@@ -173,11 +173,7 @@ public:
   constexpr T_ErrPolicy::return_type
   push(const T& value)
       PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v&& T_ErrPolicy::is_noexcept) {
-    if constexpr (T_ErrPolicy::enabled) {
-      if (full()) {
-        return T_ErrPolicy::fail();
-      }
-    }
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, full());
 
     new (m_top) T(value);
     m_top++;
@@ -202,11 +198,7 @@ public:
   constexpr T_ErrPolicy::return_type
   push(T&& value)
       PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& T_ErrPolicy::is_noexcept) {
-    if constexpr (T_ErrPolicy::enabled) {
-      if (full()) {
-        return T_ErrPolicy::fail();
-      }
-    }
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, full());
 
     emplace_unchecked(std::forward<T>(value));
     return T_ErrPolicy::success();
@@ -229,11 +221,8 @@ public:
     }
   constexpr T_ErrPolicy::return_type
   pop() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& T_ErrPolicy::is_noexcept) {
-    if constexpr (T_ErrPolicy::enabled) {
-      if (empty()) {
-        return T_ErrPolicy::fail();
-      }
-    }
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, empty());
+
     m_top--;
     T temp = std::move(*m_top);
     std::destroy_at(m_top);
@@ -259,11 +248,8 @@ public:
   constexpr T_ErrPolicy::return_type
   emplace(V_args&&... args) PF_NOEXCEPT_COND(
       Traits::template is_nothrow_construct_v<V_args...>&& T_ErrPolicy::is_noexcept) {
-    if constexpr (T_ErrPolicy::enabled) {
-      if (full()) {
-        return T_ErrPolicy::fail();
-      }
-    }
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, full());
+
     new (m_top) T(std::forward<V_args>(args)...);
     pointer retVal = m_top;
     m_top++;
@@ -307,11 +293,7 @@ public:
              }
   constexpr T_ErrPolicy::return_type
   push_range(T_Range&& range) {
-    if constexpr (T_ErrPolicy::enabled) {
-      if (std::ranges::size(range) > remaining()) {
-        return T_ErrPolicy::fail();
-      }
-    }
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, std::ranges::size(range) > remaining());
 
     auto first = std::make_move_iterator(std::ranges::begin(range));
     auto last = std::make_move_iterator(std::ranges::end(range));
