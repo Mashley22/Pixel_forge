@@ -14,6 +14,14 @@
 #define PF_CACHE_LINE_ALIGN_VAR alignas(std::hardware_destructive_interference_size)
 
 #ifdef _MSVC_VER
+#define PF_PURE_FUNC
+#define PF_CONST_FUNC __declspec(restrict)
+#elif defined(__GNUC__) || defined(__clang__)
+#define PF_PURE_FUNC __attribute__((pure))
+#define PF_CONST_FUNC __attribute__((const))
+#endif
+
+#ifdef _MSVC_VER
 #define PF_CACHE_LINE_ALIGN_FUNC \
   __declspec(align(std::hardware_destructive_interefence_size))
 #define PF_NOINLINE_FUNC __declspec((noinline))
