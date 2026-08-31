@@ -178,8 +178,10 @@ public:
   constexpr T_ErrPolicy::return_type
   push(const T& value)
       PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v&& T_ErrPolicy::is_noexcept) {
-    if (full()) {
-      return T_ErrPolicy::fail();
+    if constexpr (T_ErrPolicy::enabled) {
+      if (full()) {
+        return T_ErrPolicy::fail();
+      }
     }
 
     static constexpr std::string_view funcInfo{PF_FUNC_INFO};
@@ -205,8 +207,10 @@ public:
   constexpr T_ErrPolicy::return_type
   push(T&& val)
       PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& T_ErrPolicy::is_noexcept) {
-    if (full()) {
-      return T_ErrPolicy::fail();
+    if constexpr (T_ErrPolicy::enabled) {
+      if (full()) {
+        return T_ErrPolicy::fail();
+      }
     }
 
     static constexpr std::string_view funcInfo{PF_FUNC_INFO};
@@ -233,8 +237,10 @@ public:
   constexpr T_ErrPolicy::return_type
   emplace(V_args&&... args) PF_NOEXCEPT_COND(
       Traits::template is_nothrow_construct_v<V_args...>&& T_ErrPolicy::is_noexcept) {
-    if (full()) {
-      return T_ErrPolicy::fail();
+    if constexpr (T_ErrPolicy::enabled) {
+      if (full()) {
+        return T_ErrPolicy::fail();
+      }
     }
 
     ASSUMPTIONS;
@@ -273,8 +279,10 @@ public:
     }
   constexpr T_ErrPolicy::return_type
   pop() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& T_ErrPolicy::is_noexcept) {
-    if (empty()) {
-      return T_ErrPolicy::fail();
+    if constexpr (T_ErrPolicy::enabled) {
+      if (empty()) {
+        return T_ErrPolicy::fail();
+      }
     }
 
     ASSUMPTIONS;

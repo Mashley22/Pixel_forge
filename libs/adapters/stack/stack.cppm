@@ -173,8 +173,10 @@ public:
   constexpr T_ErrPolicy::return_type
   push(const T& value)
       PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v&& T_ErrPolicy::is_noexcept) {
-    if (full()) {
-      return T_ErrPolicy::fail();
+    if constexpr (T_ErrPolicy::enabled) {
+      if (full()) {
+        return T_ErrPolicy::fail();
+      }
     }
 
     new (m_top) T(value);
@@ -200,8 +202,10 @@ public:
   constexpr T_ErrPolicy::return_type
   push(T&& value)
       PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& T_ErrPolicy::is_noexcept) {
-    if (full()) {
-      return T_ErrPolicy::fail();
+    if constexpr (T_ErrPolicy::enabled) {
+      if (full()) {
+        return T_ErrPolicy::fail();
+      }
     }
 
     emplace_unchecked(std::forward<T>(value));
@@ -225,8 +229,10 @@ public:
     }
   constexpr T_ErrPolicy::return_type
   pop() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& T_ErrPolicy::is_noexcept) {
-    if (empty()) {
-      return T_ErrPolicy::fail();
+    if constexpr (T_ErrPolicy::enabled) {
+      if (empty()) {
+        return T_ErrPolicy::fail();
+      }
     }
     m_top--;
     T temp = std::move(*m_top);
@@ -253,8 +259,10 @@ public:
   constexpr T_ErrPolicy::return_type
   emplace(V_args&&... args) PF_NOEXCEPT_COND(
       Traits::template is_nothrow_construct_v<V_args...>&& T_ErrPolicy::is_noexcept) {
-    if (full()) {
-      return T_ErrPolicy::fail();
+    if constexpr (T_ErrPolicy::enabled) {
+      if (full()) {
+        return T_ErrPolicy::fail();
+      }
     }
     new (m_top) T(std::forward<V_args>(args)...);
     pointer retVal = m_top;
@@ -299,8 +307,10 @@ public:
              }
   constexpr T_ErrPolicy::return_type
   push_range(T_Range&& range) {
-    if (std::ranges::size(range) > remaining()) {
-      return T_ErrPolicy::fail();
+    if constexpr (T_ErrPolicy::enabled) {
+      if (std::ranges::size(range) > remaining()) {
+        return T_ErrPolicy::fail();
+      }
     }
 
     auto first = std::make_move_iterator(std::ranges::begin(range));

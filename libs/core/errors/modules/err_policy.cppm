@@ -30,6 +30,7 @@ concept ErrPolicy_c = !std::is_same_v<T_result_type, void> &&
                          *
                          */
                         typename std::bool_constant<Policy::is_noexcept>;
+                        typename std::bool_constant<Policy::enabled>;
 
                         typename Policy::return_type;
 
@@ -53,6 +54,7 @@ concept ErrPolicy_c = !std::is_same_v<T_result_type, void> &&
 template <class VoidPolicy>
 concept VoidErrPolicy_c = requires() {
   typename std::bool_constant<VoidPolicy::is_noexcept>;
+  typename std::bool_constant<VoidPolicy::enabled>;
 
   typename VoidPolicy::return_type;
 
@@ -70,6 +72,12 @@ concept VoidErrPolicy_c = requires() {
 template <typename T_result_type, const std::string_view& T_fail_msg>
 struct ErrPolicy_nothing {
   static constexpr bool is_noexcept = true;
+  static constexpr bool enabled = 
+#ifdef NDEBUG
+    false;
+#else 
+    true;
+#endif
 
   using return_type = T_result_type;
 
@@ -99,6 +107,12 @@ struct ErrPolicy_nothing {
 template <const std::string_view& T_fail_msg>
 struct ErrPolicy_nothing<void, T_fail_msg> {
   static constexpr bool is_noexcept = true;
+  static constexpr bool enabled =
+#ifdef NDEBUG
+    false;
+#else 
+    true;
+#endif
 
   using return_type = void;
 
@@ -125,6 +139,7 @@ struct ErrPolicy_optional {
   static_assert(!std::is_same_v<T_result_type, void>, "A little silly");
 
   static constexpr bool is_noexcept = true;
+  static constexpr bool enabled = true;
   using return_type = std::optional<T_result_type>;
 
   [[nodiscard]] static constexpr return_type
@@ -149,10 +164,11 @@ struct ErrPolicy_optional {
  *@brief Void specialisation of ErrPolicy_optional, maps success/failure onto
  * plain bool
  */
-template <>
+template<>
 struct ErrPolicy_optional<void> {
 
   static constexpr bool is_noexcept = true;
+  static constexpr bool enabled = true;
   using return_type = bool;
 
   [[nodiscard]] static constexpr return_type
@@ -178,6 +194,7 @@ struct ErrPolicy_optional<void> {
 template <typename T_result_type, class T_exception>
 struct ErrPolicy_throws {
   static constexpr bool is_noexcept = false;
+  static constexpr bool enabled = true;
   using return_type = T_result_type;
 
   [[nodiscard]] static constexpr return_type
@@ -206,6 +223,7 @@ struct ErrPolicy_throws {
 template <class T_exception>
 struct ErrPolicy_throws<void, T_exception> {
   static constexpr bool is_noexcept = false;
+  static constexpr bool enabled = true;
   using return_type = void;
 
   static constexpr return_type
