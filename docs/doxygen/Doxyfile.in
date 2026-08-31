@@ -1,0 +1,40 @@
+PROJECT_NAME           = "PixelForge"
+PROJECT_BRIEF_DESCRIPTION = "High-performance C++23 library"
+PROJECT_LOGO           = ""
+
+# Input source directories
+INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/libs/core/include \
+                         @CMAKE_CURRENT_SOURCE_DIR@/libs/adapters/include
+
+# File patterns
+FILE_PATTERNS        = *.hpp *.h *.cpp *.cppm *.cc *.cxx
+
+# Output directory
+OUTPUT_DIRECTORY      = @CMAKE_CURRENT_BINARY_DIR@/doxygen
+GENERATE_HTML         = YES
+GENERATE_LATEX        = NO
+
+# Miscellaneous options
+EXTRACT_ALL           = YES
+EXTRACT_PRIVATE       = NO
+EXTRACT_STATIC        = YES
+EXTRACT_PURE_CPP      = YES
+USE_MD_FILES          = YES
+RECURSIVE             = YES
+RECURSION_DEPTH       = 1
+EXCLUDE               = extern/**
+
+# Diagram options
+CLASS_DIAGRAMS        = YES
+COLLABORATION_GRAPH   = YES
+GROUPING_DIAGRAMS     = YES
+GROUPING_GRAPH        = YES
+USE_DOT               = YES
+DOT_GRAPH_MAX_NODES   = 100
+MAX_DOT_GRAPH_DEPTH   = 8
+DOT_CLEANUP           = YES
+DOT_MERGE_FILES       = YES
+DOT_HIDE_EDGE_LABELS  = YES
+
+# Custom tags
+ALIASES              = error_handling="**Error Handling:**"

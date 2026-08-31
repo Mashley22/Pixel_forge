@@ -18,6 +18,18 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   add_compile_options(-Wno-interference-size)
 endif()
 
+# Doxygen configuration
+if(NOT TARGET doxygen)
+  find_package(Doxygen QUIET)
+  if(DOXYGEN_FOUND)
+    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/docs/doxygen/Doxyfile.in)
+    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/doxygen)
+    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+    doxygen_add_docs(doxydocs ${DOXYGEN_OUT} COMMENT "Generating API documentation")
+    add_custom_target(doxygen ALL DEPENDS doxydocs)
+  endif()
+endif()
+
 include(options.cmake)
 include(cmake/utils.cmake)
 
