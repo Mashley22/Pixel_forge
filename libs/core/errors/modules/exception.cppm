@@ -70,7 +70,7 @@ public:
   /**
    *@brief The stored message, always null terminated
    */
-  constexpr const char*
+  virtual constexpr const char*
   what() const PF_NOEXCEPT {
     return m_msgBuf.data();
   }
