@@ -72,11 +72,11 @@ concept VoidErrPolicy_c = requires() {
 template <typename T_result_type, const std::string_view& T_fail_msg>
 struct ErrPolicy_nothing {
   static constexpr bool is_noexcept = true;
-  static constexpr bool enabled = 
+  static constexpr bool enabled =
 #ifdef NDEBUG
-    false;
-#else 
-    true;
+      false;
+#else
+      true;
 #endif
 
   using return_type = T_result_type;
@@ -109,9 +109,9 @@ struct ErrPolicy_nothing<void, T_fail_msg> {
   static constexpr bool is_noexcept = true;
   static constexpr bool enabled =
 #ifdef NDEBUG
-    false;
-#else 
-    true;
+      false;
+#else
+      true;
 #endif
 
   using return_type = void;
@@ -164,7 +164,7 @@ struct ErrPolicy_optional {
  *@brief Void specialisation of ErrPolicy_optional, maps success/failure onto
  * plain bool
  */
-template<>
+template <>
 struct ErrPolicy_optional<void> {
 
   static constexpr bool is_noexcept = true;
