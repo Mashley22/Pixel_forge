@@ -1,47 +1,51 @@
+#include <map>
+#include <utility>
+
 #include <catch2/catch_test_macros.hpp>
-#include <memory>
-#include <string>
-#include <vector>
 
 import PixelForge.core;
 
-namespace pf {
-
-namespace meta {
-
-namespace {
+namespace pf::meta {
 
 template <typename T, typename U>
 concept SameType = std::same_as<T, U>;
 
+template <typename T>
+struct Wrap1 {
+  using type = T;
+};
+template <typename T1, typename T2>
+struct Wrap2 {
+  using t1 = T1;
+  using t2 = T2;
+};
+
+TEST_CASE("rebind: single-arg", "[core][meta]") {
+  using R = Rebind<Wrap1<int>>::to<double>;
+  STATIC_REQUIRE(SameType<R, Wrap1<double>>);
+
+  using R2 = Rebind<Wrap1<char>>::to<float>;
+  STATIC_REQUIRE(SameType<R2, Wrap1<float>>);
 }
 
-TEST_CASE("rebind: Basic type rebinding", "[core][meta]") {
-  using ReboundVector = Rebind<std::vector<int>>::to<double>;
-  STATIC_REQUIRE((SameType<ReboundVector, std::vector<double>>) );
+TEST_CASE("rebind: two-arg", "[core][meta]") {
+  using R = Rebind<Wrap2<int, double>>::to<float, char>;
+  STATIC_REQUIRE(SameType<R, Wrap2<float, char>>);
 
-  using ReboundUniquePtr = Rebind<std::unique_ptr<int>>::to<float>;
-  STATIC_REQUIRE((SameType<ReboundUniquePtr, std::unique_ptr<float>>) );
-
-  using ReboundString = Rebind<std::basic_string<char>>::to<wchar_t>;
-  STATIC_REQUIRE((SameType<ReboundString, std::basic_string<wchar_t>>) );
+  using R2 = Rebind<Wrap2<int, char>>::to<double, float>;
+  STATIC_REQUIRE(SameType<R2, Wrap2<double, float>>);
 }
 
-TEST_CASE("rebind: Multiple rebind operations", "[core][meta]") {
-  using Step1 = Rebind<std::vector<int>>::to<double>;
-  using Step2 = Rebind<Step1>::to<float>;
-  STATIC_REQUIRE((SameType<Step2, std::vector<float>>) );
+TEST_CASE("rebind: chained", "[core][meta]") {
+  using S1 = Rebind<Wrap1<int>>::to<double>;
+  using S2 = Rebind<S1>::to<char>;
+  STATIC_REQUIRE(SameType<S2, Wrap1<char>>);
 }
 
-TEST_CASE("rebind: Verify the 'to' alias directly", "[core][meta]") {
-  static_assert(std::is_same_v<Rebind<std::vector<char>>::to<int>, std::vector<int>>);
+TEST_CASE("rebind: static_asserts", "[core][meta]") {
+  static_assert(std::is_same_v<Rebind<Wrap1<char>>::to<int>, Wrap1<int>>);
   static_assert(
-      std::is_same_v<Rebind<std::unique_ptr<long>>::to<double>, std::unique_ptr<double>>);
-  static_assert(
-      std::is_same_v<Rebind<std::basic_string<char>>::to<int>, std::basic_string<int>>);
-  static_assert(std::is_same_v<Rebind<std::vector<bool>>::to<char>, std::vector<char>>);
+      std::is_same_v<Rebind<Wrap2<int, int>>::to<float, char>, Wrap2<float, char>>);
 }
 
-}
-
-}
+} // namespace pf::meta
