@@ -53,7 +53,7 @@ TEST_CASE("embedded null truncates message", "[core][errors]") {
 
 TEST_CASE("copy constructor preserves message", "[core][errors]") {
   const Exception original{"copy me"};
-  const Exception copy{original};
+  const Exception& copy{original};
 
   REQUIRE(std::string_view{copy.what()} == "copy me");
 }

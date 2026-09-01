@@ -9,3 +9,9 @@ add_executable(test_int_to_str_vv
 )
 
 add_core_unit_test(test_int_to_str_vv)
+
+add_executable(test_rebind
+  test_rebind.cpp
+)
+
+add_core_unit_test(test_rebind)
