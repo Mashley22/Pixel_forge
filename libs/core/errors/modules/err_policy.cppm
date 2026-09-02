@@ -103,7 +103,6 @@ struct ErrPolicy_nothing {
     PF_REQUIRE(false, T_fail_msg);
     return return_type{};
   }
-
 };
 
 /**

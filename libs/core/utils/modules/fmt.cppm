@@ -17,12 +17,16 @@ namespace pf {
 namespace detail {
 
 template <typename T_ErrPolicy, typename T_ValueReturnType, typename T_ImplFunc_t>
-requires ErrPolicy_c<T_ErrPolicy, T_ValueReturnType> && std::invocable<T_ImplFunc_t> &&
-std::same_as<T_ValueReturnType, std::invoke_result_t<T_ImplFunc_t>> && requires(const char* str) {
-  { T_ErrPolicy::fail(str) } -> std::same_as<typename T_ErrPolicy::return_type>;
-}
+  requires ErrPolicy_c<T_ErrPolicy, T_ValueReturnType> && std::invocable<T_ImplFunc_t> &&
+           std::same_as<T_ValueReturnType, std::invoke_result_t<T_ImplFunc_t>> &&
+           requires(const char* str) {
+             {
+               T_ErrPolicy::fail(str)
+             } -> std::same_as<typename T_ErrPolicy::return_type>;
+           }
 PF_PURE_FUNC [[nodiscard]] T_ErrPolicy::return_type
-fmt_structure_impl(T_ImplFunc_t fmt_impl) PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && !T_ErrPolicy::enabled) {
+fmt_structure_impl(T_ImplFunc_t fmt_impl)
+    PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && !T_ErrPolicy::enabled) {
 
   if constexpr (!T_ErrPolicy::enabled) {
     return T_ErrPolicy::success(fmt_impl());
@@ -30,14 +34,11 @@ fmt_structure_impl(T_ImplFunc_t fmt_impl) PF_NOEXCEPT_COND(T_ErrPolicy::is_noexc
 
   try {
     return T_ErrPolicy::success(fmt_impl());
-  }
-  catch (std::exception& e) {
+  } catch (std::exception& e) {
     return T_ErrPolicy::fail(e.what());
-  }
-  catch (Exception& e) {
+  } catch (Exception& e) {
     return T_ErrPolicy::fail(e.what());
-  }
-  catch (...) {
+  } catch (...) {
     return T_ErrPolicy::fail("fmt failed with unkown exception");
   }
   std::unreachable();
@@ -86,21 +87,21 @@ export struct FmtError : Exception {
  * exceed buf.size()
  */
 export template <typename T_ErrPolicy = ErrPolicy_throws<std::size_t, FmtError>,
-          class... V_args>
-requires ErrPolicy_c<T_ErrPolicy, std::size_t> && requires(const char* str) {
-  { T_ErrPolicy::fail(str) } -> std::same_as<typename T_ErrPolicy::return_type>;
-}
+                 class... V_args>
+  requires ErrPolicy_c<T_ErrPolicy, std::size_t> && requires(const char* str) {
+    { T_ErrPolicy::fail(str) } -> std::same_as<typename T_ErrPolicy::return_type>;
+  }
 PF_PURE_FUNC [[nodiscard]] T_ErrPolicy::return_type
-fmt(std::span<char> buf, std::format_string<V_args...> format_str, V_args&&... args)  
-  PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && !T_ErrPolicy::enabled) {
+fmt(std::span<char> buf, std::format_string<V_args...> format_str, V_args&&... args)
+    PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && !T_ErrPolicy::enabled) {
   PF_REQUIRE_ASSUME(format_str.get().size() <= buf.size());
 
-  auto fmt_impl = [&](){
+  auto fmt_impl = [&]() {
     [[maybe_unused]] auto [out, size] =
-      std::format_to_n(buf.data(),
-                       static_cast<std::iter_difference_t<char*>>(buf.size()),
-                       format_str,
-                       std::forward<V_args>(args)...);
+        std::format_to_n(buf.data(),
+                         static_cast<std::iter_difference_t<char*>>(buf.size()),
+                         format_str,
+                         std::forward<V_args>(args)...);
     return T_ErrPolicy::success(static_cast<std::size_t>(size));
   };
 
@@ -112,10 +113,12 @@ fmt(std::span<char> buf, std::format_string<V_args...> format_str, V_args&&... a
  */
 export template <class... V_args>
 PF_PURE_FUNC [[nodiscard]] std::size_t
-fmt_unchecked(std::span<char> buf, std::format_string<V_args...> format_str,
+fmt_unchecked(std::span<char> buf,
+              std::format_string<V_args...> format_str,
               V_args&&... args) {
   static constexpr std::string_view fail_msg = "format error";
-  return fmt<ErrPolicy_nothing<std::size_t, fail_msg>>(buf, format_str, std::forward<V_args>(args)...);
+  return fmt<ErrPolicy_nothing<std::size_t, fail_msg>>(
+      buf, format_str, std::forward<V_args>(args)...);
 }
 
 /**
@@ -125,9 +128,11 @@ fmt_unchecked(std::span<char> buf, std::format_string<V_args...> format_str,
  */
 export template <class... V_args>
 PF_PURE_FUNC [[nodiscard]] std::optional<std::size_t>
-try_fmt(std::span<char> buf, std::format_string<V_args...> format_str,
+try_fmt(std::span<char> buf,
+        std::format_string<V_args...> format_str,
         V_args&&... args) PF_NOEXCEPT {
-  return fmt<ErrPolicy_optional<std::size_t>>(buf, format_str, std::forward<V_args>(args)...);
+  return fmt<ErrPolicy_optional<std::size_t>>(
+      buf, format_str, std::forward<V_args>(args)...);
 }
 
 /** *@brief Convenience overload of fmt() that formats into its own
@@ -135,19 +140,23 @@ try_fmt(std::span<char> buf, std::format_string<V_args...> format_str,
  *
  *@tparam T_bufLen storage size in bytes
  */
-export template <std::size_t T_bufLen, typename T_ErrPolicy = ErrPolicy_throws<FmtResult<T_bufLen>, FmtError>, class... V_args>
-requires ErrPolicy_c<T_ErrPolicy, FmtResult<T_bufLen>> && requires(const char* str) {
-  { T_ErrPolicy::fail(str) } -> std::same_as<typename T_ErrPolicy::return_type>;
-}
+export template <std::size_t T_bufLen,
+                 typename T_ErrPolicy = ErrPolicy_throws<FmtResult<T_bufLen>, FmtError>,
+                 class... V_args>
+  requires ErrPolicy_c<T_ErrPolicy, FmtResult<T_bufLen>> && requires(const char* str) {
+    { T_ErrPolicy::fail(str) } -> std::same_as<typename T_ErrPolicy::return_type>;
+  }
 PF_PURE_FUNC [[nodiscard]] T_ErrPolicy::return_type
-fmt(std::format_string<V_args...> format_str, V_args&&... args) PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && !T_ErrPolicy::enabled) {
+fmt(std::format_string<V_args...> format_str, V_args&&... args)
+    PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && !T_ErrPolicy::enabled) {
   FmtResult<T_bufLen> result;
-  
+
   auto fmt_impl = [&]() {
-    result.size = fmt_unchecked({result.str, result.buffer_size}, format_str, std::forward<V_args>(args)...);
+    result.size = fmt_unchecked(
+        {result.str, result.buffer_size}, format_str, std::forward<V_args>(args)...);
     return result;
   };
-  
+
   return detail::fmt_structure_impl<T_ErrPolicy, FmtResult<T_bufLen>>(fmt_impl);
 }
 
@@ -155,13 +164,15 @@ export template <std::size_t T_bufLen, class... V_args>
 PF_PURE_FUNC [[nodiscard]] FmtResult<T_bufLen>
 fmt_unchecked(std::format_string<V_args...> format_str, V_args&&... args) {
   static constexpr std::string_view fail_msg = "format error";
-  return fmt<T_bufLen, ErrPolicy_nothing<FmtResult<T_bufLen>, fail_msg>>(format_str, std::forward<V_args>(args)...);
+  return fmt<T_bufLen, ErrPolicy_nothing<FmtResult<T_bufLen>, fail_msg>>(
+      format_str, std::forward<V_args>(args)...);
 }
 
 export template <std::size_t T_bufLen, class... V_args>
 PF_PURE_FUNC [[nodiscard]] std::optional<FmtResult<T_bufLen>>
 try_fmt(std::format_string<V_args...> format_str, V_args&&... args) PF_NOEXCEPT {
-  return fmt<T_bufLen, ErrPolicy_optional<FmtResult<T_bufLen>>>(format_str, std::forward<V_args>(args)...);
+  return fmt<T_bufLen, ErrPolicy_optional<FmtResult<T_bufLen>>>(
+      format_str, std::forward<V_args>(args)...);
 }
 
 /**
@@ -179,17 +190,16 @@ try_fmt(std::format_string<V_args...> format_str, V_args&&... args) PF_NOEXCEPT 
  *
  *@return number of characters written excluding the null terminator
  */
-export template <typename T_ErrPolicy = ErrPolicy_throws<std::size_t, FmtError>, class... V_args>
-requires ErrPolicy_c<T_ErrPolicy, std::size_t> && requires(const char* str) {
-  { T_ErrPolicy::fail(str) } -> std::same_as<typename T_ErrPolicy::return_type>;
-}
+export template <typename T_ErrPolicy = ErrPolicy_throws<std::size_t, FmtError>,
+                 class... V_args>
+  requires ErrPolicy_c<T_ErrPolicy, std::size_t> && requires(const char* str) {
+    { T_ErrPolicy::fail(str) } -> std::same_as<typename T_ErrPolicy::return_type>;
+  }
 PF_PURE_FUNC [[nodiscard]] T_ErrPolicy::return_type
-fmt_cstr(std::span<char> buf,
-         std::format_string<V_args...> format_str,
-         V_args&&... args) 
-PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && !T_ErrPolicy::enabled) {
+fmt_cstr(std::span<char> buf, std::format_string<V_args...> format_str, V_args&&... args)
+    PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && !T_ErrPolicy::enabled) {
   PF_REQUIRE_ASSUME(format_str.get().size() < buf.size());
-  
+
   auto fmt_impl = [&]() {
     [[maybe_unused]] auto [out, size] =
         std::format_to_n(buf.data(),
@@ -206,36 +216,42 @@ PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && !T_ErrPolicy::enabled) {
 export template <class... V_args>
 PF_PURE_FUNC [[nodiscard]] std::size_t
 fmt_cstr_unchecked(std::span<char> buf,
-         std::format_string<V_args...> format_str,
-         V_args&&... args) {
+                   std::format_string<V_args...> format_str,
+                   V_args&&... args) {
   PF_REQUIRE_ASSUME(format_str.get().size() < buf.size());
   static constexpr std::string_view msg = "fmt error";
-  return fmt_cstr<ErrPolicy_nothing<std::size_t, msg>>(buf, format_str, std::forward<V_args>(args)...);
+  return fmt_cstr<ErrPolicy_nothing<std::size_t, msg>>(
+      buf, format_str, std::forward<V_args>(args)...);
 }
 
 export template <class... V_args>
 PF_PURE_FUNC [[nodiscard]] std::optional<std::size_t>
 try_fmt_cstr(std::span<char> buf,
-         std::format_string<V_args...> format_str,
-         V_args&&... args) 
-PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && !T_ErrPolicy::enabled) {
+             std::format_string<V_args...> format_str,
+             V_args&&... args)
+    PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && !T_ErrPolicy::enabled) {
   PF_REQUIRE_ASSUME(format_str.get().size() < buf.size());
-  return fmt_cstr<ErrPolicy_optional<std::size_t>>(buf, format_str, std::forward<V_args>(args)...);
+  return fmt_cstr<ErrPolicy_optional<std::size_t>>(
+      buf, format_str, std::forward<V_args>(args)...);
 }
 
-export template <std::size_t T_bufLen, typename T_ErrPolicy = ErrPolicy_throws<FmtResult<T_bufLen>, FmtError>, class... V_args>
-requires ErrPolicy_c<T_ErrPolicy, FmtResult<T_bufLen>> && requires(const char* str) {
-  { T_ErrPolicy::fail(str) } -> std::same_as<typename T_ErrPolicy::return_type>;
-}
+export template <std::size_t T_bufLen,
+                 typename T_ErrPolicy = ErrPolicy_throws<FmtResult<T_bufLen>, FmtError>,
+                 class... V_args>
+  requires ErrPolicy_c<T_ErrPolicy, FmtResult<T_bufLen>> && requires(const char* str) {
+    { T_ErrPolicy::fail(str) } -> std::same_as<typename T_ErrPolicy::return_type>;
+  }
 PF_PURE_FUNC [[nodiscard]] T_ErrPolicy::return_type
-fmt_cstr(std::format_string<V_args...> format_str, V_args&&... args) PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && !T_ErrPolicy::enabled) {
+fmt_cstr(std::format_string<V_args...> format_str, V_args&&... args)
+    PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept && !T_ErrPolicy::enabled) {
   FmtResult<T_bufLen> result;
-  
+
   auto fmt_impl = [&]() {
-    result.size = fmt_cstr_unchecked({result.str, result.buffer_size}, format_str, std::forward<V_args>(args)...);
+    result.size = fmt_cstr_unchecked(
+        {result.str, result.buffer_size}, format_str, std::forward<V_args>(args)...);
     return result;
   };
-  
+
   return detail::fmt_structure_impl<T_ErrPolicy, FmtResult<T_bufLen>>(fmt_impl);
 }
 
@@ -243,13 +259,15 @@ export template <std::size_t T_bufLen, class... V_args>
 PF_PURE_FUNC [[nodiscard]] FmtResult<T_bufLen>
 fmt_cstr_unchecked(std::format_string<V_args...> format_str, V_args&&... args) {
   static constexpr std::string_view fail_msg = "format error";
-  return fmt<T_bufLen, ErrPolicy_nothing<FmtResult<T_bufLen>, fail_msg>>(format_str, std::forward<V_args>(args)...);
+  return fmt<T_bufLen, ErrPolicy_nothing<FmtResult<T_bufLen>, fail_msg>>(
+      format_str, std::forward<V_args>(args)...);
 }
 
 export template <std::size_t T_bufLen, class... V_args>
 PF_PURE_FUNC [[nodiscard]] std::optional<FmtResult<T_bufLen>>
 try_cstr_fmt(std::format_string<V_args...> format_str, V_args&&... args) PF_NOEXCEPT {
-  return fmt<T_bufLen, ErrPolicy_optional<FmtResult<T_bufLen>>>(format_str, std::forward<V_args>(args)...);
+  return fmt<T_bufLen, ErrPolicy_optional<FmtResult<T_bufLen>>>(
+      format_str, std::forward<V_args>(args)...);
 }
 
 }
