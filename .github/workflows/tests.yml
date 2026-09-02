@@ -60,6 +60,8 @@ jobs:
       - name: Lint and Format
         if: matrix.preset == 'debug_validation'
         continue-on-error: true
+        env:
+          CLANG_TIDY: /usr/bin/clang-tidy-22
         run: |
           ./tools/format.sh
           ./tools/lint.sh
