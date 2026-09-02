@@ -91,13 +91,19 @@ struct ErrPolicy_nothing {
     return successfulResult;
   }
 
-  template <class... V_args>
   static constexpr return_type
-  fail(V_args... args) PF_NOEXCEPT {
-    PF_REQUIRE(false, T_fail_msg);
-    ((void) args, ...);
+  fail([[maybe_unused]] const char* str) PF_NOEXCEPT {
+    PF_REQUIRE(false, str);
     return return_type{};
   }
+
+  template <class... V_args>
+  static constexpr return_type
+  fail([[maybe_unused]] V_args... args) PF_NOEXCEPT {
+    PF_REQUIRE(false, T_fail_msg);
+    return return_type{};
+  }
+
 };
 
 /**
