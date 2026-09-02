@@ -4,6 +4,7 @@
 #include <thread>
 #include <vector>
 
+#include <PixelForgeValidationHelpers/helpers.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_all.hpp>
 
@@ -30,7 +31,7 @@ M_testRequireInfos() {
     // a lil bit of magic
     REQUIRE_THAT(e.loc.file_name(),
                  Catch::Matchers::ContainsSubstring("test_require.cpp"));
-    REQUIRE(e.loc.line() == 26);
+    REQUIRE(e.loc.line() == 27);
     REQUIRE_THAT(e.loc.function_name(),
                  Catch::Matchers::Equals("void pf::" ANONYMOUS_NAMESPACE
                                          "::M_testRequireInfos()"));
@@ -40,7 +41,7 @@ M_testRequireInfos() {
 
 }
 
-TEST_CASE("basic", "[core][assert]") {
+PF_TEST_CASE("basic", "[core][assert]") {
   REQUIRE_NOTHROW(require(true));
 
   try {
@@ -51,9 +52,9 @@ TEST_CASE("basic", "[core][assert]") {
   }
 }
 
-TEST_CASE("correct infos", "[core][assert]") { M_testRequireInfos(); }
+PF_TEST_CASE("correct infos", "[core][assert]") { M_testRequireInfos(); }
 
-TEST_CASE("logContinue records a fail", "[core][assert]") {
+PF_TEST_CASE("logContinue records a fail", "[core][assert]") {
   std::string msg = "log and continue";
   const auto loc = std::source_location::current();
   const auto idxBefore = RequireFail_logContinue::currentIdx();
@@ -71,7 +72,7 @@ TEST_CASE("logContinue records a fail", "[core][assert]") {
               .msg == msg);
 }
 
-TEST_CASE("logContinue is a circular buffer", "[core][assert]") {
+PF_TEST_CASE("logContinue is a circular buffer", "[core][assert]") {
   const std::size_t size = PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE;
   std::vector<std::string> msgs;
   msgs.reserve(size);
@@ -92,7 +93,7 @@ TEST_CASE("logContinue is a circular buffer", "[core][assert]") {
   }
 }
 
-TEST_CASE("logContinue is thread local", "[core][assert]") {
+PF_TEST_CASE("logContinue is thread local", "[core][assert]") {
   std::string mainMsg = "main thread fail";
   std::string workerMsg = "worker thread fail";
 

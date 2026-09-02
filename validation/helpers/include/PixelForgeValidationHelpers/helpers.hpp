@@ -3,4 +3,6 @@
 
 #define REQUIRE_PF_REQUIRE_FAIL(val) REQUIRE_THROWS_AS(val, RequireFail);
 
+#define PF_TEST_CASE(test_name, tags) TEST_CASE(tags ": " test_name, tags)
+
 #endif /* PIXELFORGE_VALIDATION_HELPERS_HELPERS_HPP */

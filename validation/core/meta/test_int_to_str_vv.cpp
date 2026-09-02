@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <string_view>
 
+#include <PixelForgeValidationHelpers/helpers.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 import PixelForge.core;
@@ -48,15 +49,13 @@ intToStrSuccessful<0>() {
 
 }
 
-TEST_CASE("test svToInt", "[core][meta]") {
-  STATIC_REQUIRE(strToIntSuccessful() == true);
-}
+PF_TEST_CASE("svToInt", "[core][meta]") { STATIC_REQUIRE(strToIntSuccessful() == true); }
 
-TEST_CASE("test intToSv", "[core][meta]") {
+PF_TEST_CASE("test intToSv", "[core][meta]") {
   STATIC_REQUIRE(intToStrSuccessful() == true);
 }
 
-TEST_CASE("test UintToStr multi digit", "[core][meta]") {
+PF_TEST_CASE("UintToStr multi digit", "[core][meta]") {
   STATIC_REQUIRE(UintToStr<unsigned int, 420>::sv() == "420");
   STATIC_REQUIRE(UintToStr<unsigned int, 1000>::sv() == "1000");
   STATIC_REQUIRE(UintToStr<unsigned int, 10>::sv() == "10");
@@ -68,7 +67,7 @@ TEST_CASE("test UintToStr multi digit", "[core][meta]") {
   STATIC_REQUIRE(UintToStr<unsigned int, 36>::sv() == "36");
 }
 
-TEST_CASE("test IntToStr negatives and edge cases", "[core][meta]") {
+PF_TEST_CASE("IntToStr negatives and edge cases", "[core][meta]") {
   STATIC_REQUIRE(IntToStr<int, -420>::sv() == "-420");
   STATIC_REQUIRE(IntToStr<int, -1>::sv() == "-1");
   STATIC_REQUIRE(IntToStr<int, -2147483647 - 1>::sv() == "-2147483648");

@@ -1,3 +1,4 @@
+#include <PixelForgeValidationHelpers/helpers.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <string_view>
@@ -38,7 +39,7 @@ auto validInput = []() {
   return true;
 };
 
-TEST_CASE("concatStrings", "[core][meta]") {
+PF_TEST_CASE("concatStrings", "[core][meta]") {
   STATIC_REQUIRE(HelloWorldConcat::sv() == HELLO_WORLD);
 
   STATIC_REQUIRE(validInput());

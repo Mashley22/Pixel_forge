@@ -5,6 +5,7 @@
 #include <thread>
 #include <vector>
 
+#include <PixelForgeValidationHelpers/helpers.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 import PixelForge.adapters;
@@ -22,7 +23,7 @@ pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_bu
 
 }
 
-TEST_CASE("SPSCRingQueue basic", "[adapters][SPSCQueue]") {
+PF_TEST_CASE("basic", "[adapters][SPSCQueue]") {
 
   std::uint32_t buf[BUF_SIZE]{};
   SPSCRingQueue<std::uint32_t> queue(buf, BUF_SIZE);
@@ -87,7 +88,7 @@ TEST_CASE("SPSCRingQueue basic", "[adapters][SPSCQueue]") {
   }
 }
 
-TEST_CASE("SPSCRingQueue fifo order across wraps", "[adapters][SPSCQueue]") {
+PF_TEST_CASE("fifo order across wraps", "[adapters][SPSCQueue]") {
 
   constexpr auto ROUNDS = 5;
 
@@ -149,7 +150,7 @@ TEST_CASE("SPSCRingQueue fifo order across wraps", "[adapters][SPSCQueue]") {
   }
 }
 
-TEST_CASE("SPSCRingQueue error policies", "[adapters][SPSCQueue]") {
+PF_TEST_CASE("error policies", "[adapters][SPSCQueue]") {
 
   using Queue = SPSCRingQueue<std::uint32_t>;
 
@@ -203,7 +204,7 @@ TEST_CASE("SPSCRingQueue error policies", "[adapters][SPSCQueue]") {
   }
 }
 
-TEST_CASE("SPSCRingQueue lifetimes", "[adapters][SPSCQueue]") {
+PF_TEST_CASE("lifetimes", "[adapters][SPSCQueue]") {
 
   SECTION("single push, single pop") {
 
@@ -349,7 +350,7 @@ TEST_CASE("SPSCRingQueue lifetimes", "[adapters][SPSCQueue]") {
   }
 }
 
-TEST_CASE("SPSCRingQueue move only elements", "[adapters][SPSCQueue]") {
+PF_TEST_CASE("move only elements", "[adapters][SPSCQueue]") {
   alignas(
       std::unique_ptr<int>) unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
   SPSCRingQueue<std::unique_ptr<int>> queue(reinterpret_cast<std::unique_ptr<int>*>(buf),
@@ -370,7 +371,7 @@ TEST_CASE("SPSCRingQueue move only elements", "[adapters][SPSCQueue]") {
   REQUIRE(queue.empty());
 }
 
-TEST_CASE("SPSCRingQueue construction validation", "[adapters][SPSCQueue]") {
+PF_TEST_CASE("construction validation", "[adapters][SPSCQueue]") {
   std::uint32_t buf[BUF_SIZE]{};
 
   SECTION("null buffer rejected") {
@@ -396,7 +397,7 @@ TEST_CASE("SPSCRingQueue construction validation", "[adapters][SPSCQueue]") {
   }
 }
 
-TEST_CASE("SPSCRingQueue non power of two capacity", "[adapters][SPSCQueue]") {
+PF_TEST_CASE("non power of two capacity", "[adapters][SPSCQueue]") {
 
   constexpr auto CAPACITY = 100;
 
@@ -426,7 +427,7 @@ TEST_CASE("SPSCRingQueue non power of two capacity", "[adapters][SPSCQueue]") {
   }
 }
 
-TEST_CASE("SPSCRingQueue concurrent producer consumer", "[adapters][SPSCQueue]") {
+PF_TEST_CASE("concurrent producer consumer", "[adapters][SPSCQueue]") {
 
   constexpr auto COUNT = 20000;
 

@@ -1,3 +1,4 @@
+#include <PixelForgeValidationHelpers/helpers.hpp>
 #include <cstddef>
 
 #include <catch2/catch_test_macros.hpp>
@@ -13,7 +14,7 @@ namespace pf {
 
 namespace mem {
 
-TEST_CASE("align", "[core][mem]") {
+PF_TEST_CASE("align", "[core][mem]") {
 
   std::byte* p_val = CAST_TO_BYTE_PTR(5);
   REQUIRE(p_val != nullptr);

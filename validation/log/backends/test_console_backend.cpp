@@ -8,6 +8,7 @@
 #include <thread>
 #include <vector>
 
+#include <PixelForgeValidationHelpers/helpers.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 import PixelForge.logging;
@@ -29,11 +30,11 @@ makeRecord(Level lvl, std::string_view msg) {
 
 }
 
-TEST_CASE("ConsoleBackend satisfies Backend_c", "[log][console]") {
+PF_TEST_CASE("ConsoleBackend satisfies Backend_c", "[log][console]") {
   STATIC_REQUIRE(Backend_c<ConsoleBackend>);
 }
 
-TEST_CASE("ConsoleBackend formatLine", "[log][console]") {
+PF_TEST_CASE("ConsoleBackend formatLine", "[log][console]") {
 
   SECTION("renders timestamp, level, id and message") {
     const Record rec = makeRecord(Level::ERROR, "boom");
@@ -89,7 +90,7 @@ TEST_CASE("ConsoleBackend formatLine", "[log][console]") {
   }
 }
 
-TEST_CASE("ConsoleBackend log writes every level", "[log][console]") {
+PF_TEST_CASE("ConsoleBackend log writes every level", "[log][console]") {
   ConsoleBackend::log(makeRecord(Level::DEBUG, "debug line"));
   ConsoleBackend::log(makeRecord(Level::INFO, "info line"));
   ConsoleBackend::log(makeRecord(Level::WARNING, "warning line"));
@@ -97,7 +98,7 @@ TEST_CASE("ConsoleBackend log writes every level", "[log][console]") {
   REQUIRE(true);
 }
 
-TEST_CASE("ConsoleBackend log is line-atomic under concurrency", "[log][console]") {
+PF_TEST_CASE("ConsoleBackend log is line-atomic under concurrency", "[log][console]") {
   // redirect std::cout and std::cerr into one in-memory buffer
   std::ostringstream captured;
   auto* const oldOut = std::cout.rdbuf(captured.rdbuf());

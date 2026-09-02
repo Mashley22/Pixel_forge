@@ -3,6 +3,7 @@
 #include <optional>
 #include <vector>
 
+#include <PixelForgeValidationHelpers/helpers.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 import PixelForge.adapters;
@@ -20,7 +21,7 @@ pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_bu
 
 }
 
-TEST_CASE("Stack basic", "[adapters][Stack]") {
+PF_TEST_CASE("basic", "[adapters][Stack]") {
 
   std::uint32_t buf[BUF_SIZE]{};
   Stack<std::uint32_t> stack(buf, BUF_SIZE);
@@ -82,7 +83,7 @@ TEST_CASE("Stack basic", "[adapters][Stack]") {
   }
 }
 
-TEST_CASE("Stack lifetimes", "[adapters][Stack]") {
+PF_TEST_CASE("lifetimes", "[adapters][Stack]") {
 
   SECTION("single push, single pop") {
 
@@ -148,7 +149,7 @@ TEST_CASE("Stack lifetimes", "[adapters][Stack]") {
   }
 }
 
-TEST_CASE("Stack top", "[adapters][Stack]") {
+PF_TEST_CASE("top", "[adapters][Stack]") {
   std::uint32_t buf[BUF_SIZE]{};
   Stack<std::uint32_t> stack(buf, BUF_SIZE);
 
@@ -164,7 +165,7 @@ TEST_CASE("Stack top", "[adapters][Stack]") {
   REQUIRE(!stack.empty());
 }
 
-TEST_CASE("Stack clear and destructor destroy elements", "[adapters][Stack]") {
+PF_TEST_CASE("clear and destructor destroy elements", "[adapters][Stack]") {
 
   SECTION("clear destroys all elements and stack stays reusable") {
     {
@@ -225,7 +226,7 @@ TEST_CASE("Stack clear and destructor destroy elements", "[adapters][Stack]") {
   }
 }
 
-TEST_CASE("Stack push_range basic", "[adapters][Stack]") {
+PF_TEST_CASE("push_range basic", "[adapters][Stack]") {
   std::uint32_t buf[BUF_SIZE]{};
   Stack<std::uint32_t> stack(buf, BUF_SIZE);
 

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include <PixelForgeValidationHelpers/helpers.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 import PixelForge.core;
@@ -48,7 +49,7 @@ strcpyEmbeddedNullConstexpr() {
 }
 static_assert(strcpyEmbeddedNullConstexpr());
 
-TEST_CASE("strcpy: Basic functionality", "[core][utils][strcpy]") {
+PF_TEST_CASE("Basic functionality", "[core][utils][strcpy]") {
   SECTION("Copy simple string") {
     std::string_view src = "hello";
     char dest[10] = {};
@@ -84,7 +85,7 @@ TEST_CASE("strcpy: Basic functionality", "[core][utils][strcpy]") {
   }
 }
 
-TEST_CASE("strcpy: Buffer overflow protection", "[core][utils][strcpy]") {
+PF_TEST_CASE("Buffer overflow protection", "[core][utils][strcpy]") {
   SECTION("Truncate when source exceeds destination") {
     std::string_view src = "hello world this is long";
     char dest[6] = {'X', 'X', 'X', 'X', 'X', 'X'};
@@ -118,7 +119,7 @@ TEST_CASE("strcpy: Buffer overflow protection", "[core][utils][strcpy]") {
   }
 }
 
-TEST_CASE("strcpy: Empty source", "[core][utils][strcpy]") {
+PF_TEST_CASE("Empty source", "[core][utils][strcpy]") {
   SECTION("Empty string_view") {
     char dest[10] = {'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'};
     std::string_view empty_view;
@@ -145,7 +146,7 @@ TEST_CASE("strcpy: Empty source", "[core][utils][strcpy]") {
   }
 }
 
-TEST_CASE("strcpy: maxNullTerminators parameter", "[core][utils][strcpy]") {
+PF_TEST_CASE("maxNullTerminators parameter", "[core][utils][strcpy]") {
   SECTION("Default (0) with no embedded nulls behaves like standard copy") {
     std::string_view src = "hello";
     char dest[20] = {};
@@ -215,7 +216,7 @@ TEST_CASE("strcpy: maxNullTerminators parameter", "[core][utils][strcpy]") {
   }
 }
 
-TEST_CASE("strcpy: Content preservation", "[core][utils][strcpy]") {
+PF_TEST_CASE("Content preservation", "[core][utils][strcpy]") {
   SECTION("Special characters") {
     std::string_view src = "!@#$%^&*()";
     char dest[15] = {};
@@ -257,7 +258,7 @@ TEST_CASE("strcpy: Content preservation", "[core][utils][strcpy]") {
   }
 }
 
-TEST_CASE("strcpy: Return value correctness", "[core][utils][strcpy]") {
+PF_TEST_CASE("Return value correctness", "[core][utils][strcpy]") {
   SECTION("Return value includes null terminator in count") {
     std::string_view src = "hi";
     char dest[10] = {};
@@ -288,7 +289,7 @@ TEST_CASE("strcpy: Return value correctness", "[core][utils][strcpy]") {
   }
 }
 
-TEST_CASE("strcpy: Large buffers", "[core][utils][strcpy]") {
+PF_TEST_CASE("Large buffers", "[core][utils][strcpy]") {
   SECTION("Copy into large buffer") {
     std::string_view src = "test";
     std::vector<char> dest(1000, 'X');
@@ -325,7 +326,7 @@ TEST_CASE("strcpy: Large buffers", "[core][utils][strcpy]") {
   }
 }
 
-TEST_CASE("strcpy: Boundary conditions", "[core][utils][strcpy]") {
+PF_TEST_CASE("Boundary conditions", "[core][utils][strcpy]") {
   SECTION("Exact fit (buffer_size = string length + 1)") {
     std::string_view src = "fit";
     char dest[4] = {'X', 'X', 'X', 'X'};
@@ -374,7 +375,7 @@ TEST_CASE("strcpy: Boundary conditions", "[core][utils][strcpy]") {
   }
 }
 
-TEST_CASE("strcpy: Multiple consecutive calls", "[core][utils][strcpy]") {
+PF_TEST_CASE("Multiple consecutive calls", "[core][utils][strcpy]") {
   SECTION("Overwrite previous content") {
     char dest[10] = {};
 
@@ -401,7 +402,7 @@ TEST_CASE("strcpy: Multiple consecutive calls", "[core][utils][strcpy]") {
   }
 }
 
-TEST_CASE("strcpy: Various string content", "[core][utils][strcpy]") {
+PF_TEST_CASE("Various string content", "[core][utils][strcpy]") {
   SECTION("Single character") {
     std::string_view src = "a";
     char dest[5] = {};
@@ -444,7 +445,7 @@ TEST_CASE("strcpy: Various string content", "[core][utils][strcpy]") {
   }
 }
 
-TEST_CASE("strcpy: Dest buffer exactly filled", "[core][utils][strcpy]") {
+PF_TEST_CASE("Dest buffer exactly filled", "[core][utils][strcpy]") {
   SECTION("Fill entire buffer except last byte") {
     std::string_view src = "abcd";
     char dest[5] = {'X', 'X', 'X', 'X', 'X'};
@@ -457,7 +458,7 @@ TEST_CASE("strcpy: Dest buffer exactly filled", "[core][utils][strcpy]") {
   }
 }
 
-TEST_CASE("strcpy: Sweep over buffer sizes", "[core][utils][strcpy]") {
+PF_TEST_CASE("Sweep over buffer sizes", "[core][utils][strcpy]") {
   const std::string src_str = "abcdefgh";
   const std::string_view src = src_str;
 
@@ -482,7 +483,7 @@ TEST_CASE("strcpy: Sweep over buffer sizes", "[core][utils][strcpy]") {
 // copy_until Tests (building block used by strcpy)
 // ============================================================================
 
-TEST_CASE("copy_until: Basic functionality", "[core][utils][strcpy]") {
+PF_TEST_CASE("copy_until Basic functionality", "[core][utils][strcpy]") {
   SECTION("Copies all elements when nothing is a terminator") {
     const std::string_view src = "hello";
     char dest[10] = {};

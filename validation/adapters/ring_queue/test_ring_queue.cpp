@@ -4,6 +4,7 @@
 #include <ranges>
 #include <vector>
 
+#include <PixelForgeValidationHelpers/helpers.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 import PixelForge.adapters;
@@ -61,7 +62,7 @@ static_assert(
 
 }
 
-TEST_CASE("RingQueue basic", "[adapters][RingQueue]") {
+PF_TEST_CASE("basic", "[adapters][RingQueue]") {
 
   std::uint32_t buf[BUF_SIZE]{};
   RingQueue<std::uint32_t> queue(buf, BUF_SIZE);
@@ -123,7 +124,7 @@ TEST_CASE("RingQueue basic", "[adapters][RingQueue]") {
   }
 }
 
-TEST_CASE("RingQueue lifetimes", "[adapters][RingQueue]") {
+PF_TEST_CASE("lifetimes", "[adapters][RingQueue]") {
 
   SECTION("single push, single pop") {
 
@@ -210,7 +211,7 @@ TEST_CASE("RingQueue lifetimes", "[adapters][RingQueue]") {
   }
 }
 
-TEST_CASE("RingQueue move only elements", "[adapters][RingQueue]") {
+PF_TEST_CASE("move only elements", "[adapters][RingQueue]") {
   alignas(
       std::unique_ptr<int>) unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
   RingQueue<std::unique_ptr<int>> queue(reinterpret_cast<std::unique_ptr<int>*>(buf),
@@ -231,7 +232,7 @@ TEST_CASE("RingQueue move only elements", "[adapters][RingQueue]") {
   REQUIRE(queue.empty());
 }
 
-TEST_CASE("RingQueue force ops destroy replaced elements", "[adapters][RingQueue]") {
+PF_TEST_CASE("force ops destroy replaced elements", "[adapters][RingQueue]") {
   {
     pf_vh::LifeTimeTracker::DeferClear clearer{};
     RingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
@@ -264,7 +265,7 @@ TEST_CASE("RingQueue force ops destroy replaced elements", "[adapters][RingQueue
   }
 }
 
-TEST_CASE("RingQueue push_range basic", "[adapters][RingQueue]") {
+PF_TEST_CASE("push_range basic", "[adapters][RingQueue]") {
   std::uint32_t buf[BUF_SIZE]{};
   RingQueue<std::uint32_t> queue(buf, BUF_SIZE);
 
@@ -293,7 +294,7 @@ TEST_CASE("RingQueue push_range basic", "[adapters][RingQueue]") {
   }
 }
 
-TEST_CASE("RingQueue push_range move only", "[adapters][RingQueue]") {
+PF_TEST_CASE("push_range move only", "[adapters][RingQueue]") {
   alignas(
       std::unique_ptr<int>) unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
   RingQueue<std::unique_ptr<int>> queue(reinterpret_cast<std::unique_ptr<int>*>(buf),
@@ -335,7 +336,7 @@ TEST_CASE("RingQueue push_range move only", "[adapters][RingQueue]") {
   }
 }
 
-TEST_CASE("RingQueue move assignment", "[adapters][RingQueue]") {
+PF_TEST_CASE("move assignment", "[adapters][RingQueue]") {
   {
     pf_vh::LifeTimeTracker::DeferClear clearer{};
     RingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
@@ -362,7 +363,7 @@ TEST_CASE("RingQueue move assignment", "[adapters][RingQueue]") {
   }
 }
 
-TEST_CASE("RingQueue pow2 capacity validation", "[adapters][RingQueue]") {
+PF_TEST_CASE("pow2 capacity validation", "[adapters][RingQueue]") {
   std::uint32_t buf[BUF_SIZE]{};
   REQUIRE_NOTHROW((RingQueue<std::uint32_t, true>(buf, BUF_SIZE)));
   REQUIRE_THROWS((RingQueue<std::uint32_t, true>(buf, BUF_SIZE - 1)));

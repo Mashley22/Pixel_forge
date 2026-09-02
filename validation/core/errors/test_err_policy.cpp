@@ -14,7 +14,7 @@ namespace {
 constexpr std::string_view dummyStrView = "";
 }
 
-TEST_CASE("policy concepts", "[core][errPolicy]") {
+PF_TEST_CASE("policy concepts", "[core][errPolicy]") {
   STATIC_REQUIRE(ErrPolicy_c<ErrPolicy_nothing<int, dummyStrView>, int>);
   STATIC_REQUIRE(ErrPolicy_c<ErrPolicy_optional<int>, int>);
   STATIC_REQUIRE(ErrPolicy_c<ErrPolicy_throws<int, Exception>, int>);
@@ -28,7 +28,7 @@ TEST_CASE("policy concepts", "[core][errPolicy]") {
   STATIC_REQUIRE(VoidErrPolicy_c<ErrPolicy_throws<void, Exception>>);
 }
 
-TEST_CASE("nothing policy", "[core][errPolicy]") {
+PF_TEST_CASE("nothing policy", "[core][errPolicy]") {
   STATIC_REQUIRE(ErrPolicy_nothing<int, dummyStrView>::is_noexcept);
   STATIC_REQUIRE(std::is_same_v<ErrPolicy_nothing<int, dummyStrView>::return_type, int>);
 
@@ -38,14 +38,14 @@ TEST_CASE("nothing policy", "[core][errPolicy]") {
   REQUIRE(ErrPolicy_nothing<int, dummyStrView>::success(lvalue) == 7);
 }
 
-TEST_CASE("nothing policy fail requires", "[core][errPolicy]") {
+PF_TEST_CASE("nothing policy fail requires", "[core][errPolicy]") {
   // PF_REQUIRE(false) throws RequireFail when
   // PIXELFORGE_REQUIRE_THROWS_ON_FAILURE is defined
   auto dummy = []() { ErrPolicy_nothing<int, dummyStrView>::fail(0); };
   REQUIRE_PF_REQUIRE_FAIL(dummy());
 }
 
-TEST_CASE("nothing policy void", "[core][errPolicy]") {
+PF_TEST_CASE("nothing policy void", "[core][errPolicy]") {
   STATIC_REQUIRE(
       std::is_same_v<ErrPolicy_nothing<void, dummyStrView>::return_type, void>);
 
@@ -54,7 +54,7 @@ TEST_CASE("nothing policy void", "[core][errPolicy]") {
   REQUIRE_PF_REQUIRE_FAIL(dummy());
 }
 
-TEST_CASE("optional policy", "[core][errPolicy]") {
+PF_TEST_CASE("optional policy", "[core][errPolicy]") {
   STATIC_REQUIRE(ErrPolicy_optional<int>::is_noexcept);
   STATIC_REQUIRE(
       std::is_same_v<ErrPolicy_optional<int>::return_type, std::optional<int>>);
@@ -63,14 +63,14 @@ TEST_CASE("optional policy", "[core][errPolicy]") {
   REQUIRE_FALSE(ErrPolicy_optional<int>::fail("some reason").has_value());
 }
 
-TEST_CASE("optional policy void", "[core][errPolicy]") {
+PF_TEST_CASE("optional policy void", "[core][errPolicy]") {
   STATIC_REQUIRE(std::is_same_v<ErrPolicy_optional<void>::return_type, bool>);
 
   REQUIRE(ErrPolicy_optional<void>::success());
   REQUIRE_FALSE(ErrPolicy_optional<void>::fail("some reason"));
 }
 
-TEST_CASE("throws policy", "[core][errPolicy]") {
+PF_TEST_CASE("throws policy", "[core][errPolicy]") {
   STATIC_REQUIRE(!ErrPolicy_throws<int, Exception>::is_noexcept);
   STATIC_REQUIRE(std::is_same_v<ErrPolicy_throws<int, Exception>::return_type, int>);
 
@@ -84,11 +84,11 @@ TEST_CASE("throws policy", "[core][errPolicy]") {
   }
 }
 
-TEST_CASE("throws policy builtin exception type", "[core][errPolicy]") {
+PF_TEST_CASE("throws policy builtin exception type", "[core][errPolicy]") {
   REQUIRE_THROWS_AS((ErrPolicy_throws<int, int>::fail(7)), int);
 }
 
-TEST_CASE("throws policy void", "[core][errPolicy]") {
+PF_TEST_CASE("throws policy void", "[core][errPolicy]") {
   STATIC_REQUIRE(std::is_same_v<ErrPolicy_throws<void, Exception>::return_type, void>);
 
   REQUIRE_NOTHROW(ErrPolicy_throws<void, Exception>::success());

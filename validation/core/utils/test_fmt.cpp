@@ -1,3 +1,4 @@
+#include <PixelForgeValidationHelpers/helpers.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_all.hpp>
 
@@ -33,12 +34,12 @@ M_testFmt_cstrAgainstStd(std::format_string<V_args...> str, V_args&&... args) {
   REQUIRE(pfStr == stdStr);
 }
 
-TEST_CASE("fmt", "[core][utils][fmt]") {
+PF_TEST_CASE("fmt", "[core][utils][fmt]") {
   SECTION("Plain string") { M_testFmtAgainstStd("Plain string"); }
   SECTION("With some formatting") { M_testFmtAgainstStd("{}", 1); }
 }
 
-TEST_CASE("fmt_cstr", "[core][utils][fmt]") {
+PF_TEST_CASE("cstr", "[core][utils][fmt]") {
   SECTION("Plain string") { M_testFmt_cstrAgainstStd("Nothing"); }
   SECTION("With some formatting") { M_testFmtAgainstStd("{}", 1); }
 }

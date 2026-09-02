@@ -1,6 +1,7 @@
-#include <cstdint>
-
+#include <PixelForgeValidationHelpers/helpers.hpp>
 #include <catch2/catch_test_macros.hpp>
+
+#include <cstdint>
 
 import PixelForge.core;
 
@@ -8,7 +9,7 @@ namespace pf {
 
 namespace math {
 
-TEST_CASE("isPowerOfTwo", "[core][math]") {
+PF_TEST_CASE("isPowerOfTwo", "[core][math]") {
 
   STATIC_REQUIRE(isPowerOfTwo<std::uint64_t>(1));
 

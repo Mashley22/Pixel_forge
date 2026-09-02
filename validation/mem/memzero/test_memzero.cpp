@@ -1,3 +1,4 @@
+#include <PixelForgeValidationHelpers/helpers.hpp>
 #include <span>
 
 #include <catch2/catch_test_macros.hpp>
@@ -23,7 +24,7 @@ struct NotZeroByte {
 
 }
 
-TEST_CASE("memzero", "[core][mem]") {
+PF_TEST_CASE("memzero", "[core][mem]") {
 
   SECTION("basic usage") {
     NotZeroByte arr[TEST_ARR_LEN] = {};
