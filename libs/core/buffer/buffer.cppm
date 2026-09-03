@@ -72,6 +72,18 @@ public:
 
   pointer data{nullptr};
   size_type size{0};
+  
+  [[nodiscard]] constexpr T&
+  operator[](size_type idx) PF_NOEXCEPT {
+    PF_REQUIRE_ASSUME(idx < size);
+    return *std::launder(pointer_cast<T>(data) + idx);
+  }
+
+  [[nodiscard]] PF_PURE_FUNC constexpr const T&
+  operator[](size_type idx) const PF_NOEXCEPT {
+    PF_REQUIRE_ASSUME(idx < size);
+    return *std::launder(pointer_cast<T>(data) + idx);
+  }
 
 };
 
