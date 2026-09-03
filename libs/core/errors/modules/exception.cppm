@@ -1,6 +1,9 @@
 module;
 
 #include <stdexcept>
+#ifdef PIXELFORGE_TEST
+#include <print>
+#endif
 
 #include <PixelForge/core/macros.hpp>
 
@@ -8,6 +11,15 @@ export module PixelForge.core:errors.exception;
 
 import :require;
 import :utils.strcpy;
+
+#ifdef PIXELFORGE_TEST
+#define DEBUG_PRINT(err_msg) \
+  do { \
+    std::println("{}", err_msg); \
+  } while(0)
+#else
+#define DEBUG_PRINT(err_str) 
+#endif
 
 namespace pf {
 
@@ -51,6 +63,7 @@ public:
    */
   constexpr explicit Exception(const std::string_view& str) PF_NOEXCEPT {
     strcpy(m_msgBuf, str);
+    DEBUG_PRINT(what());
   }
 
   /**
@@ -58,6 +71,7 @@ public:
    */
   constexpr explicit Exception(const char* str) PF_NOEXCEPT {
     strcpy(m_msgBuf, {str, m_msgBuf.size()});
+    DEBUG_PRINT(what());
   }
 
   /**
@@ -65,6 +79,7 @@ public:
    */
   constexpr explicit Exception(const std::exception& error) PF_NOEXCEPT {
     strcpy(m_msgBuf, {error.what(), m_msgBuf.size()});
+    DEBUG_PRINT(what());
   }
 
   /**
