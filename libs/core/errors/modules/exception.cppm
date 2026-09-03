@@ -13,12 +13,12 @@ import :require;
 import :utils.strcpy;
 
 #ifdef PIXELFORGE_TEST
-#define DEBUG_PRINT(err_msg) \
-  do { \
+#define DEBUG_PRINT(err_msg)     \
+  do {                           \
     std::println("{}", err_msg); \
-  } while(0)
+  } while (0)
 #else
-#define DEBUG_PRINT(err_str) 
+#define DEBUG_PRINT(err_str)
 #endif
 
 namespace pf {
