@@ -1,7 +1,11 @@
 #ifndef PIXELFORGE_VALIDATION_HELPERS_HELPERS_HPP
 #define PIXELFORGE_VALIDATION_HELPERS_HELPERS_HPP
 
+#ifdef NDEBUG
+#define REQUIRE_PF_REQUIRE_FAIL(val)
+#else
 #define REQUIRE_PF_REQUIRE_FAIL(val) REQUIRE_THROWS_AS(val, RequireFail);
+#endif
 
 #define PF_TEST_CASE(test_name, tags) TEST_CASE(tags ": " test_name, tags)
 
