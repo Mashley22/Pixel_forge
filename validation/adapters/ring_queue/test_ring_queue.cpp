@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 import PixelForge.adapters;
+import PixelForge.core;
 
 import PixelForge.validation_helpers;
 
@@ -17,11 +18,16 @@ namespace pf::adapters {
 
 namespace {
 
-pf_vh::LifeTimeTrackerStorage M_buf[BUF_SIZE];
-pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf);
+alignas(pf_vh::LifeTimeTracker)
+    std::array<std::byte, BUF_SIZE * sizeof(pf_vh::LifeTimeTracker)> M_buf;
+pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf.data());
+auto M_buf_storage = Buffer::from(M_buf).asObjects<pf_vh::LifeTimeTracker>(BUF_SIZE);
 
-pf_vh::LifeTimeTrackerStorage M_buf2[BUF_SIZE];
-pf_vh::LifeTimeTracker* M_p_buf2 = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf2);
+alignas(pf_vh::LifeTimeTracker)
+    std::array<std::byte, BUF_SIZE * sizeof(pf_vh::LifeTimeTracker)> M_buf2;
+pf_vh::LifeTimeTracker* M_p_buf2 =
+    reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf2.data());
+auto M_buf2_storage = Buffer::from(M_buf2).asObjects<pf_vh::LifeTimeTracker>(BUF_SIZE);
 
 struct M_UnsizedInputRange {
   struct iterator {
@@ -63,13 +69,14 @@ static_assert(
 }
 
 PF_TEST_CASE("basic", "[adapters][RingQueue]") {
-
-  std::uint32_t buf[BUF_SIZE]{};
-  RingQueue<std::uint32_t> queue(buf, BUF_SIZE);
+  std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
+  auto buffer = Buffer::from(buf);
+  auto storage = buffer.asObjects<std::uint32_t>(BUF_SIZE);
+  RingQueue<std::uint32_t> queue(storage);
 
   SECTION("buffer untouched") {
-    for (unsigned int i : buf) {
-      REQUIRE(i == std::uint32_t{});
+    for (std::byte ele : buf) {
+      REQUIRE(ele == std::byte{});
     }
   }
 
@@ -78,7 +85,7 @@ PF_TEST_CASE("basic", "[adapters][RingQueue]") {
     REQUIRE(queue.empty());
     REQUIRE(queue.empty());
     REQUIRE(!queue.full());
-    REQUIRE(queue.data() == buf);
+    REQUIRE(queue.data() == storage.data);
     REQUIRE(queue.remaining() == BUF_SIZE);
   }
 
@@ -91,13 +98,13 @@ PF_TEST_CASE("basic", "[adapters][RingQueue]") {
       REQUIRE(queue.capacity() == BUF_SIZE);
       REQUIRE(queue.size() == i);
       REQUIRE(!queue.full());
-      REQUIRE(queue.data() == buf);
+      REQUIRE(queue.data() == storage.data);
       REQUIRE(queue.remaining() == BUF_SIZE - i);
 
       pushVal = static_cast<std::uint32_t>(BUF_SIZE + i);
       REQUIRE(queue.try_push(pushVal));
       REQUIRE(queue.back() == pushVal);
-      REQUIRE(buf[i] == pushVal);
+      REQUIRE(storage[i] == pushVal);
       REQUIRE(!queue.empty());
     }
 
@@ -109,7 +116,7 @@ PF_TEST_CASE("basic", "[adapters][RingQueue]") {
     for (std::size_t i = BUF_SIZE; i > 0; i--) {
       REQUIRE(queue.capacity() == BUF_SIZE);
       REQUIRE(queue.size() == i);
-      REQUIRE(queue.data() == buf);
+      REQUIRE(queue.data() == storage.data);
       REQUIRE(queue.remaining() == BUF_SIZE - i);
 
       std::optional<std::uint32_t> popVal = queue.try_pop();
@@ -130,7 +137,7 @@ PF_TEST_CASE("lifetimes", "[adapters][RingQueue]") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
-      RingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+      RingQueue<pf_vh::LifeTimeTracker> queue(M_buf_storage);
 
       REQUIRE(queue.try_emplace().has_value());
 
@@ -158,7 +165,8 @@ PF_TEST_CASE("lifetimes", "[adapters][RingQueue]") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
-      RingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+      ObjectStorage<pf_vh::LifeTimeTracker> storage{M_p_buf, BUF_SIZE};
+      RingQueue<pf_vh::LifeTimeTracker> queue(storage);
 
       for (std::size_t j = 0; j < 5; j++) {
 
@@ -189,7 +197,8 @@ PF_TEST_CASE("lifetimes", "[adapters][RingQueue]") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer;
-      RingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+      ObjectStorage<pf_vh::LifeTimeTracker> storage{M_p_buf, BUF_SIZE};
+      RingQueue<pf_vh::LifeTimeTracker> queue(storage);
 
       for (std::size_t j = 0; j < 5; j++) {
 
@@ -214,8 +223,9 @@ PF_TEST_CASE("lifetimes", "[adapters][RingQueue]") {
 PF_TEST_CASE("move only elements", "[adapters][RingQueue]") {
   alignas(
       std::unique_ptr<int>) unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
-  RingQueue<std::unique_ptr<int>> queue(reinterpret_cast<std::unique_ptr<int>*>(buf),
-                                        BUF_SIZE);
+  ObjectStorage<std::unique_ptr<int>> storage{
+      reinterpret_cast<std::unique_ptr<int>*>(buf), BUF_SIZE};
+  RingQueue<std::unique_ptr<int>> queue(storage);
 
   REQUIRE(queue.try_push(std::make_unique<int>(42)));
   REQUIRE(queue.try_push(std::make_unique<int>(43)));
@@ -235,7 +245,8 @@ PF_TEST_CASE("move only elements", "[adapters][RingQueue]") {
 PF_TEST_CASE("force ops destroy replaced elements", "[adapters][RingQueue]") {
   {
     pf_vh::LifeTimeTracker::DeferClear clearer{};
-    RingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+    ObjectStorage<pf_vh::LifeTimeTracker> storage{M_p_buf, BUF_SIZE};
+    RingQueue<pf_vh::LifeTimeTracker> queue(storage);
 
     for (std::size_t i = 0; i < BUF_SIZE; i++) {
       REQUIRE(queue.try_emplace(1).has_value());
@@ -266,8 +277,10 @@ PF_TEST_CASE("force ops destroy replaced elements", "[adapters][RingQueue]") {
 }
 
 PF_TEST_CASE("push_range basic", "[adapters][RingQueue]") {
-  std::uint32_t buf[BUF_SIZE]{};
-  RingQueue<std::uint32_t> queue(buf, BUF_SIZE);
+  alignas(std::uint32_t) std::byte buf[BUF_SIZE * sizeof(std::uint32_t)]{};
+  Buffer buffer = {.data = buf, .size = BUF_SIZE * sizeof(std::uint32_t)};
+  ObjectStorage<std::uint32_t> storage = buffer.asObjects<std::uint32_t>(BUF_SIZE);
+  RingQueue<std::uint32_t> queue(storage);
 
   std::vector<std::uint32_t> input{1, 2, 3, 4, 5};
   queue.push_range(input);
@@ -295,10 +308,12 @@ PF_TEST_CASE("push_range basic", "[adapters][RingQueue]") {
 }
 
 PF_TEST_CASE("push_range move only", "[adapters][RingQueue]") {
-  alignas(
-      std::unique_ptr<int>) unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
-  RingQueue<std::unique_ptr<int>> queue(reinterpret_cast<std::unique_ptr<int>*>(buf),
-                                        BUF_SIZE);
+  alignas(std::unique_ptr<int>)
+      std::array<std::byte, BUF_SIZE * sizeof(std::unique_ptr<int>)>
+          buf;
+  auto buffer = Buffer::from(buf);
+  auto storage = buffer.asObjects<std::unique_ptr<int>>(BUF_SIZE);
+  RingQueue<std::unique_ptr<int>> queue(storage);
 
   std::vector<std::unique_ptr<int>> input;
   input.push_back(std::make_unique<int>(42));
@@ -339,8 +354,8 @@ PF_TEST_CASE("push_range move only", "[adapters][RingQueue]") {
 PF_TEST_CASE("move assignment", "[adapters][RingQueue]") {
   {
     pf_vh::LifeTimeTracker::DeferClear clearer{};
-    RingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
-    RingQueue<pf_vh::LifeTimeTracker> other(M_p_buf2, BUF_SIZE);
+    RingQueue<pf_vh::LifeTimeTracker> queue(M_buf_storage);
+    RingQueue<pf_vh::LifeTimeTracker> other(M_buf2_storage);
 
     REQUIRE(queue.try_emplace(1).has_value());
     REQUIRE(queue.try_emplace(1).has_value());
@@ -364,9 +379,16 @@ PF_TEST_CASE("move assignment", "[adapters][RingQueue]") {
 }
 
 PF_TEST_CASE("pow2 capacity validation", "[adapters][RingQueue]") {
-  std::uint32_t buf[BUF_SIZE]{};
-  REQUIRE_NOTHROW((RingQueue<std::uint32_t, true>(buf, BUF_SIZE)));
-  REQUIRE_THROWS((RingQueue<std::uint32_t, true>(buf, BUF_SIZE - 1)));
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf;
+  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  REQUIRE_NOTHROW((RingQueue<std::uint32_t, true>(storage)));
+
+  auto dummy = [&]() {
+    auto storageSmall = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE - 1);
+    (RingQueue<std::uint32_t, true>(storageSmall));
+  };
+
+  REQUIRE_PF_REQUIRE_FAIL(dummy());
 }
 
 }

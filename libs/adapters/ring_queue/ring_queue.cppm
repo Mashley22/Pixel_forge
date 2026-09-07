@@ -5,7 +5,6 @@ module;
 #include <memory>
 #include <optional>
 #include <ranges>
-#include <span>
 #include <type_traits>
 #include <utility>
 
@@ -42,6 +41,7 @@ public:
     using const_reference = const value_type&;
     using pointer = T*;
     using const_pointer = const T*;
+    using storage_type = T;
 
     static constexpr bool is_nothrow_copy_construct_v =
         std::is_nothrow_copy_constructible_v<T>;
@@ -55,57 +55,18 @@ public:
   PF_ADAPTERS_INHERIT_TRAITS(Traits);
 
   /**
-   *@brief Constructs a queue over raw storage
+   *@brief Constructs a queue over a typed ObjectStorage
    *
-   * Elements are constructed in-place over the storage, so it must not hold
-   * any live objects; typed buffers are therefore rejected (see the deleted
-   * overload below). Storage must be aligned for @p T and outlive the queue
+   * The storage's data pointer must be aligned for @p T and its size must be
+   * a power of two (when @p T_capacityPowOf2Value is true). Storage must
+   * outlive the queue.
    */
-  explicit constexpr RingQueue(void* pBuf,
-                               size_type capacity,
+  explicit constexpr RingQueue(ObjectStorage<storage_type> storage,
                                size_type startIdx = 0) PF_NOEXCEPT
-    : m_data(static_cast<pointer>(pBuf)),
-      m_capMask(capacity - 1),
+    : m_data(pointer_cast<pointer>(storage.data)),
+      m_capMask(storage.size - 1),
       m_front(startIdx),
       m_back(startIdx) {
-    PF_REQUIRE(valid_init_());
-  }
-
-  /**@overload */
-  explicit constexpr RingQueue(char* pBuf,
-                               size_type capacity,
-                               size_type startIdx = 0) PF_NOEXCEPT
-    : RingQueue(static_cast<void*>(pBuf), capacity, startIdx) {}
-
-  /**@overload */
-  explicit constexpr RingQueue(std::byte* pBuf,
-                               size_type capacity,
-                               size_type startIdx = 0) PF_NOEXCEPT
-    : RingQueue(static_cast<void*>(pBuf), capacity, startIdx) {}
-
-  /**
-   *@brief Constructs a queue over a byte span
-   *
-   * The element capacity is derived as @p buf.size() / sizeof(T); the span
-   * must cover a whole number of elements and be aligned for @p T
-   */
-  explicit constexpr RingQueue(std::span<char> buf, size_type startIdx = 0) PF_NOEXCEPT
-    : m_data(reinterpret_cast<pointer>(buf.data())),
-      m_capMask((buf.size() / sizeof(T)) - 1),
-      m_front(startIdx),
-      m_back(startIdx) {
-    PF_REQUIRE((buf.size() % sizeof(T)) == 0);
-    PF_REQUIRE(valid_init_());
-  }
-
-  /**@overload */
-  explicit constexpr RingQueue(std::span<std::byte> buf,
-                               size_type startIdx = 0) PF_NOEXCEPT
-    : m_data(reinterpret_cast<pointer>(buf.data())),
-      m_capMask((buf.size() / sizeof(T)) - 1),
-      m_front(startIdx),
-      m_back(startIdx) {
-    PF_REQUIRE((buf.size() % sizeof(T)) == 0);
     PF_REQUIRE(valid_init_());
   }
 
