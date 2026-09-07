@@ -38,6 +38,7 @@ public:
     using const_reference = const value_type&;
     using pointer = T*;
     using const_pointer = const T*;
+    using storage_type = T;
 
     static constexpr bool is_nothrow_copy_construct_v =
         std::is_nothrow_copy_constructible_v<T>;
@@ -53,47 +54,15 @@ public:
   constexpr Stack() PF_NOEXCEPT = default;
 
   /**
-   *@brief Constructs a stack over raw storage
+   *@brief Constructs a stack over a typed ObjectStorage
    *
-   * Elements are constructed in-place over the storage, so it must not hold
-   * any live objects; typed buffers are therefore rejected (see the deleted
-   * overload below). Storage must be aligned for @p T and outlive the stack
+   * The storage's data pointer must be aligned for @p T. Storage must
+   * outlive the stack.
    */
-  explicit constexpr Stack(void* pBuf, size_type capacity) PF_NOEXCEPT
-    : m_data(static_cast<T*>(pBuf)),
+  explicit constexpr Stack(ObjectStorage<T> storage) PF_NOEXCEPT
+    : m_data(pointer_cast<T*>(storage.data)),
       m_top(m_data),
-      m_end(m_data + capacity) {
-    PF_REQUIRE(valid_init_());
-  }
-
-  /**@overload */
-  explicit constexpr Stack(char* pBuf, size_type capacity) PF_NOEXCEPT
-    : Stack(static_cast<void*>(pBuf), capacity) {}
-
-  /**@overload */
-  explicit constexpr Stack(std::byte* pBuf, size_type capacity) PF_NOEXCEPT
-    : Stack(static_cast<void*>(pBuf), capacity) {}
-
-  /**
-   *@brief Constructs a stack over a byte span
-   *
-   * The element capacity is derived as @p buf.size() / sizeof(T); the span
-   * must cover a whole number of elements and be aligned for @p T
-   */
-  explicit constexpr Stack(std::span<char> buf) PF_NOEXCEPT
-    : m_data(reinterpret_cast<T*>(buf.data())),
-      m_top(m_data),
-      m_end(m_data + (buf.size() / sizeof(T))) {
-    PF_REQUIRE((buf.size() % sizeof(T)) == 0);
-    PF_REQUIRE(valid_init_());
-  }
-
-  /**@overload */
-  explicit constexpr Stack(std::span<std::byte> buf) PF_NOEXCEPT
-    : m_data(reinterpret_cast<T*>(buf.data())),
-      m_top(m_data),
-      m_end(m_data + (buf.size() / sizeof(T))) {
-    PF_REQUIRE((buf.size() % sizeof(T)) == 0);
+      m_end(m_data + storage.size) {
     PF_REQUIRE(valid_init_());
   }
 

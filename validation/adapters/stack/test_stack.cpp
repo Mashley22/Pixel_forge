@@ -7,6 +7,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 import PixelForge.adapters;
+import PixelForge.core;
 
 import PixelForge.validation_helpers;
 
@@ -16,19 +17,26 @@ namespace pf::adapters {
 
 namespace {
 
-pf_vh::LifeTimeTrackerStorage M_buf[BUF_SIZE];
-pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf);
+alignas(pf_vh::LifeTimeTracker)
+    std::array<std::byte, BUF_SIZE * sizeof(pf_vh::LifeTimeTracker)> M_buf;
+pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf.data());
+auto M_buf_storage = Buffer::from(M_buf).asObjects<pf_vh::LifeTimeTracker>(BUF_SIZE);
+
+alignas(pf_vh::LifeTimeTracker)
+    std::array<std::byte, BUF_SIZE * sizeof(pf_vh::LifeTimeTracker)> M_buf2;
+auto M_buf2_storage = Buffer::from(M_buf2).asObjects<pf_vh::LifeTimeTracker>(BUF_SIZE);
 
 }
 
 PF_TEST_CASE("basic", "[adapters][Stack]") {
 
-  std::uint32_t buf[BUF_SIZE]{};
-  Stack<std::uint32_t> stack(buf, BUF_SIZE);
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
+  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  Stack<std::uint32_t> stack(storage);
 
   SECTION("buffer untouched") {
-    for (unsigned int i : buf) {
-      REQUIRE(i == std::uint32_t{});
+    for (std::byte ele : buf) {
+      REQUIRE(ele == std::byte{});
     }
   }
 
@@ -37,8 +45,8 @@ PF_TEST_CASE("basic", "[adapters][Stack]") {
     REQUIRE(stack.empty());
     REQUIRE(stack.empty());
     REQUIRE(!stack.full());
-    REQUIRE(stack.data() == buf);
-    REQUIRE(stack.end() == buf + BUF_SIZE);
+    REQUIRE(stack.data() == storage.data);
+    REQUIRE(stack.end() == static_cast<std::uint32_t*>(storage.data) + BUF_SIZE);
     REQUIRE(stack.remaining() == BUF_SIZE);
   }
 
@@ -51,12 +59,12 @@ PF_TEST_CASE("basic", "[adapters][Stack]") {
       REQUIRE(stack.capacity() == BUF_SIZE);
       REQUIRE(stack.size() == i);
       REQUIRE(!stack.full());
-      REQUIRE(stack.data() == buf);
+      REQUIRE(stack.data() == storage.data);
       REQUIRE(stack.remaining() == BUF_SIZE - i);
 
       pushVal = static_cast<std::uint32_t>(BUF_SIZE + i);
       REQUIRE(stack.try_push(pushVal));
-      REQUIRE(buf[i] == pushVal);
+      REQUIRE(storage[i] == pushVal);
       REQUIRE(!stack.empty());
     }
 
@@ -68,7 +76,7 @@ PF_TEST_CASE("basic", "[adapters][Stack]") {
     for (std::size_t i = 0; i < BUF_SIZE; i++) {
       REQUIRE(stack.capacity() == BUF_SIZE);
       REQUIRE(stack.size() == BUF_SIZE - i);
-      REQUIRE(stack.data() == buf);
+      REQUIRE(stack.data() == storage.data);
       REQUIRE(stack.remaining() == i);
 
       std::optional<std::uint32_t> popVal = stack.try_pop();
@@ -89,7 +97,7 @@ PF_TEST_CASE("lifetimes", "[adapters][Stack]") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
-      Stack<pf_vh::LifeTimeTracker> stack(M_p_buf, BUF_SIZE);
+      Stack<pf_vh::LifeTimeTracker> stack(M_buf_storage);
 
       REQUIRE(stack.try_emplace().has_value());
 
@@ -117,7 +125,8 @@ PF_TEST_CASE("lifetimes", "[adapters][Stack]") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
-      Stack<pf_vh::LifeTimeTracker> stack(M_p_buf, BUF_SIZE);
+      auto storage = Buffer::from(M_buf).asObjects<pf_vh::LifeTimeTracker>(BUF_SIZE);
+      Stack<pf_vh::LifeTimeTracker> stack(storage);
 
       for (std::size_t j = 0; j < 5; j++) {
 
@@ -150,8 +159,9 @@ PF_TEST_CASE("lifetimes", "[adapters][Stack]") {
 }
 
 PF_TEST_CASE("top", "[adapters][Stack]") {
-  std::uint32_t buf[BUF_SIZE]{};
-  Stack<std::uint32_t> stack(buf, BUF_SIZE);
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
+  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  Stack<std::uint32_t> stack(storage);
 
   for (std::size_t i = 0; i < 10; i++) {
     REQUIRE(stack.try_push(static_cast<std::uint32_t>(i + 1)));
@@ -170,7 +180,8 @@ PF_TEST_CASE("clear and destructor destroy elements", "[adapters][Stack]") {
   SECTION("clear destroys all elements and stack stays reusable") {
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
-      Stack<pf_vh::LifeTimeTracker> stack(M_p_buf, BUF_SIZE);
+      auto storage = Buffer::from(M_buf).asObjects<pf_vh::LifeTimeTracker>(BUF_SIZE);
+      Stack<pf_vh::LifeTimeTracker> stack(storage);
 
       for (std::size_t i = 0; i < 4; i++) {
         REQUIRE(stack.try_emplace(static_cast<int>(i)).has_value());
@@ -205,7 +216,7 @@ PF_TEST_CASE("clear and destructor destroy elements", "[adapters][Stack]") {
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
       {
-        Stack<pf_vh::LifeTimeTracker> stack(M_p_buf, BUF_SIZE);
+        Stack<pf_vh::LifeTimeTracker> stack(M_buf_storage);
         for (std::size_t i = 0; i < 4; i++) {
           REQUIRE(stack.try_emplace().has_value());
         }
@@ -227,8 +238,10 @@ PF_TEST_CASE("clear and destructor destroy elements", "[adapters][Stack]") {
 }
 
 PF_TEST_CASE("push_range basic", "[adapters][Stack]") {
-  std::uint32_t buf[BUF_SIZE]{};
-  Stack<std::uint32_t> stack(buf, BUF_SIZE);
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
+  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+
+  Stack<std::uint32_t> stack(storage);
 
   std::vector<std::uint32_t> input{1, 2, 3, 4, 5};
   stack.push_range(input);
@@ -271,8 +284,8 @@ PF_TEST_CASE("push_range basic", "[adapters][Stack]") {
 
     alignas(std::unique_ptr<int>) unsigned char
         ptrBuf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
-    Stack<std::unique_ptr<int>> ptrStack(reinterpret_cast<std::unique_ptr<int>*>(ptrBuf),
-                                         BUF_SIZE);
+    Stack<std::unique_ptr<int>> ptrStack(
+        ObjectStorage<std::unique_ptr<int>>{ptrBuf, BUF_SIZE});
     ptrStack.push_range(std::move(ptrs));
 
     REQUIRE(ptrs[0] == nullptr);
