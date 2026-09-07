@@ -72,7 +72,7 @@ public:
 
   pointer data{nullptr};
   size_type size{0};
-  
+
   [[nodiscard]] constexpr T&
   operator[](size_type idx) PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(idx < size);
@@ -84,7 +84,6 @@ public:
     PF_REQUIRE_ASSUME(idx < size);
     return *std::launder(pointer_cast<T>(data) + idx);
   }
-
 };
 
 struct Buffer {

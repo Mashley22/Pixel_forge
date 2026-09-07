@@ -39,8 +39,6 @@ PF_TEST_CASE("nothing policy", "[core][errPolicy]") {
 }
 
 PF_TEST_CASE("nothing policy fail requires", "[core][errPolicy]") {
-  // PF_REQUIRE(false) throws RequireFail when
-  // PIXELFORGE_REQUIRE_THROWS_ON_FAILURE is defined
   auto dummy = []() { ErrPolicy_nothing<int, dummyStrView>::fail(0); };
   REQUIRE_PF_REQUIRE_FAIL(dummy());
 }

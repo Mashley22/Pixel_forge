@@ -119,7 +119,13 @@ PF_TEST_CASE("asObjects_unchecked", "[core][Buffer][ObjectStorage]") {
   SECTION("buffer too small") {
     constexpr std::size_t tooManyObjs = 1000;
     static_assert(tooManyObjs * sizeof(int) > storage.size());
+#ifndef NDEBUG
     REQUIRE_PF_REQUIRE_FAIL(buf.asObjects_unchecked<int>(tooManyObjs));
+#else
+    auto obj_storage = buf.asObjects_unchecked<int>(tooManyObjs);
+    REQUIRE(obj_storage.data == buf.data);
+    REQUIRE(obj_storage.size == tooManyObjs);
+#endif
   }
 
   SECTION("misaligned buffer") {
@@ -128,7 +134,14 @@ PF_TEST_CASE("asObjects_unchecked", "[core][Buffer][ObjectStorage]") {
     static_assert(smallObjNum * sizeof(int) < storage.size());
 
     Buffer misalignedBuf{storage.data() + misalignBy, storage.size() - misalignBy};
+
+#ifndef NDEBUG
     REQUIRE_PF_REQUIRE_FAIL(misalignedBuf.asObjects_unchecked<int>(smallObjNum));
+#else
+    auto obj_storage = misalignedBuf.asObjects_unchecked<int>(smallObjNum);
+    REQUIRE(obj_storage.data == misalignedBuf.data);
+    REQUIRE(obj_storage.size == smallObjNum);
+#endif
   }
 }
 
