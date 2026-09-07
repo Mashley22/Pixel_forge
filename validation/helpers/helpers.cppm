@@ -78,7 +78,7 @@ private:
 };
 
 export struct alignas(LifeTimeTracker) LifeTimeTrackerStorage {
-  unsigned char data[sizeof(LifeTimeTracker)];
+  std::byte data[sizeof(LifeTimeTracker)];
 };
 
 std::unordered_map<const LifeTimeTracker*, std::vector<LifeTimeTracker::OpInfo>>
