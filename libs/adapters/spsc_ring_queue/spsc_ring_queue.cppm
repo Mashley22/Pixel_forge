@@ -42,6 +42,7 @@ public:
     using const_reference = const value_type&;
     using pointer = T*;
     using const_pointer = const T*;
+    using storage_type = T;
 
     static constexpr bool is_nothrow_copy_construct_v =
         std::is_nothrow_copy_constructible_v<T>;
@@ -57,44 +58,15 @@ public:
   constexpr SPSCRingQueue() PF_NOEXCEPT = default;
 
   /**
-   *@brief Constructs a queue over raw storage
+   *@brief Constructs a queue over a typed ObjectStorage
    *
-   * Elements are constructed in-place over the storage, so it must not hold
-   * any live objects; typed buffers are therefore rejected (see the deleted
-   * overload below). Storage must be aligned for @p T and outlive the queue
+   * The storage's data pointer must be aligned for @p T and its size must be
+   * a power of two (when @p T_isPowerOfTwo is true). Storage must outlive
+   * the queue.
    */
-  explicit constexpr SPSCRingQueue(void* pBuf, size_type capacity) PF_NOEXCEPT
-    : m_data(static_cast<T*>(pBuf)),
-      m_mask(capacity - 1) {
-    PF_REQUIRE(valid_init_());
-  }
-
-  /**@overload */
-  explicit constexpr SPSCRingQueue(char* pBuf, size_type capacity) PF_NOEXCEPT
-    : SPSCRingQueue(static_cast<void*>(pBuf), capacity) {}
-
-  /**@overload */
-  explicit constexpr SPSCRingQueue(std::byte* pBuf, size_type capacity) PF_NOEXCEPT
-    : SPSCRingQueue(static_cast<void*>(pBuf), capacity) {}
-
-  /**
-   *@brief Constructs a queue over a byte span
-   *
-   * The element capacity is derived as @p buf.size() / sizeof(T); the span
-   * must cover a whole number of elements and be aligned for @p T
-   */
-  explicit constexpr SPSCRingQueue(std::span<char> buf) PF_NOEXCEPT
-    : m_data(reinterpret_cast<T*>(buf.data())),
-      m_mask((buf.size() / sizeof(T)) - 1) {
-    PF_REQUIRE((buf.size() % sizeof(T)) == 0);
-    PF_REQUIRE(valid_init_());
-  }
-
-  /**@overload */
-  explicit constexpr SPSCRingQueue(std::span<std::byte> buf) PF_NOEXCEPT
-    : m_data(reinterpret_cast<T*>(buf.data())),
-      m_mask((buf.size() / sizeof(T)) - 1) {
-    PF_REQUIRE((buf.size() % sizeof(T)) == 0);
+  explicit constexpr SPSCRingQueue(ObjectStorage<storage_type> storage) PF_NOEXCEPT
+    : m_data(pointer_cast<pointer>(storage.data)),
+      m_mask(storage.size - 1) {
     PF_REQUIRE(valid_init_());
   }
 

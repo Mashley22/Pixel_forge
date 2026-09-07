@@ -9,6 +9,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 import PixelForge.adapters;
+import PixelForge.core;
 
 import PixelForge.validation_helpers;
 
@@ -18,19 +19,22 @@ namespace pf::adapters {
 
 namespace {
 
-pf_vh::LifeTimeTrackerStorage M_buf[BUF_SIZE];
-pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf);
+alignas(pf_vh::LifeTimeTracker)
+    std::array<std::byte, BUF_SIZE * sizeof(pf_vh::LifeTimeTracker)> M_buf;
+pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf.data());
+auto M_buf_storage = Buffer::from(M_buf).asObjects<pf_vh::LifeTimeTracker>(BUF_SIZE);
 
 }
 
 PF_TEST_CASE("basic", "[adapters][SPSCQueue]") {
 
-  std::uint32_t buf[BUF_SIZE]{};
-  SPSCRingQueue<std::uint32_t> queue(buf, BUF_SIZE);
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
+  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  SPSCRingQueue<std::uint32_t> queue(storage);
 
   SECTION("buffer untouched") {
-    for (unsigned int i : buf) {
-      REQUIRE(i == std::uint32_t{});
+    for (std::byte ele : buf) {
+      REQUIRE(ele == std::byte{});
     }
   }
 
@@ -38,17 +42,17 @@ PF_TEST_CASE("basic", "[adapters][SPSCQueue]") {
     REQUIRE(queue.capacity() == BUF_SIZE);
     REQUIRE(queue.empty());
     REQUIRE(!queue.full());
-    REQUIRE(queue.data() == buf);
+    REQUIRE(queue.data() == storage.data);
     REQUIRE(queue.size() == 0);
     REQUIRE(queue.remaining() == BUF_SIZE);
   }
 
   SECTION("span constructor") {
-    std::span<char> spanBuf(reinterpret_cast<char*>(buf),
-                            BUF_SIZE * sizeof(std::uint32_t));
-    SPSCRingQueue<std::uint32_t> spanQueue(spanBuf);
+    std::span<std::byte> spanBuf(buf);
+    SPSCRingQueue<std::uint32_t> spanQueue(
+        Buffer::from(spanBuf).asObjects<std::uint32_t>(BUF_SIZE));
     REQUIRE(spanQueue.capacity() == BUF_SIZE);
-    REQUIRE(spanQueue.data() == buf);
+    REQUIRE(spanQueue.data() == storage.data);
     REQUIRE(spanQueue.empty());
   }
 
@@ -92,8 +96,9 @@ PF_TEST_CASE("fifo order across wraps", "[adapters][SPSCQueue]") {
 
   constexpr auto ROUNDS = 5;
 
-  std::uint32_t buf[BUF_SIZE]{};
-  SPSCRingQueue<std::uint32_t> queue(buf, BUF_SIZE);
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
+  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  SPSCRingQueue<std::uint32_t> queue(storage);
 
   SECTION("full rounds") {
     std::uint32_t nextValue = 0;
@@ -154,8 +159,9 @@ PF_TEST_CASE("error policies", "[adapters][SPSCQueue]") {
 
   using Queue = SPSCRingQueue<std::uint32_t>;
 
-  std::uint32_t buf[BUF_SIZE]{};
-  Queue queue(buf, BUF_SIZE);
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
+  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  Queue queue(storage);
 
   SECTION("pop on empty") {
     REQUIRE(!queue.try_pop().has_value());
@@ -194,8 +200,8 @@ PF_TEST_CASE("error policies", "[adapters][SPSCQueue]") {
     std::optional<std::uint32_t*> ptr = queue.try_emplace(std::uint32_t{7});
 
     REQUIRE(ptr.has_value());
-    REQUIRE(ptr.value() >= buf);
-    REQUIRE(ptr.value() < buf + BUF_SIZE);
+    REQUIRE(ptr.value() >= reinterpret_cast<std::uint32_t*>(buf.data()));
+    REQUIRE(ptr.value() < reinterpret_cast<std::uint32_t*>(buf.data() + BUF_SIZE));
     REQUIRE(*ptr.value() == 7);
     REQUIRE(ptr.value() == &queue.front());
 
@@ -210,7 +216,7 @@ PF_TEST_CASE("lifetimes", "[adapters][SPSCQueue]") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
-      SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+      SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_buf_storage);
 
       REQUIRE(queue.try_emplace().has_value());
 
@@ -237,7 +243,7 @@ PF_TEST_CASE("lifetimes", "[adapters][SPSCQueue]") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
-      SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+      SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_buf_storage);
 
       for (std::size_t j = 0; j < 5; j++) {
 
@@ -268,7 +274,7 @@ PF_TEST_CASE("lifetimes", "[adapters][SPSCQueue]") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer;
-      SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+      SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_buf_storage);
 
       for (std::size_t j = 0; j < 5; j++) {
 
@@ -293,7 +299,7 @@ PF_TEST_CASE("lifetimes", "[adapters][SPSCQueue]") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
-      SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+      SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_buf_storage);
 
       for (std::size_t i = 0; i < 4; i++) {
         REQUIRE(queue.try_emplace(static_cast<int>(i)).has_value());
@@ -329,7 +335,7 @@ PF_TEST_CASE("lifetimes", "[adapters][SPSCQueue]") {
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
       {
-        SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_p_buf, BUF_SIZE);
+        SPSCRingQueue<pf_vh::LifeTimeTracker> queue(M_buf_storage);
         for (std::size_t i = 0; i < 4; i++) {
           REQUIRE(queue.try_emplace().has_value());
         }
@@ -351,10 +357,11 @@ PF_TEST_CASE("lifetimes", "[adapters][SPSCQueue]") {
 }
 
 PF_TEST_CASE("move only elements", "[adapters][SPSCQueue]") {
-  alignas(
-      std::unique_ptr<int>) unsigned char buf[BUF_SIZE * sizeof(std::unique_ptr<int>)]{};
-  SPSCRingQueue<std::unique_ptr<int>> queue(reinterpret_cast<std::unique_ptr<int>*>(buf),
-                                            BUF_SIZE);
+  alignas(std::unique_ptr<int>)
+      std::array<std::byte, BUF_SIZE * sizeof(std::unique_ptr<int>)>
+          buf;
+  auto storage = Buffer::from(buf).asObjects<std::unique_ptr<int>>(BUF_SIZE);
+  SPSCRingQueue<std::unique_ptr<int>> queue(storage);
 
   REQUIRE(queue.try_push(std::make_unique<int>(42)));
   REQUIRE(queue.try_push(std::make_unique<int>(43)));
@@ -372,37 +379,40 @@ PF_TEST_CASE("move only elements", "[adapters][SPSCQueue]") {
 }
 
 PF_TEST_CASE("construction validation", "[adapters][SPSCQueue]") {
-  std::uint32_t buf[BUF_SIZE]{};
 
   SECTION("null buffer rejected") {
-    REQUIRE_THROWS(
-        (SPSCRingQueue<std::uint32_t>(static_cast<std::uint32_t*>(nullptr), BUF_SIZE)));
+    ObjectStorage<std::uint32_t> storage{.data = nullptr, .size = BUF_SIZE};
+    REQUIRE_THROWS((SPSCRingQueue<std::uint32_t>(storage)));
   }
 
   SECTION("zero capacity rejected") {
-    REQUIRE_THROWS((SPSCRingQueue<std::uint32_t>(buf, 0)));
+    alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
+    ObjectStorage<std::uint32_t> storage{.data = buf.data(), .size = 0};
+    REQUIRE_THROWS((SPSCRingQueue<std::uint32_t>(storage)));
   }
 
   SECTION("misaligned buffer rejected") {
     alignas(std::uint32_t) unsigned char raw[2 * sizeof(std::uint32_t)]{};
-    void* misalignedPtr = raw + 1;
-    auto* misaligned = static_cast<std::uint32_t*>(misalignedPtr);
-    REQUIRE_THROWS((SPSCRingQueue<std::uint32_t>(misaligned, 2)));
+    ObjectStorage<std::uint32_t> storage{.data = static_cast<void*>(raw + 1), .size = 2};
+    REQUIRE_THROWS((SPSCRingQueue<std::uint32_t>(storage)));
   }
 
   SECTION("power of two enforced only when requested") {
-    REQUIRE_NOTHROW((SPSCRingQueue<std::uint32_t>(buf, BUF_SIZE)));
-    REQUIRE_NOTHROW((SPSCRingQueue<std::uint32_t, true>(buf, BUF_SIZE)));
-    REQUIRE_THROWS((SPSCRingQueue<std::uint32_t, true>(buf, BUF_SIZE - 1)));
+    alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
+    auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+    REQUIRE_NOTHROW((SPSCRingQueue<std::uint32_t, true>(storage)));
+    REQUIRE_NOTHROW((SPSCRingQueue<std::uint32_t>(storage)));
+    REQUIRE_THROWS((SPSCRingQueue<std::uint32_t, true>(
+        Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE - 1))));
   }
 }
 
 PF_TEST_CASE("non power of two capacity", "[adapters][SPSCQueue]") {
-
   constexpr auto CAPACITY = 100;
 
-  std::uint32_t buf[CAPACITY]{};
-  SPSCRingQueue<std::uint32_t> queue(buf, CAPACITY);
+  alignas(std::uint32_t) std::array<std::byte, CAPACITY * sizeof(std::uint32_t)> buf{};
+  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(CAPACITY);
+  SPSCRingQueue<std::uint32_t> queue(storage);
   REQUIRE(queue.capacity() == CAPACITY);
 
   std::uint32_t nextValue = 0;
@@ -431,8 +441,9 @@ PF_TEST_CASE("concurrent producer consumer", "[adapters][SPSCQueue]") {
 
   constexpr auto COUNT = 20000;
 
-  std::uint32_t buf[BUF_SIZE]{};
-  SPSCRingQueue<std::uint32_t> queue(buf, BUF_SIZE);
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
+  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  SPSCRingQueue<std::uint32_t> queue(storage);
 
   std::vector<std::uint32_t> consumed;
   consumed.reserve(COUNT);
