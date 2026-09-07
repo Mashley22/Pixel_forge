@@ -8,6 +8,7 @@
   using reference = traits::reference;             \
   using const_reference = traits::const_reference; \
   using pointer = traits::pointer;                 \
+  using storage_type = traits::storage_type;       \
   using const_pointer = traits::const_pointer // semicolon after!!
 
 #endif /* PF_ADAPTERS_MACROS_HPP */

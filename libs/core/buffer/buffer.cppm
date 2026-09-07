@@ -76,13 +76,13 @@ public:
   [[nodiscard]] constexpr T&
   operator[](size_type idx) PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(idx < size);
-    return *std::launder(pointer_cast<T>(data) + idx);
+    return *std::launder(pointer_cast<T*>(data) + idx);
   }
 
   [[nodiscard]] PF_PURE_FUNC constexpr const T&
   operator[](size_type idx) const PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(idx < size);
-    return *std::launder(pointer_cast<T>(data) + idx);
+    return *std::launder(pointer_cast<T*>(data) + idx);
   }
 };
 
@@ -91,6 +91,16 @@ struct Buffer {
   using size_type = std::size_t;
   pointer data{nullptr};
   size_type size{0};
+
+  static constexpr Buffer
+  from(pointer ptr, size_type sze) PF_NOEXCEPT {
+    return Buffer{.data = ptr, .size = sze};
+  }
+
+  static constexpr Buffer
+  from(std::span<std::byte> buf) PF_NOEXCEPT {
+    return Buffer{.data = buf.data(), .size = buf.size()};
+  }
 
   struct Error : public Exception {
   private:
