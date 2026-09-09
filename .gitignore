@@ -2,3 +2,5 @@
 compile_commands.json
 build/
 .pi/
+AGENTS.md
+CLAUDE.md
