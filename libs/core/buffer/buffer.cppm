@@ -14,47 +14,10 @@ export module PixelForge.core:buffer;
 
 import :errors;
 import :meta;
+import :pointers;
 import :utils.fmt;
 
 export namespace pf {
-
-template <typename T_ptr>
-concept PointerLike_c =
-    std::is_pointer_v<T_ptr> || std::is_same_v<std::uintptr_t, T_ptr> ||
-    std::is_same_v<std::intptr_t, T_ptr> || std::is_same_v<std::ptrdiff_t, T_ptr>;
-
-template <PointerLike_c T_to, PointerLike_c T_from>
-[[nodiscard]] constexpr T_to
-pointer_cast(T_from ptr) PF_NOEXCEPT {
-  if (std::is_constant_evaluated()) {
-    return std::bit_cast<T_to>(ptr); // NOLINT(bugprone-bitwise-pointer-cast)
-  }
-  return reinterpret_cast<T_to>(ptr);
-}
-
-template <typename T>
-[[nodiscard]] constexpr bool
-isAligned(void* ptr) PF_NOEXCEPT {
-  return (pointer_cast<std::uintptr_t>(ptr) % alignof(T)) == 0;
-}
-
-template <typename T>
-[[nodiscard]] constexpr bool
-isAligned(std::byte* ptr) PF_NOEXCEPT {
-  return isAligned<T>(pointer_cast<void*>(ptr));
-}
-
-template <typename T>
-[[nodiscard]] constexpr bool
-isAligned(char* ptr) PF_NOEXCEPT {
-  return isAligned<T>(pointer_cast<void*>(ptr));
-}
-
-template <typename T>
-[[nodiscard]] constexpr bool
-isAligned(unsigned char* ptr) PF_NOEXCEPT {
-  return isAligned<T>(pointer_cast<void*>(ptr));
-}
 
 /**
  *@brief A non-owning view of a buffer (raw memory) intended as storage space

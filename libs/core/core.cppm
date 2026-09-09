@@ -6,3 +6,4 @@ export import :errors;
 export import :utils;
 export import :meta;
 export import :buffer;
+export import :pointers;

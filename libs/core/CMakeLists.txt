@@ -18,6 +18,7 @@ add_subdirectory(errors)
 add_subdirectory(utils)
 add_subdirectory(buffer)
 add_subdirectory(meta)
+add_subdirectory(pointers)
 
 target_cxx_modules_public(PixelForge_core
   core.cppm

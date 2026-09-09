@@ -10,45 +10,6 @@ import PixelForge.core;
 
 namespace pf {
 
-PF_TEST_CASE("pointer_cast", "[core][Buffer]") {
-  int val = 42;
-  void* ptr = &val;
-
-  int* int_ptr = pointer_cast<int*>(ptr);
-  REQUIRE(int_ptr == &val);
-
-  void* void_ptr = pointer_cast<void*>(int_ptr);
-  REQUIRE(void_ptr == ptr);
-
-  std::uintptr_t addr = pointer_cast<std::uintptr_t>(ptr);
-  REQUIRE(addr == reinterpret_cast<std::uintptr_t>(ptr));
-
-  int* back = pointer_cast<int*>(addr);
-  REQUIRE(back == &val);
-
-  void* null_ptr = nullptr;
-  REQUIRE(pointer_cast<void*>(null_ptr) == nullptr);
-  REQUIRE(pointer_cast<std::uintptr_t>(null_ptr) == 0);
-}
-
-PF_TEST_CASE("isAligned", "[core][Buffer]") {
-  alignas(16) std::array<std::byte, 32> buf16{};
-  alignas(8) std::array<std::byte, 32> buf8{};
-  alignas(4) std::array<std::byte, 32> buf4{};
-
-  REQUIRE(isAligned<std::max_align_t>(buf16.data()));
-  REQUIRE(isAligned<int64_t>(buf16.data()));
-  REQUIRE(isAligned<int>(buf16.data()));
-
-  REQUIRE(isAligned<int64_t>(buf8.data()));
-
-  REQUIRE(isAligned<int>(buf4.data()));
-
-  REQUIRE(isAligned<int>(reinterpret_cast<char*>(buf4.data())));
-  REQUIRE(isAligned<int>(reinterpret_cast<unsigned char*>(buf4.data())));
-  REQUIRE(isAligned<int>(buf4.data()));
-}
-
 PF_TEST_CASE("Construction", "[core][Buffer]") {
   Buffer buf{};
   REQUIRE(buf.data == nullptr);
