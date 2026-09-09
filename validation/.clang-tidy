@@ -19,4 +19,5 @@ Checks: >
   -bugprone-use-after-move,
   -performance-noexcept-move-constructor,
   -performance-no-int-to-ptr,
+  -performance-move-const-arg
 ...
