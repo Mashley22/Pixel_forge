@@ -182,7 +182,7 @@ public:
 
     ASSUMPTIONS;
     const size_type idx = toIdx_(m_back);
-    new (&m_data[idx]) T(std::forward<V_args>(args)...);
+    std::construct_at(&m_data[idx], std::forward<V_args>(args)...);
     m_back++;
 
     return T_ErrPolicy::success(&m_data[idx]);

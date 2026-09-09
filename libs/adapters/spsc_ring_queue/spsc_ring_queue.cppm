@@ -205,7 +205,7 @@ public:
 
     ASSUMPTIONS;
     size_type head = m_head.load(std::memory_order_relaxed);
-    new (&m_data[idx_(head)]) T(std::forward<V_args>(args)...);
+    std::construct_at(&m_data[idx_(head)], std::forward<V_args>(args)...);
     m_head.store(head + 1, std::memory_order_release);
 
     return T_ErrPolicy::success(&m_data[idx_(head)]);

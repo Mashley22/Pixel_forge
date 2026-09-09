@@ -144,7 +144,7 @@ public:
       PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v&& T_ErrPolicy::is_noexcept) {
     PF_CHECK_ERR_POLICY(T_ErrPolicy, full());
 
-    new (m_top) T(value);
+    std::construct_at(m_top, value);
     m_top++;
     return T_ErrPolicy::success();
   }
@@ -219,7 +219,7 @@ public:
       Traits::template is_nothrow_construct_v<V_args...>&& T_ErrPolicy::is_noexcept) {
     PF_CHECK_ERR_POLICY(T_ErrPolicy, full());
 
-    new (m_top) T(std::forward<V_args>(args)...);
+    std::construct_at(m_top, std::forward<V_args>(args)...);
     pointer retVal = m_top;
     m_top++;
 
