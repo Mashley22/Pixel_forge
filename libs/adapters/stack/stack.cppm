@@ -70,10 +70,9 @@ public:
 
   Stack(const Stack&) = delete;
 
-  constexpr Stack(Stack&& other) 
-    PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) : m_data(other.m_data),
-                                     m_top(other.m_top),
-                                     m_end(other.m_end) {
+  constexpr Stack(Stack&& other) PF_NOEXCEPT : m_data(other.m_data),
+                                               m_top(other.m_top),
+                                               m_end(other.m_end) {
     other.m_data = nullptr;
     other.m_top = nullptr;
     other.m_end = nullptr;

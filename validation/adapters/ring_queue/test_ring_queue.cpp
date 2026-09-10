@@ -446,7 +446,6 @@ PF_TEST_CASE("copy assignment", "[adapters][RingQueue]") {
       REQUIRE(queue.try_push(i * 5));
     }
 
-
     REQUIRE(queue.size() == 4);
 
     for (std::uint32_t i = 0; i < 4; i++) {

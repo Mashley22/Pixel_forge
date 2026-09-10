@@ -75,7 +75,8 @@ public:
   RingQueue(const RingQueue&) = delete;
 
   constexpr RingQueue&
-  operator=(const RingQueue& other) PF_NOEXCEPT {
+  operator=(const RingQueue& other)
+      PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
     PF_REQUIRE(this != &other);
     PF_REQUIRE(other.size() <= this->capacity());
 
