@@ -69,11 +69,43 @@ public:
   constexpr ~Stack() PF_NOEXCEPT { clear(); }
 
   Stack(const Stack&) = delete;
-  Stack(Stack&&) = delete;
-  Stack&
-  operator=(const Stack&) = delete;
-  Stack&
-  operator=(Stack&&) = delete;
+
+  constexpr Stack(Stack&& other) 
+    PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) : m_data(other.m_data),
+                                     m_top(other.m_top),
+                                     m_end(other.m_end) {
+    other.m_data = nullptr;
+    other.m_top = nullptr;
+    other.m_end = nullptr;
+  }
+
+  constexpr Stack&
+  operator=(const Stack& other) PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
+    if (this == &other) return *this;
+    PF_REQUIRE(other.size() <= capacity(), "not enough space");
+
+    clear();
+
+    for (pointer it = other.m_data; it != other.m_top; ++it) {
+      std::construct_at(m_top, *it);
+      m_top++;
+    }
+
+    return *this;
+  }
+
+  constexpr Stack&
+  operator=(Stack&& other) PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
+    if (this == &other) return *this;
+    clear();
+    m_data = other.m_data;
+    m_top = other.m_top;
+    m_end = other.m_end;
+    other.m_data = nullptr;
+    other.m_top = nullptr;
+    other.m_end = nullptr;
+    return *this;
+  }
 
   [[nodiscard]] constexpr pointer
   data() PF_NOEXCEPT {

@@ -296,4 +296,212 @@ PF_TEST_CASE("push_range basic", "[adapters][Stack]") {
   }
 }
 
+PF_TEST_CASE("move construction", "[adapters][Stack]") {
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
+  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+
+  SECTION("moved stack owns elements, source is empty") {
+    Stack<std::uint32_t> original(storage);
+    REQUIRE(original.empty());
+
+    for (std::size_t i = 0; i < 10; i++) {
+      REQUIRE(original.try_push(static_cast<std::uint32_t>(i + 1)));
+    }
+    REQUIRE(original.size() == 10);
+
+    Stack<std::uint32_t> moved(std::move(original));
+    REQUIRE(moved.size() == 10);
+    REQUIRE(original.empty());
+    REQUIRE(original.data() == nullptr);
+
+    for (std::size_t i = 0; i < 10; i++) {
+      REQUIRE(moved.top() == static_cast<std::uint32_t>(10 - i));
+      REQUIRE(moved.pop_unchecked() == static_cast<std::uint32_t>(10 - i));
+    }
+    REQUIRE(moved.empty());
+  }
+
+  SECTION("moved-from stack is safe to destroy") {
+    [[maybe_unused]] Stack<std::uint32_t>* movedFrom = nullptr;
+    {
+      auto storage2 = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+      Stack<std::uint32_t> original(storage2);
+      original.try_push(42);
+      movedFrom = &original;
+      Stack<std::uint32_t> moved(std::move(original));
+      REQUIRE(moved.size() == 1);
+    }
+  }
+
+  SECTION("move construction preserves buffer integrity") {
+    Stack<std::uint32_t> original(storage);
+    original.try_push(1);
+    original.try_push(2);
+    original.try_push(3);
+
+    Stack<std::uint32_t> moved(std::move(original));
+    REQUIRE(moved.data() == storage.data);
+    REQUIRE(moved.capacity() == BUF_SIZE);
+    REQUIRE(moved.size() == 3);
+    REQUIRE(original.data() == nullptr);
+    REQUIRE(original.empty());
+  }
+}
+
+PF_TEST_CASE("move assignment", "[adapters][Stack]") {
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf2{};
+  auto storage1 = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage2 = Buffer::from(buf2).asObjects<std::uint32_t>(BUF_SIZE);
+
+  SECTION("move assigned stack takes ownership, source is emptied") {
+    Stack<std::uint32_t> stack1(storage1);
+    Stack<std::uint32_t> stack2(storage2);
+
+    for (std::size_t i = 0; i < 5; i++) {
+      stack1.try_push(static_cast<std::uint32_t>(i + 1));
+    }
+    REQUIRE(stack1.size() == 5);
+    REQUIRE(stack2.empty());
+
+    stack2 = std::move(stack1);
+    REQUIRE(stack2.size() == 5);
+    REQUIRE(stack1.empty());
+    REQUIRE(stack1.data() == nullptr);
+
+    for (std::size_t i = 0; i < 5; i++) {
+      REQUIRE(stack2.top() == static_cast<std::uint32_t>(5 - i));
+      REQUIRE(stack2.pop_unchecked() == static_cast<std::uint32_t>(5 - i));
+    }
+    REQUIRE(stack2.empty());
+  }
+
+  SECTION("move assignment destroys existing elements in destination") {
+    Stack<std::uint32_t> stack1(storage1);
+    Stack<std::uint32_t> stack2(storage2);
+
+    stack1.try_push(100);
+    stack1.try_push(200);
+
+    stack2.try_push(1);
+    stack2.try_push(2);
+    stack2.try_push(3);
+
+    stack2 = std::move(stack1);
+    REQUIRE(stack2.size() == 2);
+    REQUIRE(stack2.top() == 200);
+    REQUIRE(stack2.pop_unchecked() == 200);
+    REQUIRE(stack2.top() == 100);
+  }
+
+  SECTION("move assignment is safe when source is empty") {
+    Stack<std::uint32_t> stack1(storage1);
+    Stack<std::uint32_t> stack2(storage2);
+
+    stack2.try_push(1);
+    stack2.try_push(2);
+
+    stack2 = std::move(stack1);
+    REQUIRE(stack2.empty());
+    REQUIRE(stack2.data() == storage1.data);
+    REQUIRE(stack2.capacity() == BUF_SIZE);
+    REQUIRE(stack1.data() == nullptr);
+    REQUIRE(stack1.empty());
+  }
+}
+
+PF_TEST_CASE("copy construction is deleted", "[adapters][Stack]") {
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
+  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  Stack<std::uint32_t> stack(storage);
+  stack.try_push(42);
+
+  SECTION("copy constructor is deleted") {
+    REQUIRE_NOTHROW((std::is_copy_constructible_v<Stack<std::uint32_t>> == false));
+  }
+
+  SECTION("move is not deleted") {
+    REQUIRE(std::is_move_constructible_v<Stack<std::uint32_t>>);
+    REQUIRE(std::is_move_assignable_v<Stack<std::uint32_t>>);
+  }
+}
+
+PF_TEST_CASE("copy assignment", "[adapters][Stack]") {
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
+  auto storage1 = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+
+  SECTION("copies all elements from source") {
+    Stack<std::uint32_t> source(storage1);
+    for (std::size_t i = 0; i < 5; i++) {
+      source.try_push(static_cast<std::uint32_t>(i + 1));
+    }
+    REQUIRE(source.size() == 5);
+
+    alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf2{};
+    auto storage2 = Buffer::from(buf2).asObjects<std::uint32_t>(BUF_SIZE);
+    Stack<std::uint32_t> dest(storage2);
+
+    dest = source;
+    REQUIRE(dest.size() == 5);
+    REQUIRE(source.size() == 5);
+
+    for (std::size_t i = 0; i < 5; i++) {
+      REQUIRE(dest.top() == static_cast<std::uint32_t>(5 - i));
+      REQUIRE(dest.pop_unchecked() == static_cast<std::uint32_t>(5 - i));
+    }
+    REQUIRE(dest.empty());
+  }
+
+  SECTION("source and dest are independent") {
+    Stack<std::uint32_t> source(storage1);
+    source.try_push(100);
+    source.try_push(200);
+
+    alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf2{};
+    auto storage2 = Buffer::from(buf2).asObjects<std::uint32_t>(BUF_SIZE);
+    Stack<std::uint32_t> dest(storage2);
+    dest.try_push(1);
+
+    dest = source;
+    REQUIRE(dest.size() == 2);
+    REQUIRE(dest.top() == 200);
+    REQUIRE(dest.pop_unchecked() == 200);
+    REQUIRE(dest.pop_unchecked() == 100);
+    REQUIRE(dest.empty());
+
+    // source is unaffected
+    REQUIRE(source.size() == 2);
+    REQUIRE(source.top() == 200);
+  }
+
+  SECTION("destroys existing elements in destination") {
+    Stack<std::uint32_t> source(storage1);
+    source.try_push(1);
+    source.try_push(2);
+
+    alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf2{};
+    auto storage2 = Buffer::from(buf2).asObjects<std::uint32_t>(BUF_SIZE);
+    Stack<std::uint32_t> dest(storage2);
+    dest.try_push(99);
+    REQUIRE(dest.size() == 1);
+
+    dest = source;
+    REQUIRE(dest.size() == 2);
+    REQUIRE(dest.top() == 2);
+  }
+
+  SECTION("copy assignment of empty source empties destination") {
+    Stack<std::uint32_t> source(storage1);
+
+    alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf2{};
+    auto storage2 = Buffer::from(buf2).asObjects<std::uint32_t>(BUF_SIZE);
+    Stack<std::uint32_t> dest(storage2);
+    dest.try_push(1);
+    dest.try_push(2);
+
+    dest = source;
+    REQUIRE(dest.empty());
+  }
+}
+
 }
