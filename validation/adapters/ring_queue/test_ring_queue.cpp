@@ -391,4 +391,102 @@ PF_TEST_CASE("pow2 capacity validation", "[adapters][RingQueue]") {
   REQUIRE_PF_REQUIRE_FAIL(dummy());
 }
 
+PF_TEST_CASE("copy assignment", "[adapters][RingQueue]") {
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> bufA;
+  alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> bufB;
+  auto storageA = Buffer::from(bufA).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storageB = Buffer::from(bufB).asObjects<std::uint32_t>(BUF_SIZE);
+
+  SECTION("basic copy assignment") {
+    RingQueue<std::uint32_t> queueA(storageA);
+    RingQueue<std::uint32_t> queueB(storageB);
+
+    for (std::uint32_t i = 0; i < 5; i++) {
+      REQUIRE(queueA.try_push(i * 10));
+    }
+
+    queueB = queueA;
+
+    REQUIRE(queueB.size() == 5);
+    REQUIRE(queueB.capacity() == BUF_SIZE);
+
+    for (std::uint32_t i = 0; i < 5; i++) {
+      REQUIRE(queueB.front() == i * 10);
+      queueB.pop_unchecked();
+    }
+    REQUIRE(queueB.empty());
+  }
+
+  SECTION("copy from empty queue") {
+    RingQueue<std::uint32_t> queueA(storageA);
+    RingQueue<std::uint32_t> queueB(storageB);
+
+    for (std::uint32_t i = 0; i < 3; i++) {
+      REQUIRE(queueB.try_push(i));
+    }
+
+    queueA = queueB;
+
+    REQUIRE(queueA.size() == 3);
+    REQUIRE(queueA.capacity() == BUF_SIZE);
+
+    for (std::uint32_t i = 0; i < 3; i++) {
+      REQUIRE(queueA.front() == i);
+      queueA.pop_unchecked();
+    }
+    REQUIRE(queueA.empty());
+
+    REQUIRE(queueB.size() == 3);
+  }
+
+  SECTION("self-assignment") {
+    RingQueue<std::uint32_t> queue(storageA);
+
+    for (std::uint32_t i = 0; i < 4; i++) {
+      REQUIRE(queue.try_push(i * 5));
+    }
+
+
+    REQUIRE(queue.size() == 4);
+
+    for (std::uint32_t i = 0; i < 4; i++) {
+      REQUIRE(queue.front() == i * 5);
+      queue.pop_unchecked();
+    }
+    REQUIRE(queue.empty());
+  }
+
+  SECTION("lifetime tracking") {
+    {
+      pf_vh::LifeTimeTracker::DeferClear clearer{};
+      RingQueue<pf_vh::LifeTimeTracker> queueA(M_buf_storage);
+      RingQueue<pf_vh::LifeTimeTracker> queueB(M_buf2_storage);
+
+      REQUIRE(queueA.try_emplace().has_value());
+      REQUIRE(queueA.try_emplace().has_value());
+      REQUIRE(queueB.try_emplace().has_value());
+
+      queueB = queueA;
+
+      REQUIRE(queueB.size() == 2);
+      REQUIRE(queueB.capacity() == BUF_SIZE);
+
+      auto val = queueB.try_pop();
+      REQUIRE(val.has_value());
+      val = queueB.try_pop();
+      REQUIRE(val.has_value());
+      REQUIRE(queueB.empty());
+
+      REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf2[0]).size() == 2);
+      REQUIRE(pf_vh::LifeTimeTracker::opLogs().at(&M_p_buf2[0]).back().type ==
+              pf_vh::LifeTimeTracker::OpType::DESTRUCT);
+    }
+
+    for (std::size_t i = 0; i < BUF_SIZE; i++) {
+      REQUIRE(!pf_vh::LifeTimeTracker::opLogs().contains(&M_p_buf[i]));
+      REQUIRE(!pf_vh::LifeTimeTracker::opLogs().contains(&M_p_buf2[i]));
+    }
+  }
+}
+
 }

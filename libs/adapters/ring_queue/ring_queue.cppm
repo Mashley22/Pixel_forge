@@ -72,12 +72,21 @@ public:
 
   constexpr ~RingQueue() PF_NOEXCEPT { clear(); }
 
-  RingQueue(const RingQueue& other) =
-      delete; // if interested in moving or copying the underlying contents
-  // see \ref copy_contents_to or \ref move_contents_to
+  RingQueue(const RingQueue&) = delete;
 
-  RingQueue&
-  operator=(const RingQueue& other) = delete;
+  constexpr RingQueue&
+  operator=(const RingQueue& other) PF_NOEXCEPT {
+    PF_REQUIRE(this != &other);
+    PF_REQUIRE(other.size() <= this->capacity());
+
+    this->clear();
+
+    for (size_type i = other.m_front; i < other.m_back; i++) {
+      this->emplace_unchecked(other.m_data[other.toIdx_(i)]);
+    }
+
+    return *this;
+  }
 
   constexpr RingQueue(RingQueue&& other) PF_NOEXCEPT : m_data(other.m_data),
                                                        m_capMask(other.m_capMask),
