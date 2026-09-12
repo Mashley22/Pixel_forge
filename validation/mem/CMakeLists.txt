@@ -3,6 +3,7 @@ add_library(PixelForge_mem_lib)
 target_link_libraries(PixelForge_mem_lib
   PUBLIC
     PixelForge_mem
+    PixelForge_adapters
     PixelForge_core
 )
 

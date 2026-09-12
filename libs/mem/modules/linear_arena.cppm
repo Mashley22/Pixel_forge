@@ -4,11 +4,12 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.mem:linearAllocator;
+export module PixelForge.mem:linearArena;
 
 import :exception;
 import :align;
 import PixelForge.core;
+import PixelForge.adapters;
 
 namespace pf {
 
@@ -18,14 +19,14 @@ namespace views {
 
 namespace detail {
 
-class LinearAllocator_impl {
+class LinearArena_impl {
 public:
-  constexpr LinearAllocator_impl(void* buffer, std::size_t size) PF_NOEXCEPT
+  constexpr LinearArena_impl(void* buffer, std::size_t size) PF_NOEXCEPT
     : m_capacity(size),
       m_start(static_cast<std::byte*>(buffer)),
       m_current(m_start) {}
 
-  constexpr LinearAllocator_impl(std::byte* buffer, std::size_t size) PF_NOEXCEPT
+  constexpr LinearArena_impl(std::byte* buffer, std::size_t size) PF_NOEXCEPT
     : m_capacity(size),
       m_start(buffer),
       m_current(m_start) {}
@@ -61,7 +62,7 @@ protected:
       throw AlignmentError(alignment, minAlignment);
     }
 
-    LinearAllocator_impl temp = *this;
+    LinearArena_impl temp = *this;
 
     temp.m_current = align(m_current, alignment);
 

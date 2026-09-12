@@ -2,7 +2,7 @@ add_library(PixelForge_mem OBJECT)
 
 target_link_libraries(PixelForge_mem
   PRIVATE
-    PixelForge_logging
+    PixelForge_adapters
     PixelForge_core
 )
 
@@ -16,7 +16,7 @@ endif()
 target_cxx_modules_public(PixelForge_mem
   modules/exception.cppm
   modules/memzero.cppm
-  modules/mem.cppm
   modules/align.cppm
-  modules/linear_allocator.cppm
+  modules/linear_arena.cppm
+  mem.cppm
 )
