@@ -21,6 +21,7 @@ add_subdirectory(utils)
 add_subdirectory(ring_queue)
 add_subdirectory(stack)
 add_subdirectory(spsc_ring_queue)
+add_subdirectory(spsc_ll_queue)
 
 target_cxx_modules_public(PixelForge_adapters
   adapters.cppm
