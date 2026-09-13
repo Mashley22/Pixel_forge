@@ -135,7 +135,7 @@ private:
 };
 
 template <PointerLike_c T_to, typename T_from>
-requires std::is_same_v<T_from, NonNull<T_to>>
+  requires std::is_same_v<T_from, NonNull<T_to>>
 [[nodiscard]] constexpr T_to
 pointer_cast(T_from ptr) PF_NOEXCEPT {
   return static_cast<T_to>(ptr);
