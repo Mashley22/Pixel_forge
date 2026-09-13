@@ -21,4 +21,5 @@ endfunction()
 
 add_subdirectory(ring_queue)
 add_subdirectory(spsc_ring_queue)
+add_subdirectory(spsc_ll_queue)
 add_subdirectory(stack)

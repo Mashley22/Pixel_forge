@@ -52,8 +52,9 @@ export namespace pf {
     PF_ADAPTERS_INHERIT_TRAITS(Traits);
     
     SPSCLLQueue(const ObjectStorage<storage_type>& dummyStorage) 
-      : m_front(dummyStorage.data), m_back(dummyStorage.data) {
-        PF_REQUIRE(dummyStorage.size); 
+      : m_front(NonNull<Node*>(pointer_cast<Node*>(dummyStorage.data))),
+      m_back(NonNull<Node*>(pointer_cast<Node*>(dummyStorage.data))) {
+        PF_REQUIRE(dummyStorage.size == 1); 
       }
 
     SPSCLLQueue() = delete;
@@ -64,9 +65,9 @@ export namespace pf {
 
     ~SPSCLLQueue() PF_NOEXCEPT {
       while (!empty()) {
-        std::destroy_at(&pop_unchecked());
+        std::destroy_at<Node>(pop_unchecked());
       }
-      std::destroy_at(m_front);
+      std::destroy_at<Node>(m_front);
     }
 
     bool empty() PF_NOEXCEPT {
@@ -80,8 +81,8 @@ export namespace pf {
       
       Node* newNode = std::construct_at(pointer_cast<Node*>(storage.data), nullptr, std::forward<V_Args>(args)...);
       
-      m_back->next.store(newNode, std::memory_order_acquire);
-      m_back = newNode;
+      m_back->next.store(newNode, std::memory_order_release);
+      m_back = NonNull<Node*>::from(newNode);
     }
 
     void push(const ObjectStorage<storage_type>& storage, T&& val) PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
@@ -92,35 +93,37 @@ export namespace pf {
       emplace(storage, val);
     }
 
-    template <typename T_ErrPolicy = ErrPolicy_throws<Node&, EmptyError>>
-    requires ErrPolicy_c<T_ErrPolicy, Node&> && requires {
+    template <typename T_ErrPolicy = ErrPolicy_throws<NonNull<Node*>, EmptyError>>
+    requires ErrPolicy_c<T_ErrPolicy, NonNull<Node*>> && requires {
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
-    [[nodiscard]] Node& pop() PF_NOEXCEPT {
-      Node dummyNode = *m_front;
-      Node* next = dummyNode.next.load(std::memory_order_acquire);
+    [[nodiscard]] NonNull<Node*> pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
+      NonNull<Node*> dummyNode = m_front;
+      Node* next = dummyNode->next.load(std::memory_order_acquire);
       PF_CHECK_ERR_POLICY(T_ErrPolicy, next == nullptr);
       
-      dummyNode.val = std::move(next->val);
+      dummyNode->val = std::move(next->val);
+      m_front = NonNull<Node*>::from(next);
       
       return T_ErrPolicy::success(dummyNode);
     }
 
-    [[nodiscard]] std::optional<Node&> try_pop() PF_NOEXCEPT {
-      return pop<ErrPolicy_optional<Node&>>();
+    [[nodiscard]] std::optional<NonNull<Node*>> try_pop() PF_NOEXCEPT {
+      return pop<ErrPolicy_optional<NonNull<Node*>>>();
     }
 
-    [[nodiscard]] Node& pop_unchecked() PF_NOEXCEPT {
-      return pop<ErrPolicy_nothing<Node&, EmptyError::what_arg>>();
+    [[nodiscard]] NonNull<Node*> pop_unchecked() PF_NOEXCEPT {
+      return pop<ErrPolicy_nothing<NonNull<Node*>, EmptyError::what_arg>>();
     }
 
   private:
     PF_CACHE_LINE_ALIGN_VAR
     NonNull<Node*>
-    m_front{nullptr};
+    m_front;
 
     PF_CACHE_LINE_ALIGN_VAR
     NonNull<Node*>
-    m_back{nullptr};
+    m_back;
+
   };
 }
