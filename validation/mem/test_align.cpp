@@ -37,7 +37,8 @@ PF_TEST_CASE("align", "[core][mem]") {
       std::byte* lhs = CAST_TO_BYTE_PTR(start);
       std::byte* rhs = CAST_TO_BYTE_PTR(res);
       REQUIRE(align(lhs, alignment) == rhs);
-      REQUIRE(alignmentPadding(static_cast<std::uintptr_t>(start), alignment) == (res - start));
+      REQUIRE(alignmentPadding(static_cast<std::uintptr_t>(start), alignment) ==
+              (res - start));
     };
 
     test(10, 1, 10);

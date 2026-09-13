@@ -24,7 +24,8 @@ alignmentPadding(std::uintptr_t ptr, std::size_t alignment) PF_NOEXCEPT {
 
 /**@brief Invalid if alignment is not a power of 2 or ptr is nullptr
  */
-template<PointerLike_c T_ptr> requires (!std::is_same_v<T_ptr, std::nullptr_t>)
+template <PointerLike_c T_ptr>
+  requires(!std::is_same_v<T_ptr, std::nullptr_t>)
 [[nodiscard]]
 constexpr T_ptr
 align(T_ptr ptr, std::size_t alignment) PF_NOEXCEPT {
