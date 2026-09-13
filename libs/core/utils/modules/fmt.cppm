@@ -59,6 +59,10 @@ struct FmtResult {
 
   /// Storage size in bytes
   static constexpr std::size_t buffer_size = T_bufLen;
+
+  [[nodiscard]] constexpr std::string_view toStrView() const PF_NOEXCEPT {
+    return std::string_view(str, size);
+  }
 };
 
 export struct FmtError : Exception {
