@@ -15,7 +15,8 @@ export namespace pf {
 template <typename T_ptr>
 concept PointerLike_c =
     std::is_pointer_v<T_ptr> || std::is_same_v<std::uintptr_t, T_ptr> ||
-    std::is_same_v<std::intptr_t, T_ptr> || std::is_same_v<std::ptrdiff_t, T_ptr>;
+    std::is_same_v<std::intptr_t, T_ptr> || std::is_same_v<std::ptrdiff_t, T_ptr> ||
+    std::is_same_v<T_ptr, std::nullptr_t>;
 
 template <PointerLike_c T_to, PointerLike_c T_from>
 [[nodiscard]] constexpr T_to

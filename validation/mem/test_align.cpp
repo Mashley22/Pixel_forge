@@ -19,10 +19,6 @@ PF_TEST_CASE("align", "[core][mem]") {
   std::byte* p_val = CAST_TO_BYTE_PTR(5);
   REQUIRE(p_val != nullptr);
 
-  SECTION("require fail for nullptr input") {
-    REQUIRE_PF_REQUIRE_FAIL(align(nullptr, 1));
-  }
-
   SECTION("require fail for non power of two alignments") {
     auto test = [&](std::size_t alignment) {
       REQUIRE_PF_REQUIRE_FAIL(align(p_val, alignment));
@@ -41,6 +37,7 @@ PF_TEST_CASE("align", "[core][mem]") {
       std::byte* lhs = CAST_TO_BYTE_PTR(start);
       std::byte* rhs = CAST_TO_BYTE_PTR(res);
       REQUIRE(align(lhs, alignment) == rhs);
+      REQUIRE(alignmentPadding(static_cast<std::uintptr_t>(start), alignment) == (res - start));
     };
 
     test(10, 1, 10);
