@@ -1,6 +1,10 @@
 module;
 
+#include <bit>
 #include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <string_view>
 
 #include <PixelForge/core/macros.hpp>
 
@@ -15,93 +19,100 @@ namespace pf {
 
 namespace mem {
 
-namespace views {
-
-namespace detail {
-
-class LinearArena_impl {
+export class LinearArena {
 public:
-  constexpr LinearArena_impl(void* buffer, std::size_t size) PF_NOEXCEPT
-    : m_capacity(size),
-      m_start(static_cast<std::byte*>(buffer)),
-      m_current(m_start) {}
+  using size_type = std::size_t;
+  using storage_type = std::byte;
 
-  constexpr LinearArena_impl(std::byte* buffer, std::size_t size) PF_NOEXCEPT
-    : m_capacity(size),
-      m_start(buffer),
-      m_current(m_start) {}
+  class OOMError : ::pf::mem::OOMError {
+  public:
+    OOMError() = delete;
+    OOMError(std::size_t requested, std::size_t needed, std::size_t available) PF_NOEXCEPT
+      : ::pf::mem::OOMError("Linear Arena", requested, needed, available) {}
+  };
 
-  [[nodiscard]] constexpr std::size_t
-  cacpacity() const PF_NOEXCEPT {
-    return m_capacity;
+  LinearArena() = delete;
+  constexpr LinearArena(const ObjectStorage<storage_type> storage) PF_NOEXCEPT
+    : m_stack(storage) {}
+
+  [[nodiscard]] constexpr size_type
+  capacity() const PF_NOEXCEPT {
+    return m_stack.capacity();
   }
 
-  [[nodiscard]] constexpr std::size_t
+  [[nodiscard]] constexpr size_type
+  in_use() const PF_NOEXCEPT {
+    return m_stack.size();
+  }
+
+  [[nodiscard]] constexpr size_type
   remaining() const PF_NOEXCEPT {
-    return m_capacity - used();
+    return m_stack.remaining();
   }
 
-  [[nodiscard]] constexpr std::size_t
-  used() const PF_NOEXCEPT {
-    return static_cast<std::size_t>(m_current - m_start);
+  template <typename T_ErrPolicy = ErrPolicy_throws<storage_type*, OOMError>>
+    requires ErrPolicy_c<T_ErrPolicy, storage_type*> &&
+             requires(std::size_t requested, std::size_t needed, std::size_t remaining) {
+               {
+                 T_ErrPolicy::fail(requested, needed, remaining)
+               } -> std::same_as<typename T_ErrPolicy::return_type>;
+             }
+  [[nodiscard]] constexpr T_ErrPolicy::return_type
+  alloc(size_type amount) PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, remaining() < amount, amount, amount, remaining());
+    storage_type* const retVal = &m_stack.top();
+    for (std::size_t i = 0; i < amount; i++) {
+      m_stack.emplace_unchecked();
+    }
+    return T_ErrPolicy::success(retVal);
   }
 
-  void constexpr clear() PF_NOEXCEPT { m_current = nullptr; }
-
-protected:
-  /*
-   *@throws pf::mem::AlignmentError if the alignments aren't powers of two or
-   * the alignment requested is smaller than the minAlignment
-   *@throws pf::mem::OOMError if there isnt enough capacity to make the
-   * allocation
-   */
-  [[nodiscard]] constexpr void*
-  alloc(std::size_t size, std::size_t alignment, std::size_t minAlignment) {
-    if (!math::isPowerOfTwo<std::size_t>(alignment) ||
-        !math::isPowerOfTwo<std::size_t>(minAlignment)) {
-      throw AlignmentError(alignment, minAlignment);
-    }
-
-    LinearArena_impl temp = *this;
-
-    temp.m_current = align(m_current, alignment);
-
-    if (temp.remaining() < size) {
-      auto neededSize = [&]() {
-        return size + static_cast<std::size_t>(temp.m_current - m_current);
-      };
-      throw OOMError(size, neededSize(), remaining());
-    }
-
-    m_current = temp.m_current + size;
-
-    return temp.m_current;
+  [[nodiscard]] constexpr storage_type*
+  alloc_unchecked(size_type amount) PF_NOEXCEPT {
+    static constexpr std::string_view what_arg = "Linear arena oom error";
+    return alloc<ErrPolicy_nothing<storage_type*, what_arg>>(amount);
   }
 
-  /**
-   *@throw pf::mem::OOMError if there isn't enough capacity
-   */
-  [[nodiscard]] constexpr void*
-  alloc(std::size_t size) {
-    if (remaining() < size) {
-      throw OOMError(size, size, remaining());
-    }
+  [[nodiscard]] constexpr std::optional<storage_type*>
+  try_alloc(size_type amount) PF_NOEXCEPT {
+    return alloc<ErrPolicy_optional<storage_type*>>(amount);
+  }
 
-    std::byte* const retVal = m_current;
-    m_current += size;
+  template <typename T_ErrPolicy = ErrPolicy_throws<storage_type*, OOMError>>
+    requires ErrPolicy_c<T_ErrPolicy, storage_type*> &&
+             requires(std::size_t requested, std::size_t needed, std::size_t remaining) {
+               {
+                 T_ErrPolicy::fail(requested, needed, remaining)
+               } -> std::same_as<typename T_ErrPolicy::return_type>;
+             }
+  [[nodiscard]] constexpr T_ErrPolicy::return_type
+  alloc(size_type amount, size_type alignment)
+      PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
+    PF_REQUIRE_ASSUME(std::has_single_bit(alignment));
+    const std::size_t padding =
+        alignmentPadding(pointer_cast<std::uintptr_t>(&m_stack.top()), alignment);
 
-    return reinterpret_cast<void*>(retVal);
+    const std::size_t required = amount + padding;
+    PF_CHECK_ERR_POLICY(T_ErrPolicy, remaining() < amount, amount, required, remaining());
+    const auto retVal = alloc_unchecked(padding);
+    [[maybe_unused]] auto _ = alloc_unchecked(amount);
+    return retVal;
+  }
+
+  [[nodiscard]] constexpr storage_type*
+  alloc_unchecked(size_type amount, size_type alignment) PF_NOEXCEPT {
+    static constexpr std::string_view what_arg = "Linear arena oom error";
+    return alloc<ErrPolicy_nothing<storage_type*, what_arg>>(amount, alignment);
+  }
+
+  [[nodiscard]] constexpr std::optional<storage_type*>
+  try_alloc(size_type amount, std::size_t alignment) PF_NOEXCEPT {
+    return alloc<ErrPolicy_optional<storage_type*>>(amount, alignment);
   }
 
 private:
-  std::size_t m_capacity;
-  std::byte* m_start;
-  std::byte* m_current;
+  adapters::Stack<std::byte> m_stack;
 };
-
-}
-
-}
 
 }
 
