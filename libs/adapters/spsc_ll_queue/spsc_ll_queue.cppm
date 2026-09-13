@@ -97,7 +97,8 @@ export namespace pf {
     requires ErrPolicy_c<T_ErrPolicy, NonNull<Node*>> && requires {
       { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
     }
-    [[nodiscard]] NonNull<Node*> pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
+    [[nodiscard]] typename T_ErrPolicy::return_type
+    pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
       NonNull<Node*> dummyNode = m_front;
       Node* next = dummyNode->next.load(std::memory_order_acquire);
       PF_CHECK_ERR_POLICY(T_ErrPolicy, next == nullptr);
