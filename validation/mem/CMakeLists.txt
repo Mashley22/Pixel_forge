@@ -19,6 +19,7 @@ function(add_mem_unit_test TEST_NAME)
 endfunction()
 
 add_subdirectory(memzero)
+add_subdirectory(linear_arena)
 
 add_executable(test_align
   test_align.cpp
