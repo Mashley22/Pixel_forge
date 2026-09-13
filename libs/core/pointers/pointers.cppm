@@ -82,7 +82,6 @@ public:
     PF_REQUIRE(ptr != nullptr, "NonNull constructed from null pointer");
   }
 
-  NonNull() = delete;
   constexpr NonNull(const NonNull&) PF_NOEXCEPT = default;
   constexpr NonNull(NonNull&&) PF_NOEXCEPT = default;
   constexpr NonNull&
@@ -126,9 +125,21 @@ public:
     return NonNull(ptr);
   }
 
+  [[nodiscard]] constexpr T
+  get() PF_NOEXCEPT {
+    return m_ptr;
+  }
+
 private:
   T m_ptr;
 };
+
+template <PointerLike_c T_to, typename T_from>
+requires std::is_same_v<T_from, NonNull<T_to>>
+[[nodiscard]] constexpr T_to
+pointer_cast(T_from ptr) PF_NOEXCEPT {
+  return static_cast<T_to>(ptr);
+}
 
 /**
  * @brief Deduction guide for raw pointers

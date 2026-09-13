@@ -2,6 +2,7 @@ module;
 
 #include <optional>
 #include <string_view>
+#include <utility>
 
 #include <PixelForge/core/macros.hpp>
 
@@ -91,17 +92,17 @@ struct ErrPolicy_nothing {
     return successfulResult;
   }
 
-  static constexpr return_type
+  [[noreturn]] static constexpr return_type
   fail([[maybe_unused]] const char* str) PF_NOEXCEPT {
     PF_REQUIRE(false, str);
-    return return_type{};
+    std::unreachable();
   }
 
   template <class... V_args>
-  static constexpr return_type
+  [[noreturn]] static constexpr return_type
   fail([[maybe_unused]] V_args... args) PF_NOEXCEPT {
     PF_REQUIRE(false, T_fail_msg);
-    return return_type{};
+    std::unreachable();
   }
 };
 
