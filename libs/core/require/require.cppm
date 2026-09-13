@@ -2,6 +2,7 @@ module;
 
 #include <array>
 #include <chrono>
+#include <print>
 #include <source_location>
 #include <string_view>
 
@@ -165,6 +166,10 @@ require(const bool expr,
         const std::string_view msg = {},
         const std::source_location location = std::source_location::current()) {
   if (!expr) {
+#ifndef NDEBUG
+    std::println("{}", msg);
+#endif
+
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
     RequireFail_throw::fail(msg, location);
 #else
