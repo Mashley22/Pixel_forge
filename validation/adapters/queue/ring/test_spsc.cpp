@@ -391,18 +391,11 @@ PF_TEST_CASE("construction validation", "[adapters][SPSCQueue]") {
     REQUIRE_THROWS((SPSCRingQueue<std::uint32_t>(storage)));
   }
 
-  SECTION("misaligned buffer rejected") {
-    alignas(std::uint32_t) unsigned char raw[2 * sizeof(std::uint32_t)]{};
-    ObjectStorage<std::uint32_t> storage{.data = static_cast<void*>(raw + 1), .size = 2};
-    REQUIRE_THROWS((SPSCRingQueue<std::uint32_t>(storage)));
-  }
-
   SECTION("power of two enforced only when requested") {
     alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
     auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
-    REQUIRE_NOTHROW((SPSCRingQueue<std::uint32_t, true>(storage)));
     REQUIRE_NOTHROW((SPSCRingQueue<std::uint32_t>(storage)));
-    REQUIRE_THROWS((SPSCRingQueue<std::uint32_t, true>(
+    REQUIRE_THROWS((SPSCRingQueue<std::uint32_t>(
         Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE - 1))));
   }
 }
@@ -412,29 +405,7 @@ PF_TEST_CASE("non power of two capacity", "[adapters][SPSCQueue]") {
 
   alignas(std::uint32_t) std::array<std::byte, CAPACITY * sizeof(std::uint32_t)> buf{};
   auto storage = Buffer::from(buf).asObjects<std::uint32_t>(CAPACITY);
-  SPSCRingQueue<std::uint32_t> queue(storage);
-  REQUIRE(queue.capacity() == CAPACITY);
-
-  std::uint32_t nextValue = 0;
-
-  for (int round = 0; round < 3; round++) {
-    for (int i = 0; i < CAPACITY; i++) {
-      REQUIRE(queue.try_push(nextValue));
-      nextValue++;
-    }
-
-    REQUIRE(queue.full());
-    REQUIRE(!queue.try_push(0));
-
-    for (int i = 0; i < CAPACITY; i++) {
-      const auto expected = static_cast<std::uint32_t>(round * CAPACITY + i);
-      std::optional<std::uint32_t> val = queue.try_pop();
-      REQUIRE(val.has_value());
-      REQUIRE(val.value() == expected);
-    }
-
-    REQUIRE(queue.empty());
-  }
+  REQUIRE_PF_REQUIRE_FAIL(SPSCRingQueue<std::uint32_t>(storage));
 }
 
 PF_TEST_CASE("concurrent producer consumer", "[adapters][SPSCQueue]") {

@@ -381,11 +381,11 @@ PF_TEST_CASE("move assignment", "[adapters][RingQueue]") {
 PF_TEST_CASE("pow2 capacity validation", "[adapters][RingQueue]") {
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf;
   auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
-  REQUIRE_NOTHROW((RingQueue<std::uint32_t, true>(storage)));
+  REQUIRE_NOTHROW((RingQueue<std::uint32_t>(storage)));
 
   auto dummy = [&]() {
     auto storageSmall = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE - 1);
-    (RingQueue<std::uint32_t, true>(storageSmall));
+    (RingQueue<std::uint32_t>(storageSmall));
   };
 
   REQUIRE_PF_REQUIRE_FAIL(dummy());

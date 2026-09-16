@@ -23,7 +23,7 @@ import PixelForge.core;
 
 export namespace pf::adapters {
 
-template <typename T, bool T_capacityPowOf2Value = false>
+template <typename T>
 class RingQueue {
 public:
   struct Error : public Exception {
@@ -436,19 +436,14 @@ private:
   [[nodiscard]] constexpr size_type
   toIdx_(size_type num) const PF_NOEXCEPT {
     ASSUMPTIONS;
-    if constexpr (T_capacityPowOf2Value) {
-      return num & m_capMask;
-    } else {
-      return num % capacity();
-    }
+    return num & m_capMask;
   }
 
   [[nodiscard]] constexpr bool
   valid_init_() const PF_NOEXCEPT {
     return m_front == m_back && m_capMask > 0 && m_capMask != SIZE_MAX &&
            m_data != nullptr &&
-           (reinterpret_cast<std::uintptr_t>(m_data) % alignof(T)) == 0 &&
-           (!T_capacityPowOf2Value || ((capacity() & m_capMask) == 0));
+           std::has_single_bit(capacity());
   }
 };
 

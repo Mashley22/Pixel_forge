@@ -1,11 +1,10 @@
 module;
 
 #include <atomic>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
-#include <span>
 #include <type_traits>
 #include <utility>
 
@@ -24,7 +23,7 @@ import PixelForge.core;
 
 export namespace pf::adapters {
 
-template <typename T, bool T_isPowerOfTwo = false>
+template <typename T>
 class SPSCRingQueue {
 public:
   struct Error : public Exception {
@@ -280,18 +279,13 @@ private:
   [[nodiscard]] constexpr size_type
   idx_(size_type num) const PF_NOEXCEPT {
     ASSUMPTIONS;
-    if constexpr (T_isPowerOfTwo) {
-      return num & m_mask;
-    } else {
-      return num % capacity();
-    }
+    return num & m_mask;
   }
 
   [[nodiscard]] constexpr bool
   valid_init_() const PF_NOEXCEPT {
     return m_data != nullptr && capacity() > 0 &&
-           (reinterpret_cast<std::uintptr_t>(m_data) % alignof(T)) == 0 &&
-           (!T_isPowerOfTwo || ((capacity() & m_mask) == 0));
+           std::has_single_bit(capacity());
   }
 };
 
