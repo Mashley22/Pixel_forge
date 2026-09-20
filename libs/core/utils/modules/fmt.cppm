@@ -54,7 +54,7 @@ fmt_structure_impl(T_ImplFunc_t fmt_impl)
  */
 export template <std::size_t T_bufLen>
 struct FmtResult {
-  char str[T_bufLen];
+  std::array<char, T_bufLen> str;
   std::size_t size;
 
   /// Storage size in bytes
@@ -62,7 +62,7 @@ struct FmtResult {
 
   [[nodiscard]] constexpr std::string_view
   toStrView() const PF_NOEXCEPT {
-    return std::string_view(str, size);
+    return std::string_view(str.data(), size);
   }
 };
 
@@ -158,7 +158,7 @@ fmt(std::format_string<V_args...> format_str, V_args&&... args)
 
   auto fmt_impl = [&]() {
     result.size = fmt_unchecked(
-        {result.str, result.buffer_size}, format_str, std::forward<V_args>(args)...);
+        {result.str.data(), result.buffer_size}, format_str, std::forward<V_args>(args)...);
     return result;
   };
 
@@ -253,7 +253,7 @@ fmt_cstr(std::format_string<V_args...> format_str, V_args&&... args)
 
   auto fmt_impl = [&]() {
     result.size = fmt_cstr_unchecked(
-        {result.str, result.buffer_size}, format_str, std::forward<V_args>(args)...);
+        result.str, format_str, std::forward<V_args>(args)...);
     return result;
   };
 

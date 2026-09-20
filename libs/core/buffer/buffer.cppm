@@ -66,17 +66,10 @@ struct Buffer {
   }
 
   struct Error : public Exception {
-  private:
-    template <std::size_t T>
-    [[nodiscard]] constexpr std::string_view
-    strViewFromFmt(const FmtResult<T>& fmtResult) PF_NOEXCEPT {
-      return {fmtResult.str, fmtResult.size};
-    }
-
   public:
     template <std::size_t T>
     constexpr Error(const FmtResult<T>& str)
-      : Exception(strViewFromFmt(str)) PF_NOEXCEPT {}
+      : Exception(str.toStrView()) PF_NOEXCEPT {}
   };
 
   struct AlignmentError : Error {

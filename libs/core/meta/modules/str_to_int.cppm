@@ -9,6 +9,8 @@ export module PixelForge.core:meta.strToInt;
 
 import :utils.charEncoding;
 
+#define DEFAULT_BASE 10
+
 namespace pf {
 
 namespace meta {
@@ -34,7 +36,7 @@ namespace meta {
  *@return the parsed value
  */
 export template <std::integral T,
-                 std::size_t T_base = 10,
+                 std::size_t T_base = DEFAULT_BASE,
                  const std::string_view& T_digitSet = digitSetUpper>
 [[nodiscard]]
 consteval T

@@ -23,22 +23,22 @@ class FastBackend {
 
   using TimePoint_t = Clock::time_point;
 
-  static_assert(sizeof(TimePoint_t) == 8);
+  static_assert(sizeof(TimePoint_t) == sizeof(std::uint64_t));
 
   struct Header {
-    TimePoint_t time;
-    std::uint32_t id;
-    std::uint16_t size;
-    Level level;
-    bool isLast;
+    TimePoint_t time{};
+    std::uint32_t id{};
+    std::uint16_t size{0};
+    Level level{Level::DEBUG};
+    bool isLast{};
   };
 
-  static_assert(sizeof(Header) == 16);
-  static_assert(alignof(Header) == 8);
+  static_assert(sizeof(Header) == 2 * sizeof(TimePoint_t));
+  static_assert(alignof(Header) == alignof(TimePoint_t));
 
   struct Payload {
     Header header;
-    const char* data;
+    const char* data{nullptr};
   };
 };
 

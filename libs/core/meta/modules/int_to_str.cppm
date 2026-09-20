@@ -7,6 +7,8 @@ export module PixelForge.core:meta.intToStr;
 
 import :utils.charEncoding;
 
+#define DEFAULT_BASE 10
+
 namespace pf {
 
 namespace meta {
@@ -28,7 +30,7 @@ namespace meta {
  */
 export template <std::unsigned_integral T,
                  T T_val,
-                 std::size_t T_base = 10,
+                 std::size_t T_base = DEFAULT_BASE,
                  const std::string_view& T_digitSet = digitSetUpper>
 struct UintToStr {
 private:
@@ -130,7 +132,7 @@ public:
  */
 export template <std::signed_integral T,
                  T T_val,
-                 std::size_t T_base = 10,
+                 std::size_t T_base = DEFAULT_BASE,
                  const std::string_view& T_digitSet = digitSetUpper>
 struct IntToStr {
 private:

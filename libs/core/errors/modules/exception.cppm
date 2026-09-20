@@ -1,6 +1,5 @@
 module;
 
-#include <stdexcept>
 #ifdef PIXELFORGE_TEST
 #include <print>
 #endif
@@ -54,9 +53,6 @@ private:
 
 public:
   Exception() PF_NOEXCEPT = delete;
-
-  /// Copies an existing exception's message unchanged
-  constexpr Exception(const Exception&) PF_NOEXCEPT = default;
 
   /**
    *@brief Stores @p str truncated to the buffer size as the message

@@ -15,10 +15,9 @@ void
 M_testFmtAgainstStd(std::format_string<V_args...> str, V_args&&... args) {
   const auto pfRes = fmt<BUF_SIZE>(str, std::forward<V_args>(args)...);
   const auto stdRes = std::format(str, std::forward<V_args>(args)...);
-  const std::string pfStr(pfRes.str, pfRes.size);
-  const std::string stdStr(pfRes.str, pfRes.size);
+  const std::string pfStr(pfRes.toStrView());
 
-  REQUIRE(pfStr == stdStr);
+  REQUIRE(pfStr == stdRes);
 }
 
 template <class... V_args>
@@ -27,11 +26,10 @@ M_testFmt_cstrAgainstStd(std::format_string<V_args...> str, V_args&&... args) {
   const auto pfRes = fmt_cstr<BUF_SIZE>(str, std::forward<V_args>(args)...);
   const auto stdRes = std::format(str, std::forward<V_args>(args)...);
 
-  const std::string pfStr(pfRes.str);
-  const std::string stdStr(pfRes.str);
+  const std::string pfStr(pfRes.toStrView());
 
   REQUIRE(pfRes.str[pfRes.size] == '\0');
-  REQUIRE(pfStr == stdStr);
+  REQUIRE(pfStr == stdRes);
 }
 
 PF_TEST_CASE("fmt", "[core][utils][fmt]") {

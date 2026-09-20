@@ -45,7 +45,7 @@ copy_until(std::span<T> dest,
            T_isTerminatorFunc&& isTerminator,
            const std::size_t maxTerminators = 0) PF_NOEXCEPT {
   std::size_t const maxCount = std::min(dest.size(), src.size());
-  std::size_t i;
+  std::size_t i = 0;
   std::size_t terminatorCount = 0;
   for (i = 0; i < maxCount; i++) {
     if (isTerminator(src[i])) terminatorCount++;

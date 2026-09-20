@@ -8,6 +8,8 @@ export module PixelForge.core:utils.charEncoding;
 
 import :errors.exception;
 
+#define DEFAULT_BASE 10
+
 namespace pf {
 
 /**
@@ -85,7 +87,7 @@ export constexpr std::string_view digitSetLower = "0123456789abcdefghijklmnopqrs
  *
  *@throw InvalidCharToHexError if @p chr is not in @p T_digitSet
  */
-export template <std::size_t T_base = 10,
+export template <std::size_t T_base = DEFAULT_BASE,
                  const std::string_view& T_digitSet = digitSetUpper>
 [[nodiscard]] constexpr int
 charToInt(char chr) {
@@ -111,7 +113,7 @@ charToInt(char chr) {
  *
  *@throw InvalidHexToCharError if @p value is negative or >= T_base
  */
-export template <std::size_t T_base = 10,
+export template <std::size_t T_base = DEFAULT_BASE,
                  const std::string_view& T_digitSet = digitSetUpper>
 [[nodiscard]] constexpr char
 intToChar(int value) {
