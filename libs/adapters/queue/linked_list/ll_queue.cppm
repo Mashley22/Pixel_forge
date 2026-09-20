@@ -16,6 +16,14 @@ import PixelForge.core;
 
 export namespace pf::adapters {
 
+/**
+ *@brief a queue data class, represented via a linked list
+ *  under the hood, intended for single threaded use 
+ *
+ *@note A moved from, or default constructed object must be 
+ *  initialized by one of the move operations before use.
+ *
+ */
 template <typename T>
 class LLQueue {
 public:
