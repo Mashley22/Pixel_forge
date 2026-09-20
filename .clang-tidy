@@ -7,13 +7,36 @@
 Checks: >
   -*,
   bugprone-*,
-  performance-*,
-  misc-*,
   -bugprone-easily-swappable-parameters,
+  performance-*,
   -performance-noexcept-move-constructor,
+  misc-*,
   -misc-include-cleaner,
   -misc-non-private-member-variables-in-classes,
   -misc-use-internal-linkage,
+  cppcoreguidelines-*,
+  -cppcoreguidelines-macro-to-enum,
+  -cppcoreguidelines-macro-usage,
+  -cppcoreguidelines-noexcept-move-operations,
+  -cppcoreguidelines-avoid-do-while,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-missing-std-forward,
+  -cppcoreguidelines-virtual-class-destructor,
+  -cppcoreguidelines-missing-std-forward,
+  portability-*,
+  clang-analyzer-*,
+  -clang-analyzer-optin.cplusplus.VirtualCall,
+  cert-*,
+CheckOptions:
+  - key: cppcoreguidelines-rvalue-reference-param-not-moved.AllowImplicitMove
+    value: true
+  - key: cppcoreguidelines-rvalue-reference-param-not-moved.IgnoreNonDeducedTemplateTypes
+    value: true
 HeaderFilterRegex: 'PixelForge'
 ExcludeHeaderFilterRegex: '.*/(extern|build)/.*'
 FormatStyle: file
