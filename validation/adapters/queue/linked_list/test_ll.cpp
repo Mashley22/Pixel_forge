@@ -110,6 +110,54 @@ PF_TEST_CASE("construction and type traits", "[adapters][LLQueue]") {
 #endif
 }
 
+PF_TEST_CASE("move assignment", "[adapters][LLQueue]") {
+  using Queue = LLQueue<std::uint32_t>;
+
+  SECTION("null destination takes ownership from a non-null source") {
+    std::array<NodeStorage<std::uint32_t>, 3> storage;
+    Queue source(storage[0].objStore());
+    source.emplace(storage[1].objStore(), 10);
+    source.emplace(storage[2].objStore(), 20);
+
+    Queue destination;
+    destination = std::move(source);
+
+    // source is moved-from and is intentionally not used before destruction.
+    auto first = destination.try_pop();
+    REQUIRE(first.has_value());
+    REQUIRE((*first)->val == 10);
+    std::destroy_at((*first).get());
+
+    auto second = destination.try_pop();
+    REQUIRE(second.has_value());
+    REQUIRE((*second)->val == 20);
+    std::destroy_at((*second).get());
+    REQUIRE(destination.empty());
+  }
+
+  SECTION("non-null destination is replaced") {
+    std::array<NodeStorage<std::uint32_t>, 5> storage;
+    Queue source(storage[0].objStore());
+    Queue destination(storage[3].objStore());
+    source.emplace(storage[1].objStore(), 10);
+    source.emplace(storage[2].objStore(), 20);
+    destination.emplace(storage[4].objStore(), 99);
+
+    destination = std::move(source);
+
+    auto first = destination.try_pop();
+    REQUIRE(first.has_value());
+    REQUIRE((*first)->val == 10);
+    std::destroy_at((*first).get());
+
+    auto second = destination.try_pop();
+    REQUIRE(second.has_value());
+    REQUIRE((*second)->val == 20);
+    std::destroy_at((*second).get());
+    REQUIRE(destination.empty());
+  }
+}
+
 PF_TEST_CASE("FIFO order and pop policies", "[adapters][LLQueue]") {
   using Queue = LLQueue<std::uint32_t>;
   using Node = Queue::storage_type;

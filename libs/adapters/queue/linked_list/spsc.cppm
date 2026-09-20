@@ -57,6 +57,8 @@ public:
     PF_REQUIRE(dummyStorage.size == 1);
   }
 
+  // A moved-from or otherwise null queue may only be destroyed or assigned a
+  // non-null queue. Move assignment is required before any other operation.
   SPSCLLQueue() PF_NOEXCEPT = default;
   SPSCLLQueue(const SPSCLLQueue<T>&) = delete;
   SPSCLLQueue(SPSCLLQueue<T>&& other) PF_NOEXCEPT : m_front(other.m_front),
