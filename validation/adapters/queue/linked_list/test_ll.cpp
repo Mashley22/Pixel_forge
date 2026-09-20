@@ -77,11 +77,11 @@ PF_TEST_CASE("construction and type traits", "[adapters][LLQueue]") {
     static_assert(std::is_same_v<Queue::storage_type, Node>);
     static_assert(std::is_same_v<decltype(Node::next), Node*>);
     static_assert(std::is_same_v<pf::adapters::LLQueue<std::uint32_t>, Queue>);
-    static_assert(!std::is_default_constructible_v<Queue>);
+    static_assert(std::is_default_constructible_v<Queue>);
     static_assert(!std::is_copy_constructible_v<Queue>);
     static_assert(!std::is_copy_assignable_v<Queue>);
-    static_assert(!std::is_move_constructible_v<Queue>);
-    static_assert(!std::is_move_assignable_v<Queue>);
+    static_assert(std::is_move_constructible_v<Queue>);
+    static_assert(std::is_move_assignable_v<Queue>);
   }
 
   NodeStorage<std::uint32_t> dummy;

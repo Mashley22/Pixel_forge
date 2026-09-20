@@ -57,19 +57,29 @@ public:
     PF_REQUIRE(dummyStorage.size == 1);
   }
 
-  LLQueue() = delete;
+  LLQueue() PF_NOEXCEPT = default;
   LLQueue(const LLQueue<T>&) = delete;
-  LLQueue(LLQueue<T>&&) = delete;
+  LLQueue(LLQueue<T>&& other) PF_NOEXCEPT 
+    : m_front(other.m_front), m_back(other.m_back) {
+    other.m_front == nullptr;
+    other.m_back == nullptr;
+    PF_REQUIRE(other.isNull_());
+  }
+
   LLQueue<T>&
   operator=(const LLQueue<T>&) = delete;
   LLQueue<T>&
-  operator=(LLQueue<T>&&) = delete;
+  operator=(LLQueue<T>&& other) PF_NOEXCEPT {
+    if (this != &other) {
+      clear_();
+      std::swap(m_front, other.m_front);
+      std::swap(m_back, other.m_back);
+    }
+    return *this;
+  }
 
   ~LLQueue() PF_NOEXCEPT {
-    while (!empty()) {
-      std::destroy_at<Node>(pop_unchecked());
-    }
-    std::destroy_at<Node>(m_front);
+    clear_();
   }
 
   bool
@@ -108,7 +118,7 @@ public:
     }
   [[nodiscard]] typename T_ErrPolicy::return_type
   pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
-    NonNull<Node*> dummyNode = m_front;
+    NonNull<Node*> dummyNode{m_front};
     Node* next = dummyNode->next;
     PF_CHECK_ERR_POLICY(T_ErrPolicy, next == nullptr);
 
@@ -129,8 +139,21 @@ public:
   }
 
 private:
-  NonNull<Node*> m_front;
-  NonNull<Node*> m_back;
+  
+  void clear_() PF_NOEXCEPT {
+    if (isNull_()) { return; }
+    while (!empty()) {
+      std::destroy_at<Node>(pop_unchecked());
+    }
+    // dummy has no object
+  }
+
+  [[nodiscard]] constexpr bool isNull_() PF_NOEXCEPT {
+    return m_front == nullptr || m_back == nullptr;
+  }
+
+  Node* m_front{nullptr};
+  Node* m_back{nullptr};
 };
 
 } // namespace pf::adapters

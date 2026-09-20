@@ -57,19 +57,27 @@ public:
     PF_REQUIRE(dummyStorage.size == 1);
   }
 
-  SPSCLLQueue() = delete;
+  SPSCLLQueue() PF_NOEXCEPT = default;
   SPSCLLQueue(const SPSCLLQueue<T>&) = delete;
-  SPSCLLQueue(SPSCLLQueue<T>&&) = delete;
+  SPSCLLQueue(SPSCLLQueue<T>&& other) PF_NOEXCEPT : m_front(other.m_front), m_back(other.m_back) {
+    other.m_front = nullptr;
+    other.m_back = nullptr;
+    PF_REQUIRE(other.isNull_());
+  }
   SPSCLLQueue<T>&
   operator=(const SPSCLLQueue<T>&) = delete;
   SPSCLLQueue<T>&
-  operator=(SPSCLLQueue<T>&&) = delete;
+  operator=(SPSCLLQueue<T>&& other) PF_NOEXCEPT {
+    if (this != &other) {
+      clear_();
+      std::swap(m_front, other.m_front);
+      std::swap(m_back, other.m_front);
+    }
+    return *this;
+  }
 
   ~SPSCLLQueue() PF_NOEXCEPT {
-    while (!empty()) {
-      std::destroy_at<Node>(pop_unchecked());
-    }
-    std::destroy_at<Node>(m_front);
+    clear_();
   }
 
   bool
@@ -108,12 +116,12 @@ public:
     }
   [[nodiscard]] typename T_ErrPolicy::return_type
   pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
-    NonNull<Node*> dummyNode = m_front;
+    NonNull<Node*> dummyNode{m_front};
     Node* next = dummyNode->next.load(std::memory_order_acquire);
     PF_CHECK_ERR_POLICY(T_ErrPolicy, next == nullptr);
 
     dummyNode->val = std::move(next->val);
-    m_front = NonNull<Node*>::from(next);
+    m_front = next;
 
     return T_ErrPolicy::success(dummyNode);
   }
@@ -129,10 +137,24 @@ public:
   }
 
 private:
-  PF_CACHE_LINE_ALIGN_VAR
-  NonNull<Node*> m_front;
+
+  void clear_() PF_NOEXCEPT {
+    if (isNull_()) { return; }
+    while (!empty()) {
+      std::destroy_at<Node>(pop_unchecked());
+    }
+    // The dummy has no constructed object
+  }
+
+  [[nodiscard]] constexpr bool
+  isNull_() PF_NOEXCEPT {
+    return m_front == nullptr || m_back == nullptr;
+  }
 
   PF_CACHE_LINE_ALIGN_VAR
-  NonNull<Node*> m_back;
+  Node* m_front{nullptr};
+
+  PF_CACHE_LINE_ALIGN_VAR
+  Node* m_back{nullptr};
 };
 }
