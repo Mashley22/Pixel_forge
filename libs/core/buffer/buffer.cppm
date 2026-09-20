@@ -68,8 +68,7 @@ struct Buffer {
   struct Error : public Exception {
   public:
     template <std::size_t T>
-    constexpr Error(const FmtResult<T>& str)
-      : Exception(str.toStrView()) PF_NOEXCEPT {}
+    constexpr Error(const FmtResult<T>& str) : Exception(str.toStrView()) PF_NOEXCEPT {}
   };
 
   struct AlignmentError : Error {

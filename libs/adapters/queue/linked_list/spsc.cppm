@@ -59,7 +59,8 @@ public:
 
   SPSCLLQueue() PF_NOEXCEPT = default;
   SPSCLLQueue(const SPSCLLQueue<T>&) = delete;
-  SPSCLLQueue(SPSCLLQueue<T>&& other) PF_NOEXCEPT : m_front(other.m_front), m_back(other.m_back) {
+  SPSCLLQueue(SPSCLLQueue<T>&& other) PF_NOEXCEPT : m_front(other.m_front),
+                                                    m_back(other.m_back) {
     other.m_front = nullptr;
     other.m_back = nullptr;
     PF_REQUIRE(other.isNull_());
@@ -76,9 +77,7 @@ public:
     return *this;
   }
 
-  ~SPSCLLQueue() PF_NOEXCEPT {
-    clear_();
-  }
+  ~SPSCLLQueue() PF_NOEXCEPT { clear_(); }
 
   bool
   empty() PF_NOEXCEPT {
@@ -137,9 +136,11 @@ public:
   }
 
 private:
-
-  void clear_() PF_NOEXCEPT {
-    if (isNull_()) { return; }
+  void
+  clear_() PF_NOEXCEPT {
+    if (isNull_()) {
+      return;
+    }
     while (!empty()) {
       std::destroy_at<Node>(pop_unchecked());
     }

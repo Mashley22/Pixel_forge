@@ -265,7 +265,8 @@ public:
     while (!empty()) {
       ASSUMPTIONS;
       std::destroy_at(&front());
-      m_front.store(m_front.load(std::memory_order_relaxed) + 1, std::memory_order_release);
+      m_front.store(m_front.load(std::memory_order_relaxed) + 1,
+                    std::memory_order_release);
     }
   }
 
@@ -284,8 +285,7 @@ private:
 
   [[nodiscard]] constexpr bool
   valid_init_() const PF_NOEXCEPT {
-    return m_data != nullptr && capacity() > 0 &&
-           std::has_single_bit(capacity());
+    return m_data != nullptr && capacity() > 0 && std::has_single_bit(capacity());
   }
 };
 

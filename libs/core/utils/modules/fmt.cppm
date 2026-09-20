@@ -157,8 +157,9 @@ fmt(std::format_string<V_args...> format_str, V_args&&... args)
   FmtResult<T_bufLen> result;
 
   auto fmt_impl = [&]() {
-    result.size = fmt_unchecked(
-        {result.str.data(), result.buffer_size}, format_str, std::forward<V_args>(args)...);
+    result.size = fmt_unchecked({result.str.data(), result.buffer_size},
+                                format_str,
+                                std::forward<V_args>(args)...);
     return result;
   };
 
@@ -252,8 +253,8 @@ fmt_cstr(std::format_string<V_args...> format_str, V_args&&... args)
   FmtResult<T_bufLen> result;
 
   auto fmt_impl = [&]() {
-    result.size = fmt_cstr_unchecked(
-        result.str, format_str, std::forward<V_args>(args)...);
+    result.size =
+        fmt_cstr_unchecked(result.str, format_str, std::forward<V_args>(args)...);
     return result;
   };
 

@@ -442,8 +442,7 @@ private:
   [[nodiscard]] constexpr bool
   valid_init_() const PF_NOEXCEPT {
     return m_front == m_back && m_capMask > 0 && m_capMask != SIZE_MAX &&
-           m_data != nullptr &&
-           std::has_single_bit(capacity());
+           m_data != nullptr && std::has_single_bit(capacity());
   }
 };
 
