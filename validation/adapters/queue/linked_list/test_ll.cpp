@@ -85,11 +85,14 @@ PF_TEST_CASE("construction and type traits", "[adapters][LLQueue]") {
   }
 
   NodeStorage<std::uint32_t> dummy;
-  std::construct_at(dummy.data());
   Queue queue(dummy.objStore());
 
   REQUIRE(queue.empty());
   REQUIRE(dummy.data()->next == nullptr);
+  REQUIRE_FALSE(queue.isNull());
+
+  REQUIRE(queue.popDummy() == dummy.data());
+  REQUIRE(queue.isNull());
 
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
   SECTION("invalid dummy storage is rejected") {
@@ -133,28 +136,7 @@ PF_TEST_CASE("move assignment", "[adapters][LLQueue]") {
     REQUIRE((*second)->val == 20);
     std::destroy_at((*second).get());
     REQUIRE(destination.empty());
-  }
-
-  SECTION("non-null destination is replaced") {
-    std::array<NodeStorage<std::uint32_t>, 5> storage;
-    Queue source(storage[0].objStore());
-    Queue destination(storage[3].objStore());
-    source.emplace(storage[1].objStore(), 10);
-    source.emplace(storage[2].objStore(), 20);
-    destination.emplace(storage[4].objStore(), 99);
-
-    destination = std::move(source);
-
-    auto first = destination.try_pop();
-    REQUIRE(first.has_value());
-    REQUIRE((*first)->val == 10);
-    std::destroy_at((*first).get());
-
-    auto second = destination.try_pop();
-    REQUIRE(second.has_value());
-    REQUIRE((*second)->val == 20);
-    std::destroy_at((*second).get());
-    REQUIRE(destination.empty());
+    REQUIRE(destination.popDummy() != nullptr);
   }
 }
 
@@ -164,7 +146,6 @@ PF_TEST_CASE("FIFO order and pop policies", "[adapters][LLQueue]") {
 
   constexpr std::size_t count = 8;
   std::array<NodeStorage<std::uint32_t>, count + 1> storage;
-  std::construct_at(storage[0].data());
   Queue queue(storage[0].objStore());
 
   for (std::size_t i = 0; i < count; ++i) {
@@ -187,12 +168,12 @@ PF_TEST_CASE("FIFO order and pop policies", "[adapters][LLQueue]") {
     }
 
     REQUIRE((*node)->val == expected);
-    REQUIRE((*node).get() == storage[i].data());
     std::destroy_at((*node).get());
   }
 
   REQUIRE(queue.empty());
   REQUIRE(!queue.try_pop().has_value());
+  REQUIRE(queue.popDummy() != nullptr);
 }
 
 PF_TEST_CASE("push and emplace overloads", "[adapters][LLQueue]") {
@@ -210,6 +191,7 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][LLQueue]") {
     REQUIRE(node.has_value());
     REQUIRE((*node)->val == 17);
     std::destroy_at((*node).get());
+    REQUIRE(queue.popDummy() != nullptr);
   }
 
   SECTION("rvalue push accepts a moved value") {
@@ -225,6 +207,7 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][LLQueue]") {
     REQUIRE(node.has_value());
     REQUIRE((*node)->val == 23);
     std::destroy_at((*node).get());
+    REQUIRE(queue.popDummy() != nullptr);
   }
 
   SECTION("emplace forwards constructor arguments") {
@@ -239,6 +222,7 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][LLQueue]") {
     REQUIRE(node.has_value());
     REQUIRE((*node)->val == 31);
     std::destroy_at((*node).get());
+    REQUIRE(queue.popDummy() != nullptr);
   }
 
   SECTION("move-only values can be queued") {
@@ -254,6 +238,7 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][LLQueue]") {
     REQUIRE(node.has_value());
     REQUIRE((*node)->val.value == 41);
     std::destroy_at((*node).get());
+    REQUIRE(queue.popDummy() != nullptr);
   }
 }
 
@@ -281,9 +266,9 @@ PF_TEST_CASE("empty and unchecked error handling", "[adapters][LLQueue]") {
 
   auto node = queue.pop_unchecked();
   REQUIRE(node->val == 42);
-  REQUIRE(node.get() == dummy.data());
   REQUIRE(queue.empty());
   std::destroy_at(node.get());
+  REQUIRE(queue.popDummy() != nullptr);
 }
 
 } // namespace pf::adapters

@@ -18,9 +18,9 @@ export namespace pf::adapters {
 
 /**
  *@brief a queue data class, represented via a linked list
- *  under the hood, intended for single threaded use 
+ *  under the hood, intended for single threaded use
  *
- *@note A moved from, or default constructed object must be 
+ *@note A moved from, or default constructed object must be
  *  initialized by one of the move operations before use.
  *
  */
@@ -70,9 +70,9 @@ public:
   LLQueue() PF_NOEXCEPT = default;
   LLQueue(const LLQueue<T>&) = delete;
   LLQueue(LLQueue<T>&& other) PF_NOEXCEPT : m_front(other.m_front), m_back(other.m_back) {
-    other.m_front == nullptr;
-    other.m_back == nullptr;
-    PF_REQUIRE(other.isNull_());
+    other.m_front = nullptr;
+    other.m_back = nullptr;
+    PF_REQUIRE(other.isNull());
   }
 
   LLQueue<T>&
@@ -125,6 +125,7 @@ public:
     }
   [[nodiscard]] typename T_ErrPolicy::return_type
   pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
+    PF_REQUIRE_ASSUME(!isNull());
     NonNull<Node*> dummyNode{m_front};
     Node* next = dummyNode->next;
     PF_CHECK_ERR_POLICY(T_ErrPolicy, next == nullptr);
@@ -145,21 +146,25 @@ public:
     return pop<ErrPolicy_nothing<NonNull<Node*>, EmptyError::what_arg>>();
   }
 
-private:
-  void
-  clear_() PF_NOEXCEPT {
-    if (isNull_()) {
-      return;
-    }
-    while (!empty()) {
-      std::destroy_at<Node>(pop_unchecked());
-    }
-    // dummy has no object
+  [[nodiscard]] NonNull<Node*>
+  popDummy() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
+    PF_REQUIRE_ASSUME(m_front != nullptr && empty());
+    const auto retVal = NonNull<Node*>(m_front);
+    m_front = nullptr;
+    m_back = nullptr;
+
+    return retVal;
   }
 
   [[nodiscard]] constexpr bool
-  isNull_() PF_NOEXCEPT {
+  isNull() PF_NOEXCEPT {
     return m_front == nullptr || m_back == nullptr;
+  }
+
+private:
+  void
+  clear_() PF_NOEXCEPT {
+    PF_REQUIRE(isNull(), "The dummy should be popped before destruction");
   }
 
   Node* m_front{nullptr};
