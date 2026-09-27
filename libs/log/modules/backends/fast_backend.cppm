@@ -7,6 +7,8 @@ module;
 export module PixelForge.logging:backends.fast_backend;
 
 import PixelForge.core;
+import PixelForge.adapters;
+import PixelForge.mem;
 import :record;
 
 export namespace pf::log {
@@ -38,7 +40,15 @@ class FastBackend {
 
   struct Payload {
     Header header;
-    const char* data{nullptr};
+    
+    [[nodiscard]] std::span<const char> data() const PF_NOEXCEPT {
+      return std::span<const char>(pointer_cast<const char*>(this + 1), header.size);
+    }
+
+    [[nodiscard]] std::span<char> data() PF_NOEXCEPT {
+      return std::span<char>(pointer_cast<char*>(this + 1), header.size);
+    }
+
   };
 };
 

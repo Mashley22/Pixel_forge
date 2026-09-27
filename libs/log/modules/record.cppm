@@ -13,6 +13,7 @@ export module PixelForge.logging:record;
 export namespace pf::log {
 
 #define PF_DEFAULT_LOG_LEVEL_LIST          \
+  PF_LOG_LEVEL_X_MACRO(TRACE, 0, "TRC")    \
   PF_LOG_LEVEL_X_MACRO(DEBUG, 10, "DBG")   \
   PF_LOG_LEVEL_X_MACRO(INFO, 20, "INF")    \
   PF_LOG_LEVEL_X_MACRO(WARNING, 30, "WRN") \
