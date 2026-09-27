@@ -4,6 +4,7 @@ module;
 #include <memory>
 #include <optional>
 #include <type_traits>
+#include <utility>
 
 #include <PixelForge/adapters/macros.hpp>
 #include <PixelForge/core/macros.hpp>
@@ -51,113 +52,366 @@ public:
 
   PF_ADAPTERS_INHERIT_TRAITS(Traits);
 
-  ConcurrentLLQueue(const ObjectStorage<storage_type>& dummyStorage)
-    : m_front(NonNull<Node*>(pointer_cast<Node*>(dummyStorage.data))),
-      m_back(NonNull<Node*>(pointer_cast<Node*>(dummyStorage.data))) {
-    PF_REQUIRE(dummyStorage.size == 1);
-  }
-
-  ConcurrentLLQueue() PF_NOEXCEPT = default;
-  ConcurrentLLQueue(const ConcurrentLLQueue<T>&) = delete;
-  ConcurrentLLQueue(ConcurrentLLQueue<T>&& other) PF_NOEXCEPT : m_front(other.m_front),
-                                                                m_back(other.m_back) {
-    other.m_front = nullptr;
-    other.m_back = nullptr;
-    PF_REQUIRE(other.isNull_());
-  }
-  ConcurrentLLQueue<T>&
-  operator=(const ConcurrentLLQueue<T>&) = delete;
-  ConcurrentLLQueue<T>&
-  operator=(ConcurrentLLQueue<T>&& other) PF_NOEXCEPT {
-    if (this != &other) {
-      clear_();
-      std::swap(m_front, other.m_front);
-      std::swap(m_back, other.m_front);
-    }
-    return *this;
-  }
-
-  ~ConcurrentLLQueue() PF_NOEXCEPT { clear_(); }
-
-  bool
-  empty() PF_NOEXCEPT {
-    return m_front->next == nullptr;
-  }
-
-  template <class... V_Args>
-  void
-  sp_emplace(const ObjectStorage<storage_type>& storage, V_Args&&... args)
-      PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
-    PF_REQUIRE_ASSUME(storage.size == 1);
-
-    Node* newNode = std::construct_at(
-        pointer_cast<Node*>(storage.data), nullptr, std::forward<V_Args>(args)...);
-
-    m_back->next.store(newNode, std::memory_order_release);
-    m_back = NonNull<Node*>::from(newNode);
-  }
-
-  void
-  sp_push(const ObjectStorage<storage_type>& storage, T&& val)
-      PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
-    sp_emplace(storage, std::forward<T>(val));
-  }
-
-  void
-  sp_push(const ObjectStorage<storage_type>& storage, const T& val)
-      PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
-    sp_emplace(storage, val);
-  }
-
-  template <typename T_ErrPolicy>
-    requires ErrPolicy_c<T_ErrPolicy, NonNull<Node*>> && requires {
-      { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
-    }
-  [[nodiscard]] typename T_ErrPolicy::return_type
-  sp_pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
-    NonNull<Node*> dummyNode{m_front};
-    Node* next = dummyNode->next.load(std::memory_order_acquire);
-    PF_CHECK_ERR_POLICY(T_ErrPolicy, next == nullptr);
-
-    dummyNode->val = std::move(next->val);
-    m_front = next;
-
-    return T_ErrPolicy::success(dummyNode);
-  }
-
 private:
-  [[nodiscard]] NonNull<Node*>
-  pop_unchecked_() PF_NOEXCEPT {
-    NonNull<Node*> dummyNode{m_front};
-    Node* next = dummyNode->next.load(std::memory_order_acquire);
-
-    dummyNode->val = std::move(next->val);
-    m_front = next;
-
-    return dummyNode;
-  }
-
-  void
-  clear_() PF_NOEXCEPT {
-    if (isNull_()) {
-      return;
+  class MpFront {
+  public:
+    MpFront() PF_NOEXCEPT = default;
+    MpFront(const ObjectStorage<storage_type>& dummyStorage)
+      : m_front(pointer_cast<Node*>(dummyStorage.data)) {
+      PF_REQUIRE(dummyStorage.size == 1);
     }
-    while (!empty()) {
-      std::destroy_at<Node>(pop_unchecked_());
+
+    MpFront(const MpFront&) = delete;
+    MpFront&
+    operator=(const MpFront&) = delete;
+
+    MpFront(MpFront&& other) PF_NOEXCEPT
+      : m_front(other.m_front.exchange(nullptr, std::memory_order_relaxed)) {}
+    MpFront&
+    operator=(MpFront&& other) PF_NOEXCEPT {
+      if (this != &other) {
+        clear_();
+        Node* const other_front =
+            other.m_front.exchange(nullptr, std::memory_order::acq_rel);
+        m_front.store(other_front, std::memory_order::acquire);
+      }
+      return *this;
     }
-    // The dummy has no constructed object
-  }
 
-  [[nodiscard]] constexpr bool
-  isNull_() PF_NOEXCEPT {
-    return m_front == nullptr || m_back == nullptr;
-  }
+    ~MpFront() PF_NOEXCEPT { clear_(); }
 
-  PF_CACHE_LINE_ALIGN_VAR
-  Node* m_front{nullptr};
+    [[nodiscard]] Node*
+    pop() PF_NOEXCEPT {
+      PF_REQUIRE_ASSUME(!isNull());
+      Node* const dummyNode{m_front.load(std::memory_order_acquire)};
+      Node* next = dummyNode->next.load(std::memory_order_acquire);
 
-  PF_CACHE_LINE_ALIGN_VAR
-  Node* m_back{nullptr};
+      if (next == nullptr) {
+        return nullptr;
+      }
+
+      while (!m_front.compare_exchange_weak(
+          dummyNode, next, std::memory_order::relaxed, std::memory_order::acquire)) {
+        next = dummyNode->next.load(std::memory_order::acquire);
+        if (next == nullptr) {
+          return nullptr;
+        }
+      }
+
+      std::construct_at(&dummyNode->val, std::move(next->val));
+      std::destroy_at(&next->val);
+
+      return dummyNode;
+    }
+
+    [[nodiscard]] bool
+    isNull(const std::memory_order& order = std::memory_order_acquire) const PF_NOEXCEPT {
+      return m_front.load(order) == nullptr;
+    }
+
+    [[nodiscard]] bool
+    empty(const std::memory_order& order = std::memory_order_acquire) const PF_NOEXCEPT {
+      return m_front.load(order)->next.load(order) == nullptr;
+    }
+
+    [[nodiscard]] Node*
+    popDummy(const std::memory_order& order = std::memory_order_acq_rel) PF_NOEXCEPT {
+      PF_REQUIRE_ASSUME(!isNull() && empty());
+      return m_front.exchange(nullptr, order);
+    }
+
+  private:
+    std::atomic<Node*> m_front{nullptr};
+
+    void
+    clear_() PF_NOEXCEPT {
+      PF_REQUIRE_ASSUME(
+          isNull(),
+          "linked list queue adapter must be cleaned up before destructor is called"
+          "it should be used as part of a class that empties the queue before "
+          "destruction");
+    }
+  };
+
+  class MpBack {
+  public:
+    MpBack() PF_NOEXCEPT = default;
+    MpBack(const ObjectStorage<storage_type>& dummyStorage)
+      : m_back(pointer_cast<Node*>(dummyStorage.data)) {
+      PF_REQUIRE(dummyStorage.size == 1);
+    }
+
+    ~MpBack() PF_NOEXCEPT = default;
+
+    MpBack(const MpBack&) = delete;
+    MpBack&
+    operator=(const MpBack&) = delete;
+
+    MpBack(MpBack&& other) PF_NOEXCEPT
+      : m_back(other.m_back.exchange(nullptr, std::memory_order_acq_rel)) {}
+
+    MpBack&
+    operator=(MpBack&& other) PF_NOEXCEPT {
+      if (this != &other) {
+        PF_REQUIRE_ASSUME(isNull_());
+        Node* const other_back =
+            other.m_back.exchange(nullptr, std::memory_order::acq_rel);
+        m_back.store(other_back, std::memory_order_release);
+      }
+      return *this;
+    }
+
+    template <class... V_Args>
+    value_type&
+    emplace(const ObjectStorage<storage_type>& storage, V_Args&&... args)
+        PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
+      PF_REQUIRE_ASSUME((storage.size == 1) && !isNull_());
+
+      Node* const newNode = std::construct_at(
+          pointer_cast<Node*>(storage.data), nullptr, std::forward<V_Args>(args)...);
+
+      Node* const prevNode = m_back.exchange(newNode, std::memory_order_relaxed);
+      prevNode->next.store(newNode, std::memory_order_relaxed);
+      return newNode->val;
+    }
+
+    void
+    push(const ObjectStorage<storage_type>& storage, T&& val)
+        PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
+      emplace(storage, std::forward<T>(val));
+    }
+
+    void
+    push(const ObjectStorage<storage_type>& storage, const T& val)
+        PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
+      emplace(storage, val);
+    }
+
+    void
+    makeNull() PF_NOEXCEPT {
+      m_back.store(nullptr, std::memory_order_acq_rel);
+    }
+
+  private:
+    [[nodiscard]] bool
+    isNull_(const std::memory_order& order = std::memory_order_acquire) PF_NOEXCEPT {
+      return m_back.load(order) == nullptr;
+    }
+
+    std::atomic<Node*> m_back{nullptr};
+  };
+
+  class SpFront {
+  public:
+    SpFront() PF_NOEXCEPT = default;
+    SpFront(const ObjectStorage<storage_type>& dummyStorage)
+      : m_front(pointer_cast<Node*>(dummyStorage.data)) {
+      PF_REQUIRE(dummyStorage.size == 1);
+    }
+
+    SpFront(const SpFront&) = delete;
+    SpFront&
+    operator=(const SpFront&) = delete;
+
+    SpFront(SpFront&& other) PF_NOEXCEPT : m_front(other.m_front) {
+      other.m_front = nullptr;
+    }
+    SpFront&
+    operator=(SpFront&& other) PF_NOEXCEPT {
+      if (this != &other) {
+        clear_();
+        std::swap(m_front, other.m_front);
+      }
+      return *this;
+    }
+
+    ~SpFront() PF_NOEXCEPT { clear_(); }
+
+    [[nodiscard]] bool
+    isNull() const PF_NOEXCEPT {
+      return m_front == nullptr;
+    }
+
+    [[nodiscard]] bool
+    empty() const PF_NOEXCEPT {
+      return m_front->next.load(std::memory_order_acquire) == nullptr;
+    }
+
+    [[nodiscard]] Node*
+    pop() PF_NOEXCEPT {
+      PF_REQUIRE_ASSUME(!isNull());
+      Node* const dummyNode{m_front};
+      Node* const next = dummyNode->next.load(std::memory_order_acquire);
+      if (next == nullptr) {
+        return nullptr;
+      }
+
+      std::construct_at(&dummyNode->val, std::move(next->val));
+      std::destroy_at(&next->val);
+      m_front = next;
+
+      return dummyNode;
+    }
+
+    [[nodiscard]] Node*
+    popDummy() PF_NOEXCEPT {
+      PF_REQUIRE_ASSUME(!isNull() && empty());
+      Node* const dummy = m_front;
+      m_front = nullptr;
+      return dummy;
+    }
+
+  private:
+    Node* m_front{nullptr};
+
+    void
+    clear_() PF_NOEXCEPT {
+      PF_REQUIRE_ASSUME(
+          isNull(),
+          "linked list queue adapter must be cleaned up before destructor is called"
+          "it should be used as part of a class that empties the queue before "
+          "destruction");
+    }
+  };
+
+  class SpBack {
+  public:
+    SpBack() PF_NOEXCEPT = default;
+    SpBack(const ObjectStorage<storage_type>& dummyStorage)
+      : m_back(pointer_cast<Node*>(dummyStorage.data)) {
+      PF_REQUIRE(dummyStorage.size == 1);
+    }
+
+    ~SpBack() PF_NOEXCEPT = default;
+
+    SpBack(const SpBack&) = delete;
+    SpBack&
+    operator=(const SpBack&) = delete;
+
+    SpBack(SpBack&& other) PF_NOEXCEPT : m_back(other.m_back) { other.m_back = nullptr; }
+
+    SpBack&
+    operator=(SpBack&& other) PF_NOEXCEPT {
+      if (this != &other) {
+        PF_REQUIRE_ASSUME(isNull_());
+        std::swap(m_back, other.m_back);
+      }
+      return *this;
+    }
+
+    template <class... V_Args>
+    void
+    emplace(const ObjectStorage<storage_type>& storage, V_Args&&... args)
+        PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
+      PF_REQUIRE_ASSUME(storage.size == 1 && !isNull_());
+
+      Node* newNode = std::construct_at(
+          pointer_cast<Node*>(storage.data), nullptr, std::forward<V_Args>(args)...);
+
+      m_back->next.store(newNode, std::memory_order_release);
+      m_back = NonNull<Node*>::from(newNode);
+    }
+
+    void
+    push(const ObjectStorage<storage_type>& storage, T&& val)
+        PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
+      emplace(storage, std::forward<T>(val));
+    }
+
+    void
+    push(const ObjectStorage<storage_type>& storage, const T& val)
+        PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
+      emplace(storage, val);
+    }
+
+    void
+    makeNull() PF_NOEXCEPT {
+      m_back = nullptr;
+    }
+
+  private:
+    [[nodiscard]] bool
+    isNull_() PF_NOEXCEPT {
+      return m_back == nullptr;
+    }
+
+    Node* m_back{nullptr};
+  };
+
+  template <class T_Front, class T_Back>
+  class Skeleton {
+  public:
+    TRAITS;
+
+    PF_ADAPTERS_INHERIT_TRAITS(Traits);
+
+    Skeleton() PF_NOEXCEPT = default;
+
+    Skeleton(const Skeleton&) = delete;
+    Skeleton&
+    operator=(const Skeleton&) = delete;
+
+    Skeleton(Skeleton&&) PF_NOEXCEPT = default;
+    Skeleton&
+    operator=(Skeleton&&) PF_NOEXCEPT = default;
+
+    ~Skeleton() PF_NOEXCEPT = default;
+
+    Skeleton(const ObjectStorage<storage_type>& storage) PF_NOEXCEPT : m_front(storage),
+                                                                       m_back(storage) {}
+
+    [[nodiscard]] bool
+    empty() const PF_NOEXCEPT {
+      return m_front.empty();
+    }
+
+    [[nodiscard]] bool
+    isNull() const PF_NOEXCEPT {
+      return m_front.isNull();
+    }
+
+    template <class... V_Args>
+    void
+    emplace(const ObjectStorage<storage_type>& storage, V_Args&&... args)
+        PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
+      return m_back.emplace(storage, std::forward<V_Args>(args)...);
+    }
+
+    void
+    push(const ObjectStorage<storage_type>& storage, T&& val)
+        PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
+      return emplace(storage, std::forward<T>(val));
+    }
+
+    void
+    push(const ObjectStorage<storage_type>& storage, const T& val)
+        PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
+      return emplace(storage, val);
+    }
+
+    Node*
+    pop() PF_NOEXCEPT {
+      return m_front.pop();
+    }
+
+    Node*
+    popDummy() PF_NOEXCEPT {
+      m_back.makeNull();
+      return m_front.popDummy();
+    }
+
+  private:
+    PF_CACHE_LINE_ALIGN_VAR
+    T_Front m_front;
+    PF_CACHE_LINE_ALIGN_VAR
+    T_Back m_back;
+  };
+
+public:
+  using SPSC = Skeleton<SpFront, SpBack>;
+  using SPMC = Skeleton<MpFront, SpBack>;
+  using MPSC = Skeleton<SpFront, MpBack>;
+  using MPMC = Skeleton<MpFront, MpBack>;
 };
 
 }
@@ -166,89 +420,24 @@ export namespace adapters {
 
 /**
  *@brief a queue data class, represented via a linked list
- *  under the hood, intended for muti threaded use with one 
+ *  under the hood, intended for muti threaded use with one
  *  producer and one consumer
  *
- *@note A moved from, or default constructed object must be 
+ *@note A moved from, or default constructed object must be
  *  initialized by one of the move operations before use.
  *
  */
 template <typename T>
-class SPSCLLQueue {
-public:
-  struct Error : public Exception {};
-  struct EmptyError : public Exception {
-    static constexpr std::string_view what_arg = "SPSCLLQueue: Attempted pop while empty";
-    EmptyError() : Exception(what_arg) {}
-  };
+using SPSCLLQueue = detail::ConcurrentLLQueue<T>::SPSC;
 
-  using Node = detail::ConcurrentLLQueue<T>::Node;
+template <typename T>
+using MPSCLLQueue = detail::ConcurrentLLQueue<T>::MPSC;
 
-  TRAITS;
+template <typename T>
+using SPSMLLQueue = detail::ConcurrentLLQueue<T>::SPMC;
 
-  PF_ADAPTERS_INHERIT_TRAITS(Traits);
-
-  SPSCLLQueue() PF_NOEXCEPT = default;
-  SPSCLLQueue(const ObjectStorage<storage_type>& dummyStorage) PF_NOEXCEPT
-    : m_base(dummyStorage) {}
-
-  SPSCLLQueue(SPSCLLQueue<T>&) = delete;
-  SPSCLLQueue&
-  operator=(SPSCLLQueue<T>&) = delete;
-
-  SPSCLLQueue(SPSCLLQueue<T>&&) PF_NOEXCEPT = default;
-  SPSCLLQueue&
-  operator=(SPSCLLQueue<T>&&) PF_NOEXCEPT = default;
-
-  ~SPSCLLQueue() = default;
-
-  bool
-  empty() PF_NOEXCEPT {
-    return m_base.empty();
-  }
-
-  template <class... V_Args>
-  void
-  emplace(const ObjectStorage<storage_type>& storage, V_Args&&... args)
-      PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
-    return m_base.sp_emplace(storage, std::forward<V_Args>(args)...);
-  }
-
-  void
-  push(const ObjectStorage<storage_type>& storage, T&& val)
-      PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
-    return m_base.sp_push(storage, std::forward<T>(val));
-  }
-
-  void
-  push(const ObjectStorage<storage_type>& storage, const T& val)
-      PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
-    return m_base.sp_push(storage, val);
-  }
-
-  template <typename T_ErrPolicy = ErrPolicy_throws<NonNull<Node*>, EmptyError>>
-    requires ErrPolicy_c<T_ErrPolicy, NonNull<Node*>> && requires {
-      { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
-    }
-  [[nodiscard]] typename T_ErrPolicy::return_type
-  pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
-    return m_base.template sp_pop<T_ErrPolicy>();
-  }
-
-  [[nodiscard]] std::optional<NonNull<Node*>>
-  try_pop() PF_NOEXCEPT {
-    return pop<ErrPolicy_optional<NonNull<Node*>>>();
-  }
-
-  [[nodiscard]] NonNull<Node*>
-  pop_unchecked() PF_NOEXCEPT {
-    return pop<ErrPolicy_nothing<NonNull<Node*>, EmptyError::what_arg>>();
-  }
-
-private:
-  using Base = detail::ConcurrentLLQueue<T>;
-  Base m_base{};
-};
+template <typename T>
+using MPMCLLQueue = detail::ConcurrentLLQueue<T>::MPMC;
 
 }
 

@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
-#include <optional>
 #include <thread>
 #include <type_traits>
 #include <utility>
@@ -79,6 +78,8 @@ PF_TEST_CASE("construction and type traits", "[adapters][SPSCLLQueue]") {
     static_assert(std::is_same_v<Queue::pointer, std::uint32_t*>);
     static_assert(std::is_same_v<Queue::const_pointer, const std::uint32_t*>);
     static_assert(std::is_same_v<Queue::storage_type, Node>);
+    static_assert(std::is_same_v<decltype(Node::next), std::atomic<Node*>>);
+    static_assert(std::is_same_v<pf::adapters::SPSCLLQueue<std::uint32_t>, Queue>);
     static_assert(std::is_default_constructible_v<Queue>);
     static_assert(!std::is_copy_constructible_v<Queue>);
     static_assert(!std::is_copy_assignable_v<Queue>);
@@ -91,16 +92,16 @@ PF_TEST_CASE("construction and type traits", "[adapters][SPSCLLQueue]") {
 
   REQUIRE(queue.empty());
   REQUIRE(dummy.data()->next.load(std::memory_order_relaxed) == nullptr);
+  REQUIRE_FALSE(queue.isNull());
+
+  REQUIRE(queue.popDummy() == dummy.data());
+  REQUIRE(queue.isNull());
 
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
   SECTION("invalid dummy storage is rejected") {
     ObjectStorage<Node> emptyStorage{.data = dummy.data(), .size = 0};
     auto makeEmptyStorageQueue = [&] { Queue candidateQueue(emptyStorage); };
     REQUIRE_PF_REQUIRE_FAIL(makeEmptyStorageQueue());
-
-    ObjectStorage<Node> nullStorage{.data = nullptr, .size = 1};
-    auto makeNullStorageQueue = [&] { Queue candidateQueue(nullStorage); };
-    REQUIRE_PF_REQUIRE_FAIL(makeNullStorageQueue());
 
     alignas(Node) std::array<std::byte, 2 * sizeof(Node)> twoNodes{};
     ObjectStorage<Node> oversizedStorage =
@@ -122,16 +123,18 @@ PF_TEST_CASE("move construction", "[adapters][SPSCLLQueue]") {
   Queue moved(std::move(source));
 
   // source is moved-from and is intentionally not used before destruction.
-  auto first = moved.try_pop();
-  REQUIRE(first.has_value());
-  REQUIRE((*first)->val == 10);
-  std::destroy_at((*first).get());
+  auto* first = moved.pop();
+  REQUIRE(first == storage[0].data());
+  REQUIRE(first->val == 10);
+  std::destroy_at(&first->val);
 
-  auto second = moved.try_pop();
-  REQUIRE(second.has_value());
-  REQUIRE((*second)->val == 20);
-  std::destroy_at((*second).get());
+  auto* second = moved.pop();
+  REQUIRE(second == storage[1].data());
+  REQUIRE(second->val == 20);
+  std::destroy_at(&second->val);
+
   REQUIRE(moved.empty());
+  REQUIRE(moved.popDummy() == storage[2].data());
 }
 
 PF_TEST_CASE("move assignment", "[adapters][SPSCLLQueue]") {
@@ -147,20 +150,22 @@ PF_TEST_CASE("move assignment", "[adapters][SPSCLLQueue]") {
     destination = std::move(source);
 
     // source is moved-from and is intentionally not used before destruction.
-    auto first = destination.try_pop();
-    REQUIRE(first.has_value());
-    REQUIRE((*first)->val == 10);
-    std::destroy_at((*first).get());
+    auto* first = destination.pop();
+    REQUIRE(first == storage[0].data());
+    REQUIRE(first->val == 10);
+    std::destroy_at(&first->val);
 
-    auto second = destination.try_pop();
-    REQUIRE(second.has_value());
-    REQUIRE((*second)->val == 20);
-    std::destroy_at((*second).get());
+    auto* second = destination.pop();
+    REQUIRE(second == storage[1].data());
+    REQUIRE(second->val == 20);
+    std::destroy_at(&second->val);
+
     REQUIRE(destination.empty());
+    REQUIRE(destination.popDummy() == storage[2].data());
   }
 }
 
-PF_TEST_CASE("FIFO order and pop policies", "[adapters][SPSCLLQueue]") {
+PF_TEST_CASE("FIFO order and pop semantics", "[adapters][SPSCLLQueue]") {
   using Queue = SPSCLLQueue<std::uint32_t>;
 
   constexpr std::size_t count = 8;
@@ -178,20 +183,15 @@ PF_TEST_CASE("FIFO order and pop policies", "[adapters][SPSCLLQueue]") {
     const auto expected = static_cast<std::uint32_t>(i + 10);
     REQUIRE(!queue.empty());
 
-    if (i % 2 == 0) {
-      auto node = queue.try_pop();
-      REQUIRE(node.has_value());
-      REQUIRE((*node)->val == expected);
-      REQUIRE((*node).get() == storage[i].data());
-    } else {
-      auto node = queue.pop();
-      REQUIRE(node->val == expected);
-      REQUIRE(node.get() == storage[i].data());
-    }
+    auto* node = queue.pop();
+    REQUIRE(node == storage[i].data());
+    REQUIRE(node->val == expected);
+    std::destroy_at(&node->val);
   }
 
   REQUIRE(queue.empty());
-  REQUIRE(!queue.try_pop().has_value());
+  REQUIRE(queue.pop() == nullptr);
+  REQUIRE(queue.popDummy() != nullptr);
 }
 
 PF_TEST_CASE("push and emplace overloads", "[adapters][SPSCLLQueue]") {
@@ -205,9 +205,11 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][SPSCLLQueue]") {
     queue.push(storage[1].objStore(), source);
     source = 99;
 
-    auto node = queue.try_pop();
-    REQUIRE(node.has_value());
-    REQUIRE((*node)->val == 17);
+    auto* node = queue.pop();
+    REQUIRE(node == storage[0].data());
+    REQUIRE(node->val == 17);
+    std::destroy_at(&node->val);
+    REQUIRE(queue.popDummy() != nullptr);
   }
 
   SECTION("rvalue push accepts a moved value") {
@@ -219,9 +221,11 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][SPSCLLQueue]") {
     std::uint32_t source = 23;
     queue.push(storage[1].objStore(), std::move(source));
 
-    auto node = queue.try_pop();
-    REQUIRE(node.has_value());
-    REQUIRE((*node)->val == 23);
+    auto* node = queue.pop();
+    REQUIRE(node == storage[0].data());
+    REQUIRE(node->val == 23);
+    std::destroy_at(&node->val);
+    REQUIRE(queue.popDummy() != nullptr);
   }
 
   SECTION("emplace forwards constructor arguments") {
@@ -232,9 +236,11 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][SPSCLLQueue]") {
 
     queue.emplace(storage[1].objStore(), 31);
 
-    auto node = queue.try_pop();
-    REQUIRE(node.has_value());
-    REQUIRE((*node)->val == 31);
+    auto* node = queue.pop();
+    REQUIRE(node == storage[0].data());
+    REQUIRE(node->val == 31);
+    std::destroy_at(&node->val);
+    REQUIRE(queue.popDummy() != nullptr);
   }
 
   SECTION("move-only values can be queued") {
@@ -246,38 +252,33 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][SPSCLLQueue]") {
     MoveOnlyValue source{41};
     queue.push(storage[1].objStore(), std::move(source));
 
-    auto node = queue.try_pop();
-    REQUIRE(node.has_value());
-    REQUIRE((*node)->val.value == 41);
+    auto* node = queue.pop();
+    REQUIRE(node == storage[0].data());
+    REQUIRE(node->val.value == 41);
+    std::destroy_at(&node->val);
+    REQUIRE(queue.popDummy() != nullptr);
   }
 }
 
-PF_TEST_CASE("empty and unchecked error handling", "[adapters][SPSCLLQueue]") {
+PF_TEST_CASE("popping an empty queue", "[adapters][SPSCLLQueue]") {
   using Queue = SPSCLLQueue<std::uint32_t>;
 
   NodeStorage<std::uint32_t> dummy;
   NodeStorage<std::uint32_t> value;
   Queue queue(dummy.objStore());
 
-  REQUIRE(!queue.try_pop().has_value());
-#ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
-  REQUIRE_THROWS_AS(queue.pop(), Queue::EmptyError);
-#endif
-#ifndef NDEBUG
   REQUIRE(queue.empty());
-#endif
-
-#ifndef NDEBUG
-  auto popEmptyUnchecked = [&] { static_cast<void>(queue.pop_unchecked()); };
-  REQUIRE_PF_REQUIRE_FAIL(popEmptyUnchecked());
-#endif
+  REQUIRE(queue.pop() == nullptr);
+  REQUIRE(queue.empty());
 
   queue.emplace(value.objStore(), 42);
 
-  auto node = queue.pop_unchecked();
+  auto* node = queue.pop();
+  REQUIRE(node == dummy.data());
   REQUIRE(node->val == 42);
-  REQUIRE(node.get() == dummy.data());
+  std::destroy_at(&node->val);
   REQUIRE(queue.empty());
+  REQUIRE(queue.popDummy() != nullptr);
 }
 
 PF_TEST_CASE("single producer and consumer", "[adapters][SPSCLLQueue]") {
@@ -311,13 +312,14 @@ PF_TEST_CASE("single producer and consumer", "[adapters][SPSCLLQueue]") {
     }
 
     for (std::size_t i = 0; i < count; ++i) {
-      auto node = queue.try_pop();
-      while (!node.has_value()) {
+      auto* node = queue.pop();
+      while (node == nullptr) {
         std::this_thread::yield();
-        node = queue.try_pop();
+        node = queue.pop();
       }
 
-      consumed.push_back((*node)->val);
+      consumed.push_back(node->val);
+      std::destroy_at(&node->val);
     }
   });
 
@@ -330,6 +332,7 @@ PF_TEST_CASE("single producer and consumer", "[adapters][SPSCLLQueue]") {
     REQUIRE(consumed[i] == i);
   }
   REQUIRE(queue.empty());
+  REQUIRE(queue.popDummy() == storage[count]->data());
 }
 
 } // namespace pf::adapters
