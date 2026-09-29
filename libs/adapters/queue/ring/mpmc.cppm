@@ -83,15 +83,6 @@ public:
     PF_REQUIRE(valid_init_());
   }
 
-  /**
-   *@brief Closes the queue, no further values can be pushed, the values
-   *  already in it can still be popped
-   */
-  void
-  close() PF_NOEXCEPT {
-    m_closed.store(true, std::memory_order_release);
-  }
-
   ~MPMCRingQueue() PF_NOEXCEPT {
     PF_REQUIRE(empty(), "MPMC ring queue should be drained before destruction");
   }
@@ -145,11 +136,6 @@ public:
     return (reserved - consumed) >= capacity();
   }
 
-  [[nodiscard]] bool
-  closed() const PF_NOEXCEPT {
-    return m_closed.load(std::memory_order_acquire);
-  }
-
   /**
    *@brief constructs a value in the next slot
    *
@@ -160,9 +146,6 @@ public:
   bool
   try_emplace(V_Args&&... args)
       PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
-    if (closed()) {
-      return false;
-    }
 
     const size_type consumed = m_read.committed.load(std::memory_order_acquire);
     const size_type committed = m_write.committed.load(std::memory_order_acquire);
@@ -175,8 +158,10 @@ public:
       return false;
     }
 
-    if (!m_write.reserved.compare_exchange_weak(
-            reserved, reserved + 1, std::memory_order_acq_rel, std::memory_order_relaxed)) {
+    if (!m_write.reserved.compare_exchange_weak(reserved,
+                                                reserved + 1,
+                                                std::memory_order_acq_rel,
+                                                std::memory_order_relaxed)) {
       return false;
     }
 
@@ -204,9 +189,6 @@ public:
     // taking the ticket and waiting for the tickets ahead are two phases, a
     // thread that has a ticket must never come back here and take another
     for (;;) {
-      if (closed()) {
-        return false;
-      }
 
       // the event counter is read before the cursors are, so a signal that
       // lands in between leaves it changed and the wait returns straight away
@@ -215,14 +197,18 @@ public:
       if ((reserved - consumed) >= capacity()) {
         // no slot is free, a consumer has to finish reading one before it can
         // be handed back
-        if (spinUntil_([&] { return m_read.committed.load(std::memory_order_acquire) != consumed; })) {
+        if (spinUntil_([&] {
+              return m_read.committed.load(std::memory_order_acquire) != consumed;
+            })) {
           continue;
         }
         continue;
       }
 
-      if (m_write.reserved.compare_exchange_weak(
-              reserved, reserved + 1, std::memory_order_acq_rel, std::memory_order_relaxed)) {
+      if (m_write.reserved.compare_exchange_weak(reserved,
+                                                 reserved + 1,
+                                                 std::memory_order_acq_rel,
+                                                 std::memory_order_relaxed)) {
         break;
       }
     }
@@ -230,12 +216,19 @@ public:
     // the slot can only be written once every ticket ahead of this one has
     // been written. The cursor waited on is the one that moves, so waiting on
     // the value it was read at cannot miss the change that releases it
-    for (spin_t i = 0; i < SPIN_LIMIT; ++i) {
-      const size_type cur = m_write.committed.load(std::memory_order_acquire);
-      if (cur == reserved) {
-        break;
+    {
+      spin_t i = 0;
+      for (; i < SPIN_LIMIT; ++i) {
+        const size_type cur = m_write.committed.load(std::memory_order_acquire);
+        if (cur == reserved) {
+          break;
+        }
+        m_write.committed.wait(cur);
       }
-      m_write.committed.wait(cur);
+
+      if (i == SPIN_LIMIT - 1) {
+        return false;
+      }
     }
 
     std::construct_at(&m_data[idx_(reserved)], std::forward<V_Args>(args)...);
@@ -263,8 +256,10 @@ public:
       return std::nullopt;
     }
 
-    if (!m_read.reserved.compare_exchange_weak(
-            reserved, reserved + 1, std::memory_order_acq_rel, std::memory_order_relaxed)) {
+    if (!m_read.reserved.compare_exchange_weak(reserved,
+                                               reserved + 1,
+                                               std::memory_order_acq_rel,
+                                               std::memory_order_relaxed)) {
       return std::nullopt;
     }
 
@@ -295,17 +290,18 @@ public:
       if (produced <= reserved) {
         // nothing to read, either the queue is empty or a producer is midway
         // through writing a slot
-        if (closed()) {
-          return std::nullopt;
-        }
-        if (spinUntil_([&] { return m_write.committed.load(std::memory_order_acquire) != produced; })) {
+        if (spinUntil_([&] {
+              return m_write.committed.load(std::memory_order_acquire) != produced;
+            })) {
           continue;
         }
         continue;
       }
 
-      if (m_read.reserved.compare_exchange_weak(
-              reserved, reserved + 1, std::memory_order_acq_rel, std::memory_order_relaxed)) {
+      if (m_read.reserved.compare_exchange_weak(reserved,
+                                                reserved + 1,
+                                                std::memory_order_acq_rel,
+                                                std::memory_order_relaxed)) {
         break;
       }
     }
@@ -330,15 +326,13 @@ public:
 
   template <class... V_Args>
   bool
-  try_push(V_Args&&... args)
-      PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
+  try_push(V_Args&&... args) PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
     return try_emplace(std::forward<V_Args>(args)...);
   }
 
   template <class... V_Args>
   bool
-  wait_push(V_Args&&... args)
-      PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
+  wait_push(V_Args&&... args) PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
     return wait_emplace(std::forward<V_Args>(args)...);
   }
 
@@ -354,7 +348,7 @@ private:
   };
 
   using spin_t = std::uint32_t;
-  static constexpr spin_t SPIN_LIMIT = 1024;
+  static constexpr spin_t SPIN_LIMIT = 65536;
 
   /**
    *@brief re-checks a predicate a bounded number of times before a thread
@@ -371,7 +365,7 @@ private:
       if (predicate()) {
         return true;
       }
-      constexpr spin_t randomNum = 0x3FU;
+      constexpr spin_t randomNum = 128;
       if ((i & randomNum) == randomNum) {
         std::this_thread::yield();
       }
@@ -393,7 +387,6 @@ private:
   pointer m_data{nullptr};
   size_type m_mask{0};
 
-  PF_CACHE_LINE_ALIGN_VAR std::atomic<bool> m_closed{false};
   PF_CACHE_LINE_ALIGN_VAR Cursors m_read;
   PF_CACHE_LINE_ALIGN_VAR Cursors m_write;
 };

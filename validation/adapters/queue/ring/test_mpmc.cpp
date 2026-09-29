@@ -1,15 +1,13 @@
 #include <array>
-#include <chrono>
-#include <cstdio>
-#include <cstdlib>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <memory>
 #include <optional>
 #include <thread>
 #include <type_traits>
-#include <memory>
 #include <utility>
 #include <vector>
 
@@ -58,7 +56,6 @@ PF_TEST_CASE("construction and type traits", "[adapters][MPMCRingQueue]") {
   REQUIRE(queue.remaining() == BUF_SIZE);
   REQUIRE(queue.empty());
   REQUIRE_FALSE(queue.full());
-  REQUIRE_FALSE(queue.closed());
 
   // the storage holds raw storage, the queue has not constructed anything
   for (const std::byte ele : buf) {
@@ -128,28 +125,22 @@ PF_TEST_CASE("wait_push and wait_pop", "[adapters][MPMCRingQueue]") {
     REQUIRE(queue.wait_push(i));
   }
 
-  for (std::uint32_t i = 0; i < 8; ++i) {
-    const auto popped = queue.wait_pop();
-    REQUIRE(popped.has_value());
-    REQUIRE(*popped == i);
-  }
-
-  REQUIRE(queue.empty());
+  REQUIRE(queue.full());
 
   // a push blocks until a consumer frees a slot
   std::atomic<bool> pushed{false};
   std::thread producer([&] {
     for (std::uint32_t i = 0; i < 4; ++i) {
-      queue.wait_push(i);
+      REQUIRE(queue.wait_push(i));
     }
     pushed.store(true, std::memory_order_release);
   });
 
   REQUIRE_FALSE(pushed.load(std::memory_order_acquire));
-  for (std::uint32_t i = 0; i < 4; ++i) {
+  for (std::uint32_t i = 0; i < 12; ++i) {
     const auto popped = queue.wait_pop();
     REQUIRE(popped.has_value());
-    REQUIRE(*popped == i);
+    REQUIRE(*popped == (i >= 8 ? i - 8 : i));
   }
 
   producer.join();
@@ -159,7 +150,7 @@ PF_TEST_CASE("wait_push and wait_pop", "[adapters][MPMCRingQueue]") {
 
 PF_TEST_CASE("move only values", "[adapters][MPMCRingQueue]") {
   alignas(std::unique_ptr<int>) std::array<std::byte, 4 * sizeof(std::unique_ptr<int>)>
-    buf{};
+      buf{};
   auto storage = Buffer::from(buf).asObjects<std::unique_ptr<int>>(4);
   MPMCRingQueue<std::unique_ptr<int>> queue(storage);
 
@@ -181,80 +172,13 @@ PF_TEST_CASE("move only values", "[adapters][MPMCRingQueue]") {
   REQUIRE(queue.empty());
 }
 
-PF_TEST_CASE("closing", "[adapters][MPMCRingQueue]") {
-  alignas(std::uint32_t) std::array<std::byte, 8 * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(8);
-  MPMCRingQueue<std::uint32_t> queue(storage);
-
-  REQUIRE(queue.try_push(7));
-  queue.close();
-  REQUIRE(queue.closed());
-
-  // a closed queue takes no more values, but can still be drained
-  REQUIRE_FALSE(queue.try_push(8));
-  REQUIRE_FALSE(queue.wait_push(8));
-
-  const auto popped = queue.try_pop();
-  REQUIRE(popped.has_value());
-  REQUIRE(*popped == 7);
-  REQUIRE(queue.empty());
-}
-
-PF_TEST_CASE("closing unblocks a waiting push", "[adapters][MPMCRingQueue]") {
-  alignas(std::uint32_t) std::array<std::byte, 2 * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(2);
-  MPMCRingQueue<std::uint32_t> queue(storage);
-
-  REQUIRE(queue.try_push(1));
-  REQUIRE(queue.try_push(2));
-  REQUIRE(queue.full());
-
-  std::atomic<bool> started{false};
-  std::atomic<bool> done{false};
-  std::atomic<bool> pushed{true};
-  std::thread producer([&] {
-    started.store(true, std::memory_order_release);
-    const bool ok = queue.wait_push(3);
-    pushed.store(ok, std::memory_order_release);
-    done.store(true, std::memory_order_release);
-  });
-
-  // the queue is full and nothing consumes it, so the push cannot complete
-  // whether it has reached its wait or not
-  while (!started.load(std::memory_order_acquire)) {
-    std::this_thread::yield();
-  }
-  CHECK_FALSE(done.load(std::memory_order_acquire));
-
-  queue.close();
-  producer.join();
-
-  REQUIRE(done.load(std::memory_order_acquire));
-  REQUIRE_FALSE(pushed.load(std::memory_order_acquire));
-
-  // a closed queue can still be drained, which is what the push gave up on
-  const auto first = queue.wait_pop();
-  REQUIRE(first.has_value());
-  REQUIRE(*first == 1);
-
-  const auto second = queue.wait_pop();
-  REQUIRE(second.has_value());
-  REQUIRE(*second == 2);
-
-  REQUIRE(queue.empty());
-
-  // and reports that it is drained instead of blocking
-  REQUIRE_FALSE(queue.wait_pop().has_value());
-}
-
 PF_TEST_CASE("multiple producers and consumers with try_", "[adapters][MPMCRingQueue]") {
   constexpr std::size_t producerCount = 4;
   constexpr std::size_t consumerCount = 4;
   constexpr std::size_t perProducer = 2000;
   constexpr std::size_t total = producerCount * perProducer;
 
-  alignas(std::uint32_t)
-    std::array<std::byte, 64 * sizeof(std::uint32_t)> buf{};
+  alignas(std::uint32_t) std::array<std::byte, 64 * sizeof(std::uint32_t)> buf{};
   auto storage = Buffer::from(buf).asObjects<std::uint32_t>(64);
   MPMCRingQueue<std::uint32_t> queue(storage);
 
@@ -263,6 +187,7 @@ PF_TEST_CASE("multiple producers and consumers with try_", "[adapters][MPMCRingQ
   std::atomic<std::size_t> popped{0};
 
   std::vector<std::thread> consumers;
+  consumers.reserve(consumerCount);
   for (std::size_t c = 0; c < consumerCount; ++c) {
     consumers.emplace_back([&, c] {
       std::vector<std::uint32_t>& mine = consumed[c];
@@ -286,6 +211,7 @@ PF_TEST_CASE("multiple producers and consumers with try_", "[adapters][MPMCRingQ
   }
 
   std::vector<std::thread> producers;
+  producers.reserve(producerCount);
   for (std::size_t p = 0; p < producerCount; ++p) {
     producers.emplace_back([&, p] {
       while (!start.load(std::memory_order_acquire)) {
@@ -332,8 +258,7 @@ PF_TEST_CASE("multiple producers and consumers with wait_", "[adapters][MPMCRing
   constexpr std::size_t perProducer = 2000;
   constexpr std::size_t total = producerCount * perProducer;
 
-  alignas(std::uint32_t)
-    std::array<std::byte, 64 * sizeof(std::uint32_t)> buf{};
+  alignas(std::uint32_t) std::array<std::byte, 64 * sizeof(std::uint32_t)> buf{};
   auto storage = Buffer::from(buf).asObjects<std::uint32_t>(64);
   MPMCRingQueue<std::uint32_t> queue(storage);
 
@@ -344,6 +269,7 @@ PF_TEST_CASE("multiple producers and consumers with wait_", "[adapters][MPMCRing
   std::vector<std::vector<std::uint32_t>> consumed(consumerCount);
 
   std::vector<std::thread> consumers;
+  consumers.reserve(consumerCount);
   for (std::size_t c = 0; c < consumerCount; ++c) {
     consumers.emplace_back([&, c] {
       std::vector<std::uint32_t>& mine = consumed[c];
@@ -369,6 +295,7 @@ PF_TEST_CASE("multiple producers and consumers with wait_", "[adapters][MPMCRing
   }
 
   std::vector<std::thread> producers;
+  producers.reserve(producerCount);
   for (std::size_t p = 0; p < producerCount; ++p) {
     producers.emplace_back([&, p] {
       while (!start.load(std::memory_order_acquire)) {
