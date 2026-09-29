@@ -35,6 +35,14 @@ align(T_ptr ptr, std::size_t alignment) PF_NOEXCEPT {
   return ptr + alignmentPadding(pointer_cast<std::uintptr_t>(ptr), alignment);
 }
 
+[[nodiscard]]
+constexpr std::uintptr_t
+align(std::uintptr_t ptr, std::size_t alignment) PF_NOEXCEPT {
+  PF_REQUIRE(std::has_single_bit(alignment));
+
+  return ptr + alignmentPadding(pointer_cast<std::uintptr_t>(ptr), alignment);
+}
+
 }
 
 }

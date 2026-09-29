@@ -40,15 +40,16 @@ class FastBackend {
 
   struct Payload {
     Header header;
-    
-    [[nodiscard]] std::span<const char> data() const PF_NOEXCEPT {
+
+    [[nodiscard]] std::span<const char>
+    data() const PF_NOEXCEPT {
       return std::span<const char>(pointer_cast<const char*>(this + 1), header.size);
     }
 
-    [[nodiscard]] std::span<char> data() PF_NOEXCEPT {
+    [[nodiscard]] std::span<char>
+    data() PF_NOEXCEPT {
       return std::span<char>(pointer_cast<char*>(this + 1), header.size);
     }
-
   };
 };
 

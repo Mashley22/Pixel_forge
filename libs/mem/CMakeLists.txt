@@ -18,5 +18,6 @@ target_cxx_modules_public(PixelForge_mem
   modules/memzero.cppm
   modules/align.cppm
   modules/linear_arena.cppm
+  modules/pool_arena.cppm
   mem.cppm
 )

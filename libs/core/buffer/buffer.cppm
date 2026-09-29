@@ -56,6 +56,16 @@ struct Buffer {
   size_type size{0};
 
   static constexpr Buffer
+  null() {
+    return Buffer{.data = nullptr, .size = 0};
+  }
+
+  [[nodiscard]] constexpr bool
+  isNull() const PF_NOEXCEPT {
+    return data == nullptr;
+  }
+
+  static constexpr Buffer
   from(pointer ptr, size_type sze) PF_NOEXCEPT {
     return Buffer{.data = ptr, .size = sze};
   }
