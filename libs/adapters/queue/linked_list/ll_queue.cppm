@@ -23,6 +23,8 @@ export namespace pf::adapters {
  *@note A moved from, or default constructed object must be
  *  initialized by one of the move operations before use.
  *
+ *@note The spare must be popped with \ref popSpare before destruction.
+ *
  */
 template <typename T>
 class LLQueue {
@@ -59,10 +61,10 @@ public:
 
   PF_ADAPTERS_INHERIT_TRAITS(Traits);
 
-  LLQueue(const ObjectStorage<storage_type>& dummyStorage)
-    : m_front(NonNull<Node*>(pointer_cast<Node*>(dummyStorage.data))),
-      m_back(NonNull<Node*>(pointer_cast<Node*>(dummyStorage.data))) {
-    PF_REQUIRE(dummyStorage.size == 1);
+  LLQueue(const ObjectStorage<storage_type>& spareStorage)
+    : m_front(NonNull<Node*>(pointer_cast<Node*>(spareStorage.data))),
+      m_back(NonNull<Node*>(pointer_cast<Node*>(spareStorage.data))) {
+    PF_REQUIRE(spareStorage.size == 1);
   }
 
   // A moved-from or otherwise null queue may only be destroyed or assigned a
@@ -147,7 +149,7 @@ public:
   }
 
   [[nodiscard]] NonNull<Node*>
-  popDummy() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
+  popSpare() PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(m_front != nullptr && empty());
     const auto retVal = NonNull<Node*>(m_front);
     m_front = nullptr;
@@ -164,7 +166,7 @@ public:
 private:
   void
   clear_() PF_NOEXCEPT {
-    PF_REQUIRE(isNull(), "The dummy should be popped before destruction");
+    PF_REQUIRE(isNull(), "The spare should be popped before destruction");
   }
 
   Node* m_front{nullptr};

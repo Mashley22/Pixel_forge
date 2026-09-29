@@ -84,19 +84,19 @@ PF_TEST_CASE("construction and type traits", "[adapters][LLQueue]") {
     static_assert(std::is_move_assignable_v<Queue>);
   }
 
-  NodeStorage<std::uint32_t> dummy;
-  Queue queue(dummy.objStore());
+  NodeStorage<std::uint32_t> spare;
+  Queue queue(spare.objStore());
 
   REQUIRE(queue.empty());
-  REQUIRE(dummy.data()->next == nullptr);
+  REQUIRE(spare.data()->next == nullptr);
   REQUIRE_FALSE(queue.isNull());
 
-  REQUIRE(queue.popDummy() == dummy.data());
+  REQUIRE(queue.popSpare() == spare.data());
   REQUIRE(queue.isNull());
 
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
-  SECTION("invalid dummy storage is rejected") {
-    ObjectStorage<Node> emptyStorage{.data = dummy.data(), .size = 0};
+  SECTION("invalid spare storage is rejected") {
+    ObjectStorage<Node> emptyStorage{.data = spare.data(), .size = 0};
     auto makeEmptyStorageQueue = [&] { Queue candidateQueue(emptyStorage); };
     REQUIRE_PF_REQUIRE_FAIL(makeEmptyStorageQueue());
 
@@ -136,7 +136,7 @@ PF_TEST_CASE("move assignment", "[adapters][LLQueue]") {
     REQUIRE((*second)->val == 20);
     std::destroy_at((*second).get());
     REQUIRE(destination.empty());
-    REQUIRE(destination.popDummy() != nullptr);
+    REQUIRE(destination.popSpare() != nullptr);
   }
 }
 
@@ -173,7 +173,7 @@ PF_TEST_CASE("FIFO order and pop policies", "[adapters][LLQueue]") {
 
   REQUIRE(queue.empty());
   REQUIRE(!queue.try_pop().has_value());
-  REQUIRE(queue.popDummy() != nullptr);
+  REQUIRE(queue.popSpare() != nullptr);
 }
 
 PF_TEST_CASE("push and emplace overloads", "[adapters][LLQueue]") {
@@ -191,7 +191,7 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][LLQueue]") {
     REQUIRE(node.has_value());
     REQUIRE((*node)->val == 17);
     std::destroy_at((*node).get());
-    REQUIRE(queue.popDummy() != nullptr);
+    REQUIRE(queue.popSpare() != nullptr);
   }
 
   SECTION("rvalue push accepts a moved value") {
@@ -207,7 +207,7 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][LLQueue]") {
     REQUIRE(node.has_value());
     REQUIRE((*node)->val == 23);
     std::destroy_at((*node).get());
-    REQUIRE(queue.popDummy() != nullptr);
+    REQUIRE(queue.popSpare() != nullptr);
   }
 
   SECTION("emplace forwards constructor arguments") {
@@ -222,7 +222,7 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][LLQueue]") {
     REQUIRE(node.has_value());
     REQUIRE((*node)->val == 31);
     std::destroy_at((*node).get());
-    REQUIRE(queue.popDummy() != nullptr);
+    REQUIRE(queue.popSpare() != nullptr);
   }
 
   SECTION("move-only values can be queued") {
@@ -238,16 +238,16 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][LLQueue]") {
     REQUIRE(node.has_value());
     REQUIRE((*node)->val.value == 41);
     std::destroy_at((*node).get());
-    REQUIRE(queue.popDummy() != nullptr);
+    REQUIRE(queue.popSpare() != nullptr);
   }
 }
 
 PF_TEST_CASE("empty and unchecked error handling", "[adapters][LLQueue]") {
   using Queue = LLQueue<std::uint32_t>;
 
-  NodeStorage<std::uint32_t> dummy;
+  NodeStorage<std::uint32_t> spare;
   NodeStorage<std::uint32_t> value;
-  Queue queue(dummy.objStore());
+  Queue queue(spare.objStore());
 
   REQUIRE(!queue.try_pop().has_value());
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
@@ -268,7 +268,7 @@ PF_TEST_CASE("empty and unchecked error handling", "[adapters][LLQueue]") {
   REQUIRE(node->val == 42);
   REQUIRE(queue.empty());
   std::destroy_at(node.get());
-  REQUIRE(queue.popDummy() != nullptr);
+  REQUIRE(queue.popSpare() != nullptr);
 }
 
 } // namespace pf::adapters

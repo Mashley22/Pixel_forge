@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstddef>
@@ -38,7 +39,7 @@ struct MoveOnlyValue {
 template <typename T>
 class NodeStorage {
 public:
-  using Node = SPSCLLQueue<T>::storage_type;
+  using Node = MPSCLLQueue<T>::storage_type;
 
   [[nodiscard]] ObjectStorage<Node>
   objStore() {
@@ -65,8 +66,8 @@ public:
 
 } // namespace
 
-PF_TEST_CASE("construction and type traits", "[adapters][SPSCLLQueue]") {
-  using Queue = SPSCLLQueue<std::uint32_t>;
+PF_TEST_CASE("construction and type traits", "[adapters][MPSCLLQueue]") {
+  using Queue = MPSCLLQueue<std::uint32_t>;
   using Node = Queue::storage_type;
 
   SECTION("Traits") {
@@ -79,7 +80,7 @@ PF_TEST_CASE("construction and type traits", "[adapters][SPSCLLQueue]") {
     static_assert(std::is_same_v<Queue::const_pointer, const std::uint32_t*>);
     static_assert(std::is_same_v<Queue::storage_type, Node>);
     static_assert(std::is_same_v<decltype(Node::next), std::atomic<Node*>>);
-    static_assert(std::is_same_v<pf::adapters::SPSCLLQueue<std::uint32_t>, Queue>);
+    static_assert(std::is_same_v<pf::adapters::MPSCLLQueue<std::uint32_t>, Queue>);
     static_assert(std::is_default_constructible_v<Queue>);
     static_assert(!std::is_copy_constructible_v<Queue>);
     static_assert(!std::is_copy_assignable_v<Queue>);
@@ -112,8 +113,8 @@ PF_TEST_CASE("construction and type traits", "[adapters][SPSCLLQueue]") {
 #endif
 }
 
-PF_TEST_CASE("move construction", "[adapters][SPSCLLQueue]") {
-  using Queue = SPSCLLQueue<std::uint32_t>;
+PF_TEST_CASE("move construction", "[adapters][MPSCLLQueue]") {
+  using Queue = MPSCLLQueue<std::uint32_t>;
 
   std::array<NodeStorage<std::uint32_t>, 3> storage;
   Queue source(storage[0].objStore());
@@ -138,8 +139,8 @@ PF_TEST_CASE("move construction", "[adapters][SPSCLLQueue]") {
   REQUIRE(moved.isNull());
 }
 
-PF_TEST_CASE("move assignment", "[adapters][SPSCLLQueue]") {
-  using Queue = SPSCLLQueue<std::uint32_t>;
+PF_TEST_CASE("move assignment", "[adapters][MPSCLLQueue]") {
+  using Queue = MPSCLLQueue<std::uint32_t>;
 
   SECTION("null destination takes ownership from a non-null source") {
     std::array<NodeStorage<std::uint32_t>, 3> storage;
@@ -167,8 +168,8 @@ PF_TEST_CASE("move assignment", "[adapters][SPSCLLQueue]") {
   }
 }
 
-PF_TEST_CASE("FIFO order and pop semantics", "[adapters][SPSCLLQueue]") {
-  using Queue = SPSCLLQueue<std::uint32_t>;
+PF_TEST_CASE("FIFO order and pop semantics", "[adapters][MPSCLLQueue]") {
+  using Queue = MPSCLLQueue<std::uint32_t>;
 
   constexpr std::size_t count = 8;
   std::array<NodeStorage<std::uint32_t>, count + 1> storage;
@@ -198,9 +199,9 @@ PF_TEST_CASE("FIFO order and pop semantics", "[adapters][SPSCLLQueue]") {
   REQUIRE(queue.isNull());
 }
 
-PF_TEST_CASE("push and emplace overloads", "[adapters][SPSCLLQueue]") {
+PF_TEST_CASE("push and emplace overloads", "[adapters][MPSCLLQueue]") {
   SECTION("copy push preserves the source value") {
-    using Queue = SPSCLLQueue<std::uint32_t>;
+    using Queue = MPSCLLQueue<std::uint32_t>;
 
     std::array<NodeStorage<std::uint32_t>, 2> storage;
     Queue queue(storage[0].objStore());
@@ -218,7 +219,7 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][SPSCLLQueue]") {
   }
 
   SECTION("rvalue push accepts a moved value") {
-    using Queue = SPSCLLQueue<std::uint32_t>;
+    using Queue = MPSCLLQueue<std::uint32_t>;
 
     std::array<NodeStorage<std::uint32_t>, 2> storage;
     Queue queue(storage[0].objStore());
@@ -235,7 +236,7 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][SPSCLLQueue]") {
   }
 
   SECTION("emplace forwards constructor arguments") {
-    using Queue = SPSCLLQueue<std::uint32_t>;
+    using Queue = MPSCLLQueue<std::uint32_t>;
 
     std::array<NodeStorage<std::uint32_t>, 2> storage;
     Queue queue(storage[0].objStore());
@@ -251,7 +252,7 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][SPSCLLQueue]") {
   }
 
   SECTION("move-only values can be queued") {
-    using Queue = SPSCLLQueue<MoveOnlyValue>;
+    using Queue = MPSCLLQueue<MoveOnlyValue>;
 
     std::array<NodeStorage<MoveOnlyValue>, 2> storage;
     Queue queue(storage[0].objStore());
@@ -268,8 +269,8 @@ PF_TEST_CASE("push and emplace overloads", "[adapters][SPSCLLQueue]") {
   }
 }
 
-PF_TEST_CASE("the popped head can be emplaced again", "[adapters][SPSCLLQueue]") {
-  using Queue = SPSCLLQueue<std::uint32_t>;
+PF_TEST_CASE("the popped head can be emplaced again", "[adapters][MPSCLLQueue]") {
+  using Queue = MPSCLLQueue<std::uint32_t>;
   using Node = Queue::storage_type;
 
   std::array<NodeStorage<std::uint32_t>, 2> storage;
@@ -302,8 +303,8 @@ PF_TEST_CASE("the popped head can be emplaced again", "[adapters][SPSCLLQueue]")
   REQUIRE(queue.isNull());
 }
 
-PF_TEST_CASE("popping an empty queue", "[adapters][SPSCLLQueue]") {
-  using Queue = SPSCLLQueue<std::uint32_t>;
+PF_TEST_CASE("popping an empty queue", "[adapters][MPSCLLQueue]") {
+  using Queue = MPSCLLQueue<std::uint32_t>;
 
   NodeStorage<std::uint32_t> spare;
   NodeStorage<std::uint32_t> value;
@@ -324,38 +325,31 @@ PF_TEST_CASE("popping an empty queue", "[adapters][SPSCLLQueue]") {
   REQUIRE(queue.isNull());
 }
 
-PF_TEST_CASE("single producer and consumer", "[adapters][SPSCLLQueue]") {
-  using Queue = SPSCLLQueue<std::uint32_t>;
+PF_TEST_CASE("multiple producers and a single consumer", "[adapters][MPSCLLQueue]") {
+  using Queue = MPSCLLQueue<std::uint32_t>;
 
-  constexpr std::size_t count = 2000;
+  constexpr std::size_t producerCount = 2;
+  constexpr std::size_t perProducer = 1000;
+  constexpr std::size_t total = producerCount * perProducer;
+
   std::vector<std::unique_ptr<NodeStorage<std::uint32_t>>> storage;
-  storage.reserve(count + 1);
-  for (std::size_t i = 0; i < count + 1; ++i) {
+  storage.reserve(total + 1);
+  for (std::size_t i = 0; i < total + 1; ++i) {
     storage.push_back(std::make_unique<NodeStorage<std::uint32_t>>());
   }
 
   Queue queue(storage[0]->objStore());
   std::atomic<bool> start{false};
   std::vector<std::uint32_t> consumed;
-  consumed.reserve(count);
+  consumed.reserve(total);
 
-  std::thread producer([&] {
-    while (!start.load(std::memory_order_acquire)) {
-      std::this_thread::yield();
-    }
-
-    for (std::size_t i = 0; i < count; ++i) {
-      queue.emplace(storage[i + 1]->objStore(), static_cast<std::uint32_t>(i));
-    }
-  });
-
+  // the pool is pre allocated, the popped nodes are not reused
   std::thread consumer([&] {
     while (!start.load(std::memory_order_acquire)) {
       std::this_thread::yield();
     }
 
-    // the pool is pre allocated, the popped nodes are not reused
-    for (std::size_t i = 0; i < count; ++i) {
+    for (std::size_t i = 0; i < total; ++i) {
       auto* node = queue.pop();
       while (node == nullptr) {
         std::this_thread::yield();
@@ -367,14 +361,44 @@ PF_TEST_CASE("single producer and consumer", "[adapters][SPSCLLQueue]") {
     }
   });
 
+  std::vector<std::thread> producers;
+  producers.reserve(producerCount);
+  for (std::size_t p = 0; p < producerCount; ++p) {
+    producers.emplace_back([&storage, &queue, &start, p] {
+      while (!start.load(std::memory_order_acquire)) {
+        std::this_thread::yield();
+      }
+
+      for (std::size_t i = 0; i < perProducer; ++i) {
+        const auto idx = p * perProducer + i;
+        queue.emplace(storage[idx + 1]->objStore(), static_cast<std::uint32_t>(idx));
+      }
+    });
+  }
+
   start.store(true, std::memory_order_release);
-  producer.join();
+  for (std::thread& producer : producers) {
+    producer.join();
+  }
   consumer.join();
 
-  REQUIRE(consumed.size() == count);
-  for (std::size_t i = 0; i < count; ++i) {
+  REQUIRE(consumed.size() == total);
+
+  // The interleaving between the producers is unspecified, but each producer's
+  // own values must be consumed in the order it produced them, which the
+  // single consumer sees directly.
+  std::vector<std::size_t> expectedIdx(producerCount, 0);
+  for (const std::uint32_t value : consumed) {
+    const auto p = static_cast<std::size_t>(value) / perProducer;
+    REQUIRE(value == static_cast<std::uint32_t>(p * perProducer + expectedIdx[p]));
+    ++expectedIdx[p];
+  }
+
+  std::sort(consumed.begin(), consumed.end());
+  for (std::size_t i = 0; i < total; ++i) {
     REQUIRE(consumed[i] == i);
   }
+
   REQUIRE(queue.empty());
   REQUIRE(queue.popSpare() != nullptr);
   REQUIRE(queue.isNull());
