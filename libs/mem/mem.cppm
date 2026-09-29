@@ -4,3 +4,4 @@ export import :exception;
 export import :memzero;
 export import :align;
 export import :linearArena;
+export import :pool_arena;

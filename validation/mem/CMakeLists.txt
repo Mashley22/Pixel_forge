@@ -20,6 +20,7 @@ endfunction()
 
 add_subdirectory(memzero)
 add_subdirectory(linear_arena)
+add_subdirectory(pool_arena)
 
 add_executable(test_align
   test_align.cpp
