@@ -4,8 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <numeric>
 #include <new>
+#include <numeric>
 #include <thread>
 #include <vector>
 
@@ -23,8 +23,8 @@ constexpr std::size_t blockCount = 8;
 constexpr std::size_t alignment = 64;
 
 /**@brief Mirrors the stride the arena computes for the given block geometry */
-[[nodiscard]] constexpr std::size_t strideOf(std::size_t blkSize,
-                                             std::size_t align) {
+[[nodiscard]] constexpr std::size_t
+strideOf(std::size_t blkSize, std::size_t align) {
   return ((blkSize + align - 1) / align) * align;
 }
 
@@ -32,7 +32,8 @@ constexpr std::size_t alignment = 64;
  * @brief Owns the backing storage and keeps the CreateParams alive, as
  * ConcurrentPoolArena holds a reference to the Buffer for its whole life.
  */
-template <std::size_t T_storageSize, std::size_t T_blockSize = blockSize,
+template <std::size_t T_storageSize,
+          std::size_t T_blockSize = blockSize,
           std::size_t T_blockCount = T_storageSize / strideOf(T_blockSize, alignment),
           std::size_t T_alignment = alignment>
 class PoolStorage {
@@ -42,40 +43,47 @@ public:
                 "storage is too small for the requested blocks");
 
   PoolStorage()
-    : m_buffer(Buffer::from(static_cast<std::byte*>(m_storage.data()),
-                            m_storage.size())),
+    : m_buffer(Buffer::from(static_cast<std::byte*>(m_storage.data()), m_storage.size())),
       m_params{.buffer = m_buffer,
                .block_size = T_blockSize,
                .block_count = T_blockCount,
                .alignment = T_alignment} {}
 
-  [[nodiscard]] ConcurrentPoolArena::CreateParams& params() {
+  [[nodiscard]] ConcurrentPoolArena::CreateParams&
+  params() {
     return m_params;
   }
 
-  [[nodiscard]] std::byte* data() { return m_storage.data(); }
+  [[nodiscard]] std::byte*
+  data() {
+    return m_storage.data();
+  }
 
 private:
   alignas(std::hardware_destructive_interference_size)
-    std::array<std::byte, T_storageSize> m_storage{};
+      std::array<std::byte, T_storageSize> m_storage{};
   Buffer m_buffer{Buffer::null()};
   ConcurrentPoolArena::CreateParams m_params;
 };
 
 /**@brief Fills a whole block with a tag derived from the block index */
-void tagBlock(std::byte* block, std::size_t blockIdx, std::size_t size) {
+void
+tagBlock(std::byte* block, std::size_t blockIdx, std::size_t size) {
   std::fill_n(block, size, static_cast<std::byte>(blockIdx + 1));
 }
 
-[[nodiscard]] bool isTagged(const ConcurrentPoolArena::Slot& slot) {
-  return std::all_of(slot.buffer.data, slot.buffer.data + slot.buffer.size,
+[[nodiscard]] bool
+isTagged(const ConcurrentPoolArena::Slot& slot) {
+  return std::all_of(slot.buffer.data,
+                     slot.buffer.data + slot.buffer.size,
                      [idx = slot.blockIdx](std::byte byte) {
                        return byte == static_cast<std::byte>(idx + 1);
                      });
 }
 
 /**@brief Allocates the whole pool, returning the block indices in hand out order */
-[[nodiscard]] std::vector<ConcurrentPoolArena::Slot> drain(ConcurrentPoolArena& arena) {
+[[nodiscard]] std::vector<ConcurrentPoolArena::Slot>
+drain(ConcurrentPoolArena& arena) {
   std::vector<ConcurrentPoolArena::Slot> slots;
   for (std::size_t i = 0; i < arena.capacity(); i++) {
     const auto slot = arena.alloc();
@@ -85,8 +93,8 @@ void tagBlock(std::byte* block, std::size_t blockIdx, std::size_t size) {
   return slots;
 }
 
-[[nodiscard]] std::vector<std::size_t> sortedIndices(
-    const std::vector<ConcurrentPoolArena::Slot>& slots) {
+[[nodiscard]] std::vector<std::size_t>
+sortedIndices(const std::vector<ConcurrentPoolArena::Slot>& slots) {
   std::vector<std::size_t> indices;
   indices.reserve(slots.size());
   for (const auto& slot : slots) {
@@ -98,8 +106,7 @@ void tagBlock(std::byte* block, std::size_t blockIdx, std::size_t size) {
 
 } // namespace
 
-PF_TEST_CASE("pool arena exposes the geometry it was built with",
-             "[mem][poolArena]") {
+PF_TEST_CASE("pool arena exposes the geometry it was built with", "[mem][poolArena]") {
   PoolStorage<blockCount * blockSize> storage;
   ConcurrentPoolArena arena{storage.params()};
 
@@ -110,12 +117,10 @@ PF_TEST_CASE("pool arena exposes the geometry it was built with",
   REQUIRE(arena.alignment() == alignment);
   REQUIRE_FALSE(arena.full());
   REQUIRE(arena.resolve(0) == storage.data());
-  REQUIRE(arena.resolve(blockCount - 1) ==
-          storage.data() + (blockCount - 1) * blockSize);
+  REQUIRE(arena.resolve(blockCount - 1) == storage.data() + (blockCount - 1) * blockSize);
 }
 
-PF_TEST_CASE("alloc hands out distinct, tagged, in range blocks",
-             "[mem][poolArena]") {
+PF_TEST_CASE("alloc hands out distinct, tagged, in range blocks", "[mem][poolArena]") {
   PoolStorage<blockCount * blockSize> storage;
   ConcurrentPoolArena arena{storage.params()};
 
@@ -127,8 +132,7 @@ PF_TEST_CASE("alloc hands out distinct, tagged, in range blocks",
     REQUIRE(slot.buffer.size == blockSize);
     REQUIRE(slot.buffer.data == arena.resolve(slot.blockIdx));
     REQUIRE(slot.buffer.data >= storage.data());
-    REQUIRE(slot.buffer.data + blockSize <=
-            storage.data() + blockSize * blockCount);
+    REQUIRE(slot.buffer.data + blockSize <= storage.data() + blockSize * blockCount);
   }
 
   for (std::size_t i = 0; i < blockCount; i++) {
@@ -149,8 +153,7 @@ PF_TEST_CASE("alloc hands out distinct, tagged, in range blocks",
   }
 }
 
-PF_TEST_CASE("alloc yields a null slot once the pool is exhausted",
-             "[mem][poolArena]") {
+PF_TEST_CASE("alloc yields a null slot once the pool is exhausted", "[mem][poolArena]") {
   PoolStorage<blockCount * blockSize> storage;
   ConcurrentPoolArena arena{storage.params()};
 
@@ -200,8 +203,7 @@ PF_TEST_CASE("dealloc returns the block and the pool reports free capacity",
   REQUIRE_FALSE(arena.full());
 }
 
-PF_TEST_CASE("free blocks are handed back out last in, first out",
-             "[mem][poolArena]") {
+PF_TEST_CASE("free blocks are handed back out last in, first out", "[mem][poolArena]") {
   PoolStorage<blockCount * blockSize> storage;
   ConcurrentPoolArena arena{storage.params()};
 
@@ -247,8 +249,7 @@ PF_TEST_CASE("dealloc by pointer matches dealloc by index", "[mem][poolArena]") 
   REQUIRE_FALSE(arena.full());
 }
 
-PF_TEST_CASE("churning the pool never loses or duplicates a block",
-             "[mem][poolArena]") {
+PF_TEST_CASE("churning the pool never loses or duplicates a block", "[mem][poolArena]") {
   PoolStorage<blockCount * blockSize> storage;
   ConcurrentPoolArena arena{storage.params()};
 
@@ -257,8 +258,7 @@ PF_TEST_CASE("churning the pool never loses or duplicates a block",
     REQUIRE(arena.full());
 
     const auto indices = sortedIndices(slots);
-    REQUIRE(std::adjacent_find(indices.begin(), indices.end()) ==
-            indices.end());
+    REQUIRE(std::adjacent_find(indices.begin(), indices.end()) == indices.end());
     REQUIRE(indices.front() == 0);
     REQUIRE(indices.back() == blockCount - 1);
 
@@ -269,13 +269,11 @@ PF_TEST_CASE("churning the pool never loses or duplicates a block",
   }
 }
 
-PF_TEST_CASE("blocks smaller than the free list link still work",
-             "[mem][poolArena]") {
+PF_TEST_CASE("blocks smaller than the free list link still work", "[mem][poolArena]") {
   constexpr std::size_t tinyBlockSize = 4;
   constexpr std::size_t tinyCount = 4;
   constexpr std::size_t tinyAlignment = 8;
-  PoolStorage<tinyCount * tinyAlignment, tinyBlockSize, tinyCount, tinyAlignment>
-    storage;
+  PoolStorage<tinyCount * tinyAlignment, tinyBlockSize, tinyCount, tinyAlignment> storage;
   ConcurrentPoolArena arena{storage.params()};
 
   REQUIRE(arena.capacity() == tinyCount);
@@ -307,9 +305,8 @@ PF_TEST_CASE("padded stride keeps every block aligned", "[mem][poolArena]") {
   constexpr std::size_t unalignedBlockSize = 32;
   constexpr std::size_t strictAlignment = 64;
   constexpr std::size_t count = 4;
-  PoolStorage<count * strictAlignment, unalignedBlockSize, count,
-              strictAlignment>
-    storage;
+  PoolStorage<count * strictAlignment, unalignedBlockSize, count, strictAlignment>
+      storage;
   ConcurrentPoolArena arena{storage.params()};
 
   REQUIRE(arena.capacity() == count);
@@ -356,8 +353,7 @@ PF_TEST_CASE("resolve rejects indices outside the pool", "[mem][poolArena]") {
 
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
   REQUIRE_PF_REQUIRE_FAIL(arena.resolve(arena.capacity()));
-  REQUIRE_PF_REQUIRE_FAIL(
-    arena.resolve(std::numeric_limits<std::size_t>::max()));
+  REQUIRE_PF_REQUIRE_FAIL(arena.resolve(std::numeric_limits<std::size_t>::max()));
 #endif
 
   const auto slot = arena.alloc();
@@ -370,8 +366,7 @@ PF_TEST_CASE("create params are validated", "[mem][poolArena]") {
   {
     // the block size must be a power of two
     alignas(alignment) std::array<std::byte, blockSize * blockCount> storage{};
-    Buffer buffer{Buffer::from(static_cast<std::byte*>(storage.data()),
-                               storage.size())};
+    Buffer buffer{Buffer::from(static_cast<std::byte*>(storage.data()), storage.size())};
     ConcurrentPoolArena::CreateParams params{.buffer = buffer,
                                              .block_size = blockSize - 1,
                                              .block_count = blockCount,
@@ -383,8 +378,8 @@ PF_TEST_CASE("create params are validated", "[mem][poolArena]") {
   {
     // the buffer must be exactly block_count * stride bytes
     alignas(alignment) std::array<std::byte, blockSize * blockCount> storage{};
-    Buffer buffer{Buffer::from(static_cast<std::byte*>(storage.data()),
-                               storage.size() - 1)};
+    Buffer buffer{
+        Buffer::from(static_cast<std::byte*>(storage.data()), storage.size() - 1)};
     ConcurrentPoolArena::CreateParams params{.buffer = buffer,
                                              .block_size = blockSize,
                                              .block_count = blockCount,
@@ -474,8 +469,7 @@ PF_TEST_CASE("concurrent alloc dealloc churn never double hands a block out",
   std::atomic<std::size_t> nullAllocs{0};
   std::atomic<std::size_t> successfulAllocs{0};
 
-  const auto worker = [&arena, &claims, &doubleClaims, &nullAllocs,
-                       &successfulAllocs]() {
+  const auto worker = [&arena, &claims, &doubleClaims, &nullAllocs, &successfulAllocs]() {
     for (std::size_t i = 0; i < iterations; i++) {
       const auto slot = arena.alloc();
       if (slot.isNull()) {
@@ -502,7 +496,7 @@ PF_TEST_CASE("concurrent alloc dealloc churn never double hands a block out",
 
   REQUIRE(doubleClaims.load(std::memory_order::relaxed) == 0);
   REQUIRE(successfulAllocs.load(std::memory_order::relaxed) +
-            nullAllocs.load(std::memory_order::relaxed) ==
+              nullAllocs.load(std::memory_order::relaxed) ==
           threadCount * iterations);
 
   // every block must be back in the pool once the churn is over
@@ -528,8 +522,7 @@ PF_TEST_CASE("concurrent hand out gives every block to exactly one thread",
   std::vector<std::vector<std::size_t>> taken(threadCount);
   std::atomic<std::size_t> retries{0};
 
-  const auto worker = [&arena, &claimed, &winners, &taken,
-                        &retries](std::size_t id) {
+  const auto worker = [&arena, &claimed, &winners, &taken, &retries](std::size_t id) {
     while (arena.full()) {
       retries.fetch_add(1, std::memory_order::relaxed);
       std::this_thread::yield();
@@ -573,4 +566,3 @@ PF_TEST_CASE("concurrent hand out gives every block to exactly one thread",
 }
 
 }
-

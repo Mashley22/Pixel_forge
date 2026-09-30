@@ -169,7 +169,6 @@ public:
     // the one that advances the committed cursor
     std::construct_at(&m_data[idx_(reserved)], std::forward<V_Args>(args)...);
     m_write.committed.fetch_add(1, std::memory_order_release);
-    m_write.committed.notify_one();
 
     return true;
   }
@@ -197,11 +196,8 @@ public:
       if ((reserved - consumed) >= capacity()) {
         // no slot is free, a consumer has to finish reading one before it can
         // be handed back
-        if (spinUntil_([&] {
-              return m_read.committed.load(std::memory_order_acquire) != consumed;
-            })) {
-          continue;
-        }
+        spinUntil_(
+            [&] { return m_read.committed.load(std::memory_order_acquire) != consumed; });
         continue;
       }
 
@@ -216,24 +212,17 @@ public:
     // the slot can only be written once every ticket ahead of this one has
     // been written. The cursor waited on is the one that moves, so waiting on
     // the value it was read at cannot miss the change that releases it
-    {
-      spin_t i = 0;
-      for (; i < SPIN_LIMIT; ++i) {
-        const size_type cur = m_write.committed.load(std::memory_order_acquire);
-        if (cur == reserved) {
-          break;
-        }
-        m_write.committed.wait(cur);
+    for (;;) {
+      const size_type cur = m_write.committed.load(std::memory_order_acquire);
+      if (cur == reserved) {
+        break;
       }
-
-      if (i == SPIN_LIMIT - 1) {
-        return false;
-      }
+      spinUntil_(
+          [&]() { return m_write.committed.load(std::memory_order_acquire) != cur; });
     }
 
     std::construct_at(&m_data[idx_(reserved)], std::forward<V_Args>(args)...);
     m_write.committed.store(reserved + 1, std::memory_order_release);
-    m_write.committed.notify_one();
 
     return true;
   }
@@ -268,7 +257,6 @@ public:
     std::optional<value_type> popped{std::move(m_data[idx_(reserved)])};
     std::destroy_at(&m_data[idx_(reserved)]);
     m_read.committed.fetch_add(1, std::memory_order_release);
-    m_read.committed.notify_one();
 
     return popped;
   }
@@ -290,11 +278,9 @@ public:
       if (produced <= reserved) {
         // nothing to read, either the queue is empty or a producer is midway
         // through writing a slot
-        if (spinUntil_([&] {
-              return m_write.committed.load(std::memory_order_acquire) != produced;
-            })) {
-          continue;
-        }
+        spinUntil_([&] {
+          return m_write.committed.load(std::memory_order_acquire) != produced;
+        });
         continue;
       }
 
@@ -308,18 +294,18 @@ public:
 
     // the slot can only be read once every ticket ahead of this one has been
     // read, and the cursor waited on is the one that moves
-    for (spin_t i = 0; i < SPIN_LIMIT; ++i) {
+    for (;;) {
       const size_type cur = m_read.committed.load(std::memory_order_acquire);
       if (cur == reserved) {
         break;
       }
-      m_read.committed.wait(cur);
+      spinUntil_(
+          [&]() { return m_read.committed.load(std::memory_order_acquire) != cur; });
     }
 
     std::optional<value_type> popped{std::move(m_data[idx_(reserved)])};
     std::destroy_at(&m_data[idx_(reserved)]);
     m_read.committed.store(reserved + 1, std::memory_order_release);
-    m_read.committed.notify_one();
 
     return popped;
   }
@@ -359,18 +345,18 @@ private:
    *  re-evaluate everything
    */
   template <class T_Predicate>
-  [[nodiscard]] bool
+  void
   spinUntil_(T_Predicate&& predicate) PF_NOEXCEPT {
     for (spin_t i = 0; i < SPIN_LIMIT; ++i) {
       if (predicate()) {
-        return true;
+        return;
       }
       constexpr spin_t randomNum = 128;
       if ((i & randomNum) == randomNum) {
         std::this_thread::yield();
       }
     }
-    return false;
+    return;
   }
 
   [[nodiscard]] constexpr size_type
