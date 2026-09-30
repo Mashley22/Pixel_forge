@@ -13,7 +13,7 @@ export module PixelForge.mem:linearArena;
 import :exception;
 import :align;
 import PixelForge.core;
-import PixelForge.adapters;
+import PixelForge.containers;
 
 namespace pf {
 

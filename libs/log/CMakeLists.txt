@@ -3,7 +3,7 @@ add_library(PixelForge_logging OBJECT)
 target_link_libraries(PixelForge_logging
   PRIVATE
     PixelForge_core
-    PixelForge_adapters
+    PixelForge_containers
     PixelForge_mem
 )
 

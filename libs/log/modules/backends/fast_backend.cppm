@@ -7,7 +7,7 @@ module;
 export module PixelForge.logging:backends.fast_backend;
 
 import PixelForge.core;
-import PixelForge.adapters;
+import PixelForge.containers;
 import PixelForge.mem;
 import :record;
 

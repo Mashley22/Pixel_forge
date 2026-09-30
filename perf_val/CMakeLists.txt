@@ -15,4 +15,4 @@ function(add_perf_val VAL_NAME)
 
 endfunction()
 
-add_subdirectory(adapters)
+add_subdirectory(containers)

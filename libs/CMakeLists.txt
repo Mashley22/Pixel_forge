@@ -1,5 +1,5 @@
 add_subdirectory(core)
-add_subdirectory(adapters)
+add_subdirectory(containers)
 add_subdirectory(mem)
 add_subdirectory(log)
 

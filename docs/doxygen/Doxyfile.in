@@ -4,7 +4,7 @@ PROJECT_LOGO           = ""
 
 # Input source directories
 INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/libs/core/include \
-                         @CMAKE_CURRENT_SOURCE_DIR@/libs/adapters/include
+                         @CMAKE_CURRENT_SOURCE_DIR@/libs/containers/include
 
 # File patterns
 FILE_PATTERNS        = *.hpp *.h *.cpp *.cppm *.cc *.cxx
