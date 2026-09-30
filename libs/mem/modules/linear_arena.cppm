@@ -110,7 +110,7 @@ public:
   }
 
 private:
-  adapters::Stack<std::byte> m_stack;
+  adapters::Stack<std::byte> m_stack{};
 };
 
 }
