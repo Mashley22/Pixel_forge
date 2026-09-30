@@ -85,7 +85,7 @@ isTagged(const ConcurrentPoolArena::Slot& slot) {
 [[nodiscard]] std::vector<ConcurrentPoolArena::Slot>
 drain(ConcurrentPoolArena& arena) {
   std::vector<ConcurrentPoolArena::Slot> slots;
-  for (std::size_t i = 0; i < arena.capacity(); i++) {
+  for (std::size_t i = 0; i < arena.blockCapacity(); i++) {
     const auto slot = arena.alloc();
     REQUIRE_FALSE(slot.isNull());
     slots.push_back(slot);
@@ -111,7 +111,7 @@ PF_TEST_CASE("pool arena exposes the geometry it was built with", "[mem][poolAre
   ConcurrentPoolArena arena{storage.params()};
 
   REQUIRE_FALSE(arena.isNull());
-  REQUIRE(arena.capacity() == blockCount);
+  REQUIRE(arena.blockCapacity() == blockCount);
   REQUIRE(arena.blockSize() == blockSize);
   REQUIRE(arena.stride() == blockSize);
   REQUIRE(arena.alignment() == alignment);
@@ -276,7 +276,7 @@ PF_TEST_CASE("blocks smaller than the free list link still work", "[mem][poolAre
   PoolStorage<tinyCount * tinyAlignment, tinyBlockSize, tinyCount, tinyAlignment> storage;
   ConcurrentPoolArena arena{storage.params()};
 
-  REQUIRE(arena.capacity() == tinyCount);
+  REQUIRE(arena.blockCapacity() == tinyCount);
   REQUIRE(arena.stride() == tinyAlignment);
   REQUIRE(arena.blockSize() == tinyBlockSize);
 
@@ -309,7 +309,7 @@ PF_TEST_CASE("padded stride keeps every block aligned", "[mem][poolArena]") {
       storage;
   ConcurrentPoolArena arena{storage.params()};
 
-  REQUIRE(arena.capacity() == count);
+  REQUIRE(arena.blockCapacity() == count);
   REQUIRE(arena.blockSize() == unalignedBlockSize);
   REQUIRE(arena.stride() == strictAlignment);
   REQUIRE(arena.alignment() == strictAlignment);
@@ -352,7 +352,7 @@ PF_TEST_CASE("resolve rejects indices outside the pool", "[mem][poolArena]") {
   ConcurrentPoolArena arena{storage.params()};
 
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
-  REQUIRE_PF_REQUIRE_FAIL(arena.resolve(arena.capacity()));
+  REQUIRE_PF_REQUIRE_FAIL(arena.resolve(arena.blockCapacity()));
   REQUIRE_PF_REQUIRE_FAIL(arena.resolve(std::numeric_limits<std::size_t>::max()));
 #endif
 
@@ -417,7 +417,7 @@ PF_TEST_CASE("move construction keeps the pool and nulls the source",
   REQUIRE(arena.alloc().isNull());
 
   REQUIRE_FALSE(moved.isNull());
-  REQUIRE(moved.capacity() == blockCount);
+  REQUIRE(moved.blockCapacity() == blockCount);
   REQUIRE(moved.blockSize() == blockSize);
   REQUIRE(moved.alignment() == alignment);
   // the block held before the move is still owned, not handed out again
@@ -442,7 +442,7 @@ PF_TEST_CASE("move assignment fills a null arena and rejects a live one",
   target = std::move(arena);
   REQUIRE(arena.isNull());
   REQUIRE_FALSE(target.isNull());
-  REQUIRE(target.capacity() == blockCount);
+  REQUIRE(target.blockCapacity() == blockCount);
   REQUIRE_FALSE(target.full());
 
   const auto slot = target.alloc();
