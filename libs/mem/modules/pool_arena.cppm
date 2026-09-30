@@ -375,14 +375,12 @@ private:
 
   constexpr void
   initialiseFreeList_() PF_NOEXCEPT {
-    std::byte* lastLink = &m_data[(blockCapacity() - 1) * stride()];
-    Link* linker = std::construct_at(pointer_cast<Link*>(lastLink));
-    for (std::size_t i = (blockCapacity() - 2); i >= 0; i--) {
-      linker = std::construct_at(
-          pointer_cast<Link*>(&m_data[(blockCapacity() - 1) * stride()]),
-          Link{.next = linker});
+    Link* head{nullptr};
+    for (std::size_t i = blockCapacity(); i > 0; i--) {
+      head = std::construct_at(pointer_cast<Link*>(&m_data[(i - 1) * stride()]),
+                               Link{.next = head});
     }
-    m_freeHead = linker;
+    m_freeHead = head;
   }
 };
 
