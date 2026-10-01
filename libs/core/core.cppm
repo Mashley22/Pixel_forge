@@ -7,3 +7,4 @@ export import :utils;
 export import :meta;
 export import :buffer;
 export import :pointers;
+export import :mem_resource;
