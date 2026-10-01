@@ -16,31 +16,31 @@ class AlignmentError : public Exception {
 public:
   static constexpr std::string_view what_arg =
       "{}: Mem alignment, requested alignment: {}, min alignmnet: {}";
-  static constexpr std::size_t defaultFmtBufSize = 512;
+  static constexpr std::size_t default_fmt_buf_size = 512;
 
-  template <std::size_t T_fmtBufSize = defaultFmtBufSize>
+  template <std::size_t FmtBufSize = default_fmt_buf_size>
   constexpr explicit AlignmentError(std::string_view caller,
-                                    std::size_t requestedAlignment,
-                                    std::size_t minAlignment) PF_NOEXCEPT
-    : Exception(fmt<T_fmtBufSize>(what_arg, caller, requestedAlignment, minAlignment)),
-      m_requestedAlignment(requestedAlignment),
-      m_minAlignment(minAlignment) {}
+                                    std::size_t requested_alignment,
+                                    std::size_t min_alignment) PF_NOEXCEPT
+    : Exception(fmt<FmtBufSize>(what_arg, caller, requested_alignment, min_alignment)),
+      m_requested_alignment(requested_alignment),
+      m_min_alignment(min_alignment) {}
 
   [[nodiscard]]
   constexpr std::size_t
-  requestedAlignment() const PF_NOEXCEPT {
-    return m_requestedAlignment;
+  requested_alignment() const PF_NOEXCEPT {
+    return m_requested_alignment;
   }
 
   [[nodiscard]]
   constexpr std::size_t
-  minAlignmnet() const PF_NOEXCEPT {
-    return m_minAlignment;
+  min_alignmnet() const PF_NOEXCEPT {
+    return m_min_alignment;
   }
 
 private:
-  const std::size_t m_requestedAlignment;
-  const std::size_t m_minAlignment;
+  const std::size_t m_requested_alignment;
+  const std::size_t m_min_alignment;
 };
 
 // available should be adjusted for the given alignment!!
@@ -48,15 +48,15 @@ class OOMError : public Exception {
 public:
   static constexpr std::string_view what_arg =
       "{}: OOM, requested: {}, needed: {}, available: {}";
-  static constexpr std::size_t defaultWhatFmtBufSize = 512;
+  static constexpr std::size_t default_what_fmt_buf_size = 512;
 
-  template <std::size_t T_fmtBufferSize = defaultWhatFmtBufSize>
+  template <std::size_t FmtBufferSize = default_what_fmt_buf_size>
   OOMError(std::string_view caller,
            std::size_t requested,
            std::size_t needed,
            std::size_t available) PF_NOEXCEPT
-    : Exception(fmt<T_fmtBufferSize>(what_arg, caller, requested, needed, available)
-                    .toStrView()),
+    : Exception(fmt<FmtBufferSize>(what_arg, caller, requested, needed, available)
+                    .to_str_view()),
       m_requested(requested),
       m_needed(needed),
       m_available(available) {}

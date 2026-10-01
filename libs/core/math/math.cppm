@@ -24,7 +24,7 @@ export namespace math {
 template <std::unsigned_integral T>
 [[nodiscard]]
 constexpr bool
-isPowerOfTwo(T val) PF_NOEXCEPT {
+is_power_of_two(T val) PF_NOEXCEPT {
   return (val != 0) && ((val & (val - 1)) == 0);
 }
 
@@ -42,9 +42,9 @@ isPowerOfTwo(T val) PF_NOEXCEPT {
  */
 template <std::unsigned_integral T>
 [[nodiscard]] constexpr T
-modPow2Value(T x, T pow2Val) PF_NOEXCEPT {
-  PF_REQUIRE(isPowerOfTwo(pow2Val));
-  return x & (pow2Val - 1);
+mod_pow2_value(T x, T pow2_val) PF_NOEXCEPT {
+  PF_REQUIRE(is_power_of_two(pow2_val));
+  return x & (pow2_val - 1);
 }
 
 }

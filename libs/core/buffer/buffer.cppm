@@ -29,31 +29,31 @@ export namespace pf {
 template <typename T>
 struct ObjectStorage {
 public:
-  using size_type = std::size_t;
+  using SizeType = std::size_t;
   // no derefencing (atleast automatically)
-  using pointer = void*;
+  using Pointer = void*;
 
-  pointer data{nullptr};
-  size_type size{0};
+  Pointer data{nullptr};
+  SizeType size{0};
 
   [[nodiscard]] constexpr T&
-  operator[](size_type idx) PF_NOEXCEPT {
+  operator[](SizeType idx) PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(idx < size);
     return *std::launder(pointer_cast<T*>(data) + idx);
   }
 
   [[nodiscard]] PF_PURE_FUNC constexpr const T&
-  operator[](size_type idx) const PF_NOEXCEPT {
+  operator[](SizeType idx) const PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(idx < size);
     return *std::launder(pointer_cast<T*>(data) + idx);
   }
 };
 
 struct Buffer {
-  using pointer = std::byte*;
-  using size_type = std::size_t;
-  pointer data{nullptr};
-  size_type size{0};
+  using Pointer = std::byte*;
+  using SizeType = std::size_t;
+  Pointer data{nullptr};
+  SizeType size{0};
 
   static constexpr Buffer
   null() {
@@ -61,12 +61,12 @@ struct Buffer {
   }
 
   [[nodiscard]] constexpr bool
-  isNull() const PF_NOEXCEPT {
+  is_null() const PF_NOEXCEPT {
     return data == nullptr;
   }
 
   static constexpr Buffer
-  from(pointer ptr, size_type sze) PF_NOEXCEPT {
+  from(Pointer ptr, SizeType sze) PF_NOEXCEPT {
     return Buffer{.data = ptr, .size = sze};
   }
 
@@ -77,8 +77,9 @@ struct Buffer {
 
   struct Error : public Exception {
   public:
-    template <std::size_t T>
-    constexpr Error(const FmtResult<T>& str) : Exception(str.toStrView()) PF_NOEXCEPT {}
+    template <std::size_t BufLen>
+    constexpr Error(const FmtResult<BufLen>& str)
+      : Exception(str.to_str_view()) PF_NOEXCEPT {}
   };
 
   struct AlignmentError : Error {
@@ -87,16 +88,17 @@ struct Buffer {
         "Object store creation alignment error, required: {}, got ptr: {}";
 
   private:
-    static constexpr size_type charCountFor64BitInt = 32;
-    static constexpr size_type fmtBufSize = what_fmt.size() + 2 * charCountFor64BitInt;
+    static constexpr SizeType char_count_for64_bit_int = 32;
+    static constexpr SizeType fmt_buf_size =
+        what_fmt.size() + 2 * char_count_for64_bit_int;
 
   public:
-    size_type requiredAlignment{0};
-    std::uintptr_t ptrVal{0};
+    SizeType required_alignment{0};
+    std::uintptr_t ptr_val{0};
 
-    constexpr AlignmentError(size_type required_alignment, std::uintptr_t ptr_val)
-      : Error(fmt<fmtBufSize>(what_fmt, required_alignment, ptr_val)),
-        requiredAlignment(required_alignment), ptrVal(ptr_val) PF_NOEXCEPT {}
+    constexpr AlignmentError(SizeType alignment, std::uintptr_t ptr)
+      : Error(fmt<fmt_buf_size>(what_fmt, alignment, ptr)), required_alignment(alignment),
+        ptr_val(ptr) PF_NOEXCEPT {}
   };
 
   struct SizeError : Error {
@@ -105,77 +107,78 @@ struct Buffer {
         "Object store creation size error {} bytes supplied for {} objects of size {}";
 
   private:
-    static constexpr size_type charCountFor64BitInt = 32;
-    static constexpr size_type fmtBufSize = what_fmt.size() + 3 * charCountFor64BitInt;
+    static constexpr SizeType char_count_for64_bit_int = 32;
+    static constexpr SizeType fmt_buf_size =
+        what_fmt.size() + 3 * char_count_for64_bit_int;
 
   public:
-    size_type bufferSize{0};
-    size_type numObjects{0};
-    size_type objectSize{0};
+    SizeType buffer_size{0};
+    SizeType num_objects{0};
+    SizeType object_size{0};
 
-    constexpr SizeError(size_type buf_size, size_type num_objs, size_type obj_size)
-      : Error(fmt<fmtBufSize>(what_fmt, buf_size, num_objs, obj_size)),
-        bufferSize(buf_size), numObjects(num_objs), objectSize(obj_size) PF_NOEXCEPT {}
+    constexpr SizeError(SizeType buf_size, SizeType num_objs, SizeType obj_size)
+      : Error(fmt<fmt_buf_size>(what_fmt, buf_size, num_objs, obj_size)),
+        buffer_size(buf_size), num_objects(num_objs), object_size(obj_size) PF_NOEXCEPT {}
   };
 
-  template <PointerLike_c T_ptr>
-  [[nodiscard]] constexpr pointer
-  toPtr_t(T_ptr ptr) PF_NOEXCEPT {
-    return pointer_cast<pointer>(ptr);
+  template <PointerLike_c PtrT>
+  [[nodiscard]] constexpr Pointer
+  to_ptr_t(PtrT ptr) PF_NOEXCEPT {
+    return pointer_cast<Pointer>(ptr);
   }
 
   template <
       typename T,
-      typename T_AlignmentErrPolicy = ErrPolicy_throws<ObjectStorage<T>, AlignmentError>,
-      typename T_SizeErrPolicy = ErrPolicy_throws<ObjectStorage<T>, SizeError>>
-    requires ErrPolicy_c<T_AlignmentErrPolicy, ObjectStorage<T>> &&
-             ErrPolicy_c<T_SizeErrPolicy, ObjectStorage<T>> &&
-             std::is_same_v<typename T_AlignmentErrPolicy::return_type,
-                            typename T_SizeErrPolicy::return_type> &&
-             requires(size_type required_alignment,
+      typename AlignmentErrPolicy = ErrPolicyThrows<ObjectStorage<T>, AlignmentError>,
+      typename SizeErrPolicy = ErrPolicyThrows<ObjectStorage<T>, SizeError>>
+    requires ErrPolicy_c<AlignmentErrPolicy, ObjectStorage<T>> &&
+             ErrPolicy_c<SizeErrPolicy, ObjectStorage<T>> &&
+             std::is_same_v<typename AlignmentErrPolicy::ReturnType,
+                            typename SizeErrPolicy::ReturnType> &&
+             requires(SizeType required_alignment,
                       std::uintptr_t ptr_val,
-                      size_type bufSize,
-                      size_type objNum,
-                      size_type objSize) {
+                      SizeType buf_size,
+                      SizeType obj_num,
+                      SizeType obj_size) {
                {
-                 T_AlignmentErrPolicy::fail(required_alignment, ptr_val)
-               } -> std::same_as<typename T_AlignmentErrPolicy::return_type>;
+                 AlignmentErrPolicy::fail(required_alignment, ptr_val)
+               } -> std::same_as<typename AlignmentErrPolicy::ReturnType>;
                {
-                 T_SizeErrPolicy::fail(bufSize, objNum, objSize)
-               } -> std::same_as<typename T_SizeErrPolicy::return_type>;
+                 SizeErrPolicy::fail(buf_size, obj_num, obj_size)
+               } -> std::same_as<typename SizeErrPolicy::ReturnType>;
              }
-  [[nodiscard]] constexpr T_AlignmentErrPolicy::return_type
-  asObjects(size_type num_objs)
+  [[nodiscard]] constexpr AlignmentErrPolicy::ReturnType
+  as_objects(SizeType num_objs)
       PF_NOEXCEPT_COND(T_SizeErrPolicy::is_noexcept&& T_AlignmentErrPolicy::is_noexcept) {
 
-    PF_CHECK_ERR_POLICY(T_AlignmentErrPolicy,
-                        !isAligned<T>(data),
+    PF_CHECK_ERR_POLICY(AlignmentErrPolicy,
+                        !is_aligned<T>(data),
                         alignof(T),
                         pointer_cast<std::uintptr_t>(data));
 
-    PF_CHECK_ERR_POLICY(T_SizeErrPolicy, size_type requiredSize = num_objs * sizeof(T);
-                        requiredSize > size, size, num_objs, sizeof(T));
+    PF_CHECK_ERR_POLICY(SizeErrPolicy, SizeType required_size = num_objs * sizeof(T);
+                        required_size > size, size, num_objs, sizeof(T));
 
-    return T_AlignmentErrPolicy::success(
+    return AlignmentErrPolicy::success(
         {.data = pointer_cast<void*>(data), .size = num_objs});
   }
 
   template <typename T>
   [[nodiscard]] constexpr ObjectStorage<T>
-  asObjects_unchecked(size_type num_objs) PF_NOEXCEPT {
+  as_objects_unchecked(SizeType num_objs) PF_NOEXCEPT {
     static constexpr std::string_view alignment_issue = "Alignemnt issue";
     static constexpr std::string_view size_issue = "Incorrect size";
-    return asObjects<T,
-                     ErrPolicy_nothing<ObjectStorage<T>, alignment_issue>,
-                     ErrPolicy_nothing<ObjectStorage<T>, size_issue>>(num_objs);
+    return as_objects<T,
+                      ErrPolicyNothing<ObjectStorage<T>, alignment_issue>,
+                      ErrPolicyNothing<ObjectStorage<T>, size_issue>>(num_objs);
   }
 
   template <typename T>
   [[nodiscard]] constexpr std::optional<ObjectStorage<T>>
-  try_asObjects(size_type num_objs) PF_NOEXCEPT {
-    return asObjects<T,
-                     ErrPolicy_optional<ObjectStorage<T>>,
-                     ErrPolicy_optional<ObjectStorage<T>>>(num_objs);
+  try_as_objects(SizeType num_objs) PF_NOEXCEPT {
+    return as_objects<T,
+                      ErrPolicyOptional<ObjectStorage<T>>,
+                      ErrPolicyOptional<ObjectStorage<T>>>(num_objs);
   }
 };
 

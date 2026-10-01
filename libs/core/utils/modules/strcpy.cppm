@@ -17,9 +17,9 @@ namespace pf {
  *@tparam T element type examined
  *@tparam T_val the value passed to the predicate
  */
-export template <typename T, typename T_val>
-concept IsTerminator_c = requires(T isTerminatorFunc, T_val val) {
-  { isTerminatorFunc(val) } -> std::convertible_to<bool>;
+export template <typename T, typename ValT>
+concept IsTerminator_c = requires(T is_terminator_func, ValT val) {
+  { is_terminator_func(val) } -> std::convertible_to<bool>;
 };
 
 /**
@@ -28,7 +28,7 @@ concept IsTerminator_c = requires(T isTerminatorFunc, T_val val) {
  *        that satisfy @p isTerminator is greater than @p maxTerminators
  *
  *@tparam T element type
- *@tparam T_isTerminatorFunc type of the terminator predicate
+ *@tparam IsTerminatorFunc type of the terminator predicate
  *
  *@param dest destination buffer, its size bounds the copy
  *@param src source buffer
@@ -38,19 +38,19 @@ concept IsTerminator_c = requires(T isTerminatorFunc, T_val val) {
  *
  * @return The number of elements copied, including the terminators
  */
-export template <typename T, IsTerminator_c<T> T_isTerminatorFunc>
+export template <typename T, IsTerminator_c<T> IsTerminatorFunc>
 constexpr std::size_t
 copy_until(std::span<T> dest,
            const std::span<const T> src,
-           T_isTerminatorFunc&& isTerminator,
-           const std::size_t maxTerminators = 0) PF_NOEXCEPT {
-  std::size_t const maxCount = std::min(dest.size(), src.size());
+           IsTerminatorFunc&& is_terminator,
+           const std::size_t max_terminators = 0) PF_NOEXCEPT {
+  std::size_t const max_count = std::min(dest.size(), src.size());
   std::size_t i = 0;
-  std::size_t terminatorCount = 0;
-  for (i = 0; i < maxCount; i++) {
-    if (isTerminator(src[i])) terminatorCount++;
+  std::size_t terminator_count = 0;
+  for (i = 0; i < max_count; i++) {
+    if (is_terminator(src[i])) terminator_count++;
 
-    if (maxTerminators < terminatorCount) break;
+    if (max_terminators < terminator_count) break;
 
     dest[i] = src[i];
   }
@@ -74,14 +74,14 @@ copy_until(std::span<T> dest,
 export constexpr std::size_t
 strcpy(std::span<char> dest,
        const std::string_view src,
-       const std::size_t maxNullTerminators = 0) PF_NOEXCEPT {
-  const std::size_t copyCount = copy_until(
+       const std::size_t max_null_terminators = 0) PF_NOEXCEPT {
+  const std::size_t copy_count = copy_until(
       {dest.data(), dest.size() - 1},
       std::span<const char>{src.data(), src.size()},
       [](char val) { return val == '\0'; },
-      maxNullTerminators);
-  dest[copyCount] = '\0';
-  return copyCount + 1;
+      max_null_terminators);
+  dest[copy_count] = '\0';
+  return copy_count + 1;
 }
 
 }

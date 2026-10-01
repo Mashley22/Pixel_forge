@@ -12,43 +12,43 @@ import :require;
 
 export namespace pf {
 
-template <typename T_ptr>
+template <typename PtrT>
 concept PointerLike_c =
-    std::is_pointer_v<T_ptr> || std::is_same_v<std::uintptr_t, T_ptr> ||
-    std::is_same_v<std::intptr_t, T_ptr> || std::is_same_v<std::ptrdiff_t, T_ptr> ||
-    std::is_same_v<T_ptr, std::nullptr_t>;
+    std::is_pointer_v<PtrT> || std::is_same_v<std::uintptr_t, PtrT> ||
+    std::is_same_v<std::intptr_t, PtrT> || std::is_same_v<std::ptrdiff_t, PtrT> ||
+    std::is_same_v<PtrT, std::nullptr_t>;
 
-template <PointerLike_c T_to, PointerLike_c T_from>
-[[nodiscard]] constexpr T_to
-pointer_cast(T_from ptr) PF_NOEXCEPT {
+template <PointerLike_c ToT, PointerLike_c FromT>
+[[nodiscard]] constexpr ToT
+pointer_cast(FromT ptr) PF_NOEXCEPT {
   if (std::is_constant_evaluated()) {
-    return std::bit_cast<T_to>(ptr); // NOLINT(bugprone-bitwise-pointer-cast)
+    return std::bit_cast<ToT>(ptr); // NOLINT(bugprone-bitwise-pointer-cast)
   }
-  return reinterpret_cast<T_to>(ptr);
+  return reinterpret_cast<ToT>(ptr);
 }
 
 template <typename T>
 [[nodiscard]] constexpr bool
-isAligned(void* ptr) PF_NOEXCEPT {
+is_aligned(void* ptr) PF_NOEXCEPT {
   return (pointer_cast<std::uintptr_t>(ptr) % alignof(T)) == 0;
 }
 
 template <typename T>
 [[nodiscard]] constexpr bool
-isAligned(std::byte* ptr) PF_NOEXCEPT {
-  return isAligned<T>(pointer_cast<void*>(ptr));
+is_aligned(std::byte* ptr) PF_NOEXCEPT {
+  return is_aligned<T>(pointer_cast<void*>(ptr));
 }
 
 template <typename T>
 [[nodiscard]] constexpr bool
-isAligned(char* ptr) PF_NOEXCEPT {
-  return isAligned<T>(pointer_cast<void*>(ptr));
+is_aligned(char* ptr) PF_NOEXCEPT {
+  return is_aligned<T>(pointer_cast<void*>(ptr));
 }
 
 template <typename T>
 [[nodiscard]] constexpr bool
-isAligned(unsigned char* ptr) PF_NOEXCEPT {
-  return isAligned<T>(pointer_cast<void*>(ptr));
+is_aligned(unsigned char* ptr) PF_NOEXCEPT {
+  return is_aligned<T>(pointer_cast<void*>(ptr));
 }
 
 template <typename T>
@@ -73,8 +73,8 @@ template <typename T>
   requires PointerLike_c<T> && NullptrComparable_c<T>
 class NonNull {
 public:
-  using pointer_type = T;
-  using element_type = std::remove_pointer_t<T>;
+  using PointerType = T;
+  using ElementType = std::remove_pointer_t<T>;
 
   /**
    * @brief Construct from a pointer - explicit to prevent accidental creation
@@ -103,7 +103,7 @@ public:
   /**
    * @brief Dereference
    */
-  [[nodiscard]] constexpr element_type&
+  [[nodiscard]] constexpr ElementType&
   operator*() const PF_NOEXCEPT {
     [[assume(m_ptr != nullptr)]];
     return *m_ptr;
@@ -112,7 +112,7 @@ public:
   /**
    * @brief Member access
    */
-  [[nodiscard]] constexpr element_type*
+  [[nodiscard]] constexpr ElementType*
   operator->() const PF_NOEXCEPT {
     [[assume(m_ptr != nullptr)]];
     return m_ptr;
@@ -135,11 +135,11 @@ private:
   T m_ptr;
 };
 
-template <PointerLike_c T_to, typename T_from>
-  requires std::is_same_v<T_from, NonNull<T_to>>
-[[nodiscard]] constexpr T_to
-pointer_cast(T_from ptr) PF_NOEXCEPT {
-  return static_cast<T_to>(ptr);
+template <PointerLike_c ToT, typename FromT>
+  requires std::is_same_v<FromT, NonNull<ToT>>
+[[nodiscard]] constexpr ToT
+pointer_cast(FromT ptr) PF_NOEXCEPT {
+  return static_cast<ToT>(ptr);
 }
 
 /**

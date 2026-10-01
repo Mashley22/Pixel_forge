@@ -19,11 +19,11 @@ export namespace pf {
  *      on different failure coniditions
  *
  *@tparam Policy the policy type
- *@tparam T_result_type value produced on the success path
+ *@tparam ResultType value produced on the success path
  */
-template <class Policy, typename T_result_type>
-concept ErrPolicy_c = !std::is_same_v<T_result_type, void> &&
-                      requires(const T_result_type& lvalue, T_result_type&& rvalue) {
+template <class Policy, typename ResultType>
+concept ErrPolicy_c = !std::is_same_v<ResultType, void> &&
+                      requires(const ResultType& lvalue, ResultType&& rvalue) {
                         /**
                          *@brief whether a given policy introduces new exceptions that can
                          * be thrown i.e. optionals do not introduce new exceptions that
@@ -33,18 +33,18 @@ concept ErrPolicy_c = !std::is_same_v<T_result_type, void> &&
                         typename std::bool_constant<Policy::is_noexcept>;
                         typename std::bool_constant<Policy::enabled>;
 
-                        typename Policy::return_type;
+                        typename Policy::ReturnType;
 
                         {
-                          Policy::success(std::forward<T_result_type>(rvalue))
-                        } -> std::same_as<typename Policy::return_type>;
+                          Policy::success(std::forward<ResultType>(rvalue))
+                        } -> std::same_as<typename Policy::ReturnType>;
                         {
-                          Policy::success(static_cast<T_result_type&&>(rvalue))
-                        } -> std::same_as<typename Policy::return_type>;
+                          Policy::success(static_cast<ResultType&&>(rvalue))
+                        } -> std::same_as<typename Policy::ReturnType>;
 
                         {
                           Policy::success(lvalue)
-                        } -> std::same_as<typename Policy::return_type>;
+                        } -> std::same_as<typename Policy::ReturnType>;
                       };
 
 /**
@@ -57,9 +57,9 @@ concept VoidErrPolicy_c = requires() {
   typename std::bool_constant<VoidPolicy::is_noexcept>;
   typename std::bool_constant<VoidPolicy::enabled>;
 
-  typename VoidPolicy::return_type;
+  typename VoidPolicy::ReturnType;
 
-  { VoidPolicy::success() } -> std::same_as<typename VoidPolicy::return_type>;
+  { VoidPolicy::success() } -> std::same_as<typename VoidPolicy::ReturnType>;
 };
 
 /**
@@ -68,10 +68,10 @@ concept VoidErrPolicy_c = requires() {
  *
  *@note success returns the value unchanged, adding no overhead
  *
- *@tparam T_result_type value produced on the success path
+ *@tparam ResultType value produced on the success path
  */
-template <typename T_result_type, const std::string_view& T_fail_msg>
-struct ErrPolicy_nothing {
+template <typename ResultType, const std::string_view& FailMsg>
+struct ErrPolicyNothing {
   static constexpr bool is_noexcept = true;
   static constexpr bool enabled =
 #ifdef NDEBUG
@@ -80,38 +80,38 @@ struct ErrPolicy_nothing {
       true;
 #endif
 
-  using return_type = T_result_type;
+  using ReturnType = ResultType;
 
-  [[nodiscard]] static constexpr return_type
-  success(T_result_type&& successfulResult) PF_NOEXCEPT {
-    return std::forward<T_result_type>(successfulResult);
+  [[nodiscard]] static constexpr ReturnType
+  success(ResultType&& successful_result) PF_NOEXCEPT {
+    return std::forward<ResultType>(successful_result);
   }
 
-  [[nodiscard]] static constexpr return_type
-  success(const T_result_type& successfulResult) PF_NOEXCEPT {
-    return successfulResult;
+  [[nodiscard]] static constexpr ReturnType
+  success(const ResultType& successful_result) PF_NOEXCEPT {
+    return successful_result;
   }
 
-  [[noreturn]] static constexpr return_type
+  [[noreturn]] static constexpr ReturnType
   fail([[maybe_unused]] const char* str) PF_NOEXCEPT {
     PF_REQUIRE(false, str);
     std::unreachable();
   }
 
-  template <class... V_args>
-  [[noreturn]] static constexpr return_type
-  fail([[maybe_unused]] V_args... args) PF_NOEXCEPT {
-    PF_REQUIRE(false, T_fail_msg);
+  template <class... VArgs>
+  [[noreturn]] static constexpr ReturnType
+  fail([[maybe_unused]] VArgs... args) PF_NOEXCEPT {
+    PF_REQUIRE(false, FailMsg);
     std::unreachable();
   }
 };
 
 /**
- *@brief Void specialisation of ErrPolicy_nothing for operations without a
+ *@brief Void specialisation of ErrPolicyNothing for operations without a
  * meaningful result
  */
-template <const std::string_view& T_fail_msg>
-struct ErrPolicy_nothing<void, T_fail_msg> {
+template <const std::string_view& FailMsg>
+struct ErrPolicyNothing<void, FailMsg> {
   static constexpr bool is_noexcept = true;
   static constexpr bool enabled =
 #ifdef NDEBUG
@@ -120,15 +120,15 @@ struct ErrPolicy_nothing<void, T_fail_msg> {
       true;
 #endif
 
-  using return_type = void;
+  using ReturnType = void;
 
   static constexpr void
   success() PF_NOEXCEPT {};
 
-  template <class... V_args>
-  static constexpr return_type
-  fail(V_args... args) PF_NOEXCEPT {
-    PF_REQUIRE(false, T_fail_msg);
+  template <class... VArgs>
+  static constexpr ReturnType
+  fail(VArgs... args) PF_NOEXCEPT {
+    PF_REQUIRE(false, FailMsg);
     ((void) args, ...);
     return;
   }
@@ -138,107 +138,107 @@ struct ErrPolicy_nothing<void, T_fail_msg> {
  *@brief Policy reporting failure as an empty std::optional instead of
  * throwing; introduces no new exceptions itself
  *
- *@tparam T_result_type element type of the returned optional
+ *@tparam ResultType element type of the returned optional
  */
-template <typename T_result_type>
-struct ErrPolicy_optional {
-  static_assert(!std::is_same_v<T_result_type, void>, "A little silly");
+template <typename ResultType>
+struct ErrPolicyOptional {
+  static_assert(!std::is_same_v<ResultType, void>, "A little silly");
 
   static constexpr bool is_noexcept = true;
   static constexpr bool enabled = true;
-  using return_type = std::optional<T_result_type>;
+  using ReturnType = std::optional<ResultType>;
 
-  [[nodiscard]] static constexpr return_type
-  success(T_result_type&& successfulResult) PF_NOEXCEPT {
-    return std::make_optional(std::forward<T_result_type>(successfulResult));
+  [[nodiscard]] static constexpr ReturnType
+  success(ResultType&& successful_result) PF_NOEXCEPT {
+    return std::make_optional(std::forward<ResultType>(successful_result));
   }
 
-  [[nodiscard]] static constexpr return_type
-  success(const T_result_type& successfulResult) PF_NOEXCEPT {
-    return std::make_optional(successfulResult);
+  [[nodiscard]] static constexpr ReturnType
+  success(const ResultType& successful_result) PF_NOEXCEPT {
+    return std::make_optional(successful_result);
   }
 
-  template <class... V_args>
-  [[nodiscard]] static constexpr return_type
-  fail(V_args... args) PF_NOEXCEPT {
+  template <class... VArgs>
+  [[nodiscard]] static constexpr ReturnType
+  fail(VArgs... args) PF_NOEXCEPT {
     ((void) args, ...);
     return std::nullopt;
   }
 };
 
 /**
- *@brief Void specialisation of ErrPolicy_optional, maps success/failure onto
+ *@brief Void specialisation of ErrPolicyOptional, maps success/failure onto
  * plain bool
  */
 template <>
-struct ErrPolicy_optional<void> {
+struct ErrPolicyOptional<void> {
 
   static constexpr bool is_noexcept = true;
   static constexpr bool enabled = true;
-  using return_type = bool;
+  using ReturnType = bool;
 
-  [[nodiscard]] static constexpr return_type
+  [[nodiscard]] static constexpr ReturnType
   success() PF_NOEXCEPT {
     return true;
   };
 
-  template <class... V_args>
-  [[nodiscard]] static constexpr return_type
-  fail(V_args... args) PF_NOEXCEPT {
+  template <class... VArgs>
+  [[nodiscard]] static constexpr ReturnType
+  fail(VArgs... args) PF_NOEXCEPT {
     ((void) args, ...);
     return false;
   }
 };
 
 /**
- *@brief Policy throwing @p T_exception on failure
+ *@brief Policy throwing @p ExceptionT on failure
  *
- *@tparam T_result_type value produced on the success path
- *@tparam T_exception exception type thrown by fail(), forwarded any extra
+ *@tparam ResultType value produced on the success path
+ *@tparam ExceptionT exception type thrown by fail(), forwarded any extra
  * arguments fail() received
  */
-template <typename T_result_type, class T_exception>
-struct ErrPolicy_throws {
+template <typename ResultType, class ExceptionT>
+struct ErrPolicyThrows {
   static constexpr bool is_noexcept = false;
   static constexpr bool enabled = true;
-  using return_type = T_result_type;
+  using ReturnType = ResultType;
 
-  [[nodiscard]] static constexpr return_type
-  success(T_result_type&& successfulResult) PF_NOEXCEPT {
-    return std::forward<T_result_type>(successfulResult);
+  [[nodiscard]] static constexpr ReturnType
+  success(ResultType&& successful_result) PF_NOEXCEPT {
+    return std::forward<ResultType>(successful_result);
   }
 
-  [[nodiscard]] static constexpr return_type
-  success(const T_result_type& successfulResult) PF_NOEXCEPT {
-    return successfulResult;
+  [[nodiscard]] static constexpr ReturnType
+  success(const ResultType& successful_result) PF_NOEXCEPT {
+    return successful_result;
   }
 
-  template <class... V_args>
-  [[noreturn]] static constexpr return_type
-  fail(V_args... args) {
-    throw T_exception{std::forward<V_args>(args)...};
+  template <class... VArgs>
+  [[noreturn]] static constexpr ReturnType
+  fail(VArgs... args) {
+    throw ExceptionT{std::forward<VArgs>(args)...};
   }
 };
 
 /**
- *@brief Void specialisation of ErrPolicy_throws for operations without a
+ *@brief Void specialisation of ErrPolicyThrows for operations without a
  * meaningful result
  *
- *@tparam T_exception exception type thrown by fail()
+ *@tparam ExceptionT exception type thrown by fail()
  */
-template <class T_exception>
-struct ErrPolicy_throws<void, T_exception> {
+template <class ExceptionT>
+struct ErrPolicyThrows<void, ExceptionT> {
   static constexpr bool is_noexcept = false;
   static constexpr bool enabled = true;
-  using return_type = void;
+  using ReturnType = void;
 
-  static constexpr return_type
+  static constexpr ReturnType
   success() PF_NOEXCEPT {}
 
-  template <class... V_args>
-  static constexpr return_type
-  fail(V_args... args) {
-    throw T_exception{std::forward<V_args>(args)...};
+  template <class... VArgs>
+  static constexpr ReturnType
+  fail(VArgs... args) {
+    throw ExceptionT{std::forward<VArgs>(args)...};
   }
 };
 
@@ -248,18 +248,18 @@ namespace pf {
 
 namespace {
 
-constexpr std::string_view dummyStrView = "";
-static_assert(ErrPolicy_c<ErrPolicy_nothing<int, dummyStrView>, int>);
-static_assert(!ErrPolicy_c<ErrPolicy_nothing<void, dummyStrView>, void>);
-static_assert(VoidErrPolicy_c<ErrPolicy_nothing<void, dummyStrView>>);
+constexpr std::string_view dummy_str_view = "";
+static_assert(ErrPolicy_c<ErrPolicyNothing<int, dummy_str_view>, int>);
+static_assert(!ErrPolicy_c<ErrPolicyNothing<void, dummy_str_view>, void>);
+static_assert(VoidErrPolicy_c<ErrPolicyNothing<void, dummy_str_view>>);
 
-static_assert(ErrPolicy_c<ErrPolicy_optional<int>, int>);
-static_assert(!ErrPolicy_c<ErrPolicy_optional<void>, void>);
-static_assert(VoidErrPolicy_c<ErrPolicy_optional<void>>);
+static_assert(ErrPolicy_c<ErrPolicyOptional<int>, int>);
+static_assert(!ErrPolicy_c<ErrPolicyOptional<void>, void>);
+static_assert(VoidErrPolicy_c<ErrPolicyOptional<void>>);
 
-static_assert(ErrPolicy_c<ErrPolicy_throws<int, int>, int>);
-static_assert(!ErrPolicy_c<ErrPolicy_throws<void, int>, void>);
-static_assert(VoidErrPolicy_c<ErrPolicy_throws<void, int>>);
+static_assert(ErrPolicy_c<ErrPolicyThrows<int, int>, int>);
+static_assert(!ErrPolicy_c<ErrPolicyThrows<void, int>, void>);
+static_assert(VoidErrPolicy_c<ErrPolicyThrows<void, int>>);
 
 }
 

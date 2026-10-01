@@ -25,7 +25,7 @@ namespace pf {
 /**
  *@brief Base class of all PixelForge exceptions
  *
- * Copies its message into a fixed-size static buffer (see msgBufSize) so
+ * Copies its message into a fixed-size static buffer (see msg_buf_size) so
  * exceptions carry no dynamic allocations. Note that the buffer is shared
  * between all instances: constructing any Exception overwrites the message
  * seen by previously constructed ones. Extra per-exception data should be
@@ -36,20 +36,20 @@ public:
   /**
    *@brief Default message buffer size in bytes, including null terminator
    */
-  static constexpr std::size_t msgBufSizeDefault = 512;
+  static constexpr std::size_t msg_buf_size_default = 512;
 
   /**
    *@brief Active message buffer size in bytes; overridable at compile time
    * via PF_EXCEPTION_MSG_BUF_SIZE
    */
-  static constexpr std::size_t msgBufSize =
+  static constexpr std::size_t msg_buf_size =
 #ifdef PF_EXCEPTION_MSG_BUF_SIZE
       PF_EXCEPTION_MSG_BUF_SIZE;
 #else
-      msgBufSizeDefault;
+      msg_buf_size_default;
 #endif
 private:
-  inline static thread_local std::array<char, msgBufSize> m_msgBuf{};
+  inline static thread_local std::array<char, msg_buf_size> m_msg_buf{};
 
 public:
   Exception() PF_NOEXCEPT = delete;
@@ -58,7 +58,7 @@ public:
    *@brief Stores @p str truncated to the buffer size as the message
    */
   constexpr explicit Exception(const std::string_view& str) PF_NOEXCEPT {
-    strcpy(m_msgBuf, str);
+    strcpy(m_msg_buf, str);
     DEBUG_PRINT(what());
   }
 
@@ -66,7 +66,7 @@ public:
    *@brief Stores @p str truncated to the buffer size as the message
    */
   constexpr explicit Exception(const char* str) PF_NOEXCEPT {
-    strcpy(m_msgBuf, {str, m_msgBuf.size()});
+    strcpy(m_msg_buf, {str, m_msg_buf.size()});
     DEBUG_PRINT(what());
   }
 
@@ -74,7 +74,7 @@ public:
    *@brief Stores what() of @p error truncated to the buffer size
    */
   constexpr explicit Exception(const std::exception& error) PF_NOEXCEPT {
-    strcpy(m_msgBuf, {error.what(), m_msgBuf.size()});
+    strcpy(m_msg_buf, {error.what(), m_msg_buf.size()});
     DEBUG_PRINT(what());
   }
 
@@ -83,7 +83,7 @@ public:
    */
   virtual constexpr const char*
   what() const PF_NOEXCEPT {
-    return m_msgBuf.data();
+    return m_msg_buf.data();
   }
 };
 

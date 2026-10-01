@@ -25,13 +25,13 @@ namespace meta {
  *
  *@tparam T unsigned integral type of @p T_val
  *@tparam T_val the value to convert
- *@tparam T_base numeric base, 2 <= T_base <= T_digitSet.size()
- *@tparam T_digitSet character set mapping digit values to glyphs
+ *@tparam Base numeric base, 2 <= Base <= DigitSet.size()
+ *@tparam DigitSet character set mapping digit values to glyphs
  */
 export template <std::unsigned_integral T,
-                 T T_val,
-                 std::size_t T_base = DEFAULT_BASE,
-                 const std::string_view& T_digitSet = digitSetUpper>
+                 T ValT,
+                 std::size_t BaseT = DEFAULT_BASE,
+                 const std::string_view& TDigitSet = digit_set_upper>
 struct UintToStr {
 private:
   /**
@@ -40,15 +40,15 @@ private:
   [[nodiscard]]
   static consteval std::size_t
   digits() {
-    std::size_t digitCount = 1;
-    T val = T_val;
+    std::size_t digit_count = 1;
+    T val = ValT;
 
-    while (val >= T_base) {
-      val /= T_base;
-      digitCount++;
+    while (val >= BaseT) {
+      val /= BaseT;
+      digit_count++;
     }
 
-    return digitCount;
+    return digit_count;
   }
 
   [[nodiscard]]
@@ -59,10 +59,10 @@ private:
 
   [[nodiscard]]
   static consteval T
-  maxBaseScale() {
+  max_base_scale() {
     T scale = 1;
     for (std::size_t i = 1; i < digits(); i++) {
-      scale *= T_base;
+      scale *= BaseT;
     }
 
     return scale;
@@ -71,19 +71,19 @@ private:
   [[nodiscard]]
   static consteval std::array<char, len()>
   impl() {
-    std::array<char, len()> retVal{};
-    T remaining = T_val;
-    T scale = maxBaseScale();
+    std::array<char, len()> ret_val{};
+    T remaining = ValT;
+    T scale = max_base_scale();
 
     for (std::size_t i = 0; i < digits(); i++) {
-      retVal[i] = T_digitSet[remaining / scale];
+      ret_val[i] = TDigitSet[remaining / scale];
       remaining %= scale;
-      scale /= T_base;
+      scale /= BaseT;
     }
 
-    retVal.back() = '\0';
+    ret_val.back() = '\0';
 
-    return retVal;
+    return ret_val;
   }
 
 public:
@@ -127,49 +127,48 @@ public:
  *
  *@tparam T signed integral type of @p T_val
  *@tparam T_val the value to convert
- *@tparam T_base numeric base
- *@tparam T_digitSet character set mapping digit values to glyphs
+ *@tparam Base numeric base
+ *@tparam DigitSet character set mapping digit values to glyphs
  */
 export template <std::signed_integral T,
-                 T T_val,
-                 std::size_t T_base = DEFAULT_BASE,
-                 const std::string_view& T_digitSet = digitSetUpper>
+                 T ValT,
+                 std::size_t BaseT = DEFAULT_BASE,
+                 const std::string_view& TDigitSet = digit_set_upper>
 struct IntToStr {
 private:
-  using unsigned_t = std::make_unsigned_t<T>;
+  using UnsignedT = std::make_unsigned_t<T>;
 
   /**
    *@brief Magnitude of T_val computed without signed overflow, so even the
    * most negative value converts correctly
    */
-  static constexpr unsigned_t magnitude =
-      (T_val < 0) ? static_cast<unsigned_t>(-static_cast<unsigned_t>(T_val))
-                  : static_cast<unsigned_t>(T_val);
+  static constexpr UnsignedT magnitude =
+      (ValT < 0) ? static_cast<UnsignedT>(-static_cast<UnsignedT>(ValT))
+                 : static_cast<UnsignedT>(ValT);
 
-  static constexpr auto UintArr =
-      UintToStr<unsigned_t, magnitude, T_base, T_digitSet>::arr;
+  static constexpr auto uint_arr = UintToStr<UnsignedT, magnitude, BaseT, TDigitSet>::arr;
 
   [[nodiscard]]
   static consteval std::size_t
   len() {
-    if constexpr (T_val >= 0) {
-      return UintArr.size();
+    if constexpr (ValT >= 0) {
+      return uint_arr.size();
     }
-    return UintArr.size() + 1;
+    return uint_arr.size() + 1;
   }
 
   [[nodiscard]]
   static consteval std::array<char, len()>
   impl() {
-    std::array<char, len()> retVal;
-    if constexpr (T_val >= 0) {
-      std::copy(UintArr.begin(), UintArr.end(), retVal.begin());
-      return retVal;
+    std::array<char, len()> ret_val;
+    if constexpr (ValT >= 0) {
+      std::copy(uint_arr.begin(), uint_arr.end(), ret_val.begin());
+      return ret_val;
     }
 
-    retVal[0] = '-';
-    std::copy(UintArr.begin(), UintArr.end(), retVal.begin() + 1);
-    return retVal;
+    ret_val[0] = '-';
+    std::copy(uint_arr.begin(), uint_arr.end(), ret_val.begin() + 1);
+    return ret_val;
   }
 
 public:

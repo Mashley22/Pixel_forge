@@ -22,14 +22,14 @@ namespace {
 alignas(pf_vh::LifeTimeTracker)
     std::array<std::byte, BUF_SIZE * sizeof(pf_vh::LifeTimeTracker)> M_buf;
 pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf.data());
-auto M_buf_storage = Buffer::from(M_buf).asObjects<pf_vh::LifeTimeTracker>(BUF_SIZE);
+auto M_buf_storage = Buffer::from(M_buf).as_objects<pf_vh::LifeTimeTracker>(BUF_SIZE);
 
 }
 
 PF_TEST_CASE("basic", "[containers][SPSCQueue]") {
 
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
   SPSCRingQueue<std::uint32_t> queue(storage);
 
   SECTION("buffer untouched") {
@@ -50,7 +50,7 @@ PF_TEST_CASE("basic", "[containers][SPSCQueue]") {
   SECTION("span constructor") {
     std::span<std::byte> spanBuf(buf);
     SPSCRingQueue<std::uint32_t> spanQueue(
-        Buffer::from(spanBuf).asObjects<std::uint32_t>(BUF_SIZE));
+        Buffer::from(spanBuf).as_objects<std::uint32_t>(BUF_SIZE));
     REQUIRE(spanQueue.capacity() == BUF_SIZE);
     REQUIRE(spanQueue.data() == storage.data);
     REQUIRE(spanQueue.empty());
@@ -97,7 +97,7 @@ PF_TEST_CASE("fifo order across wraps", "[containers][SPSCQueue]") {
   constexpr auto ROUNDS = 5;
 
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
   SPSCRingQueue<std::uint32_t> queue(storage);
 
   SECTION("full rounds") {
@@ -160,7 +160,7 @@ PF_TEST_CASE("error policies", "[containers][SPSCQueue]") {
   using Queue = SPSCRingQueue<std::uint32_t>;
 
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
   Queue queue(storage);
 
   SECTION("pop on empty") {
@@ -196,7 +196,7 @@ PF_TEST_CASE("error policies", "[containers][SPSCQueue]") {
     REQUIRE(queue.empty());
   }
 
-  SECTION("emplace returns element pointer") {
+  SECTION("emplace returns element Pointer") {
     std::optional<std::uint32_t*> ptr = queue.try_emplace(std::uint32_t{7});
 
     REQUIRE(ptr.has_value());
@@ -360,7 +360,7 @@ PF_TEST_CASE("move only elements", "[containers][SPSCQueue]") {
   alignas(std::unique_ptr<int>)
       std::array<std::byte, BUF_SIZE * sizeof(std::unique_ptr<int>)>
           buf;
-  auto storage = Buffer::from(buf).asObjects<std::unique_ptr<int>>(BUF_SIZE);
+  auto storage = Buffer::from(buf).as_objects<std::unique_ptr<int>>(BUF_SIZE);
   SPSCRingQueue<std::unique_ptr<int>> queue(storage);
 
   REQUIRE(queue.try_push(std::make_unique<int>(42)));
@@ -393,10 +393,10 @@ PF_TEST_CASE("construction validation", "[containers][SPSCQueue]") {
 
   SECTION("power of two enforced only when requested") {
     alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
-    auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+    auto storage = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
     REQUIRE_NOTHROW((SPSCRingQueue<std::uint32_t>(storage)));
     REQUIRE_THROWS((SPSCRingQueue<std::uint32_t>(
-        Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE - 1))));
+        Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE - 1))));
   }
 }
 
@@ -404,7 +404,7 @@ PF_TEST_CASE("non power of two capacity", "[containers][SPSCQueue]") {
   constexpr auto CAPACITY = 100;
 
   alignas(std::uint32_t) std::array<std::byte, CAPACITY * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(CAPACITY);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(CAPACITY);
   REQUIRE_PF_REQUIRE_FAIL(SPSCRingQueue<std::uint32_t>(storage));
 }
 
@@ -413,7 +413,7 @@ PF_TEST_CASE("concurrent producer consumer", "[containers][SPSCQueue]") {
   constexpr auto COUNT = 20000;
 
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
   SPSCRingQueue<std::uint32_t> queue(storage);
 
   std::vector<std::uint32_t> consumed;

@@ -15,67 +15,65 @@ constexpr std::string_view dummyStrView = "";
 }
 
 PF_TEST_CASE("policy concepts", "[core][errPolicy]") {
-  STATIC_REQUIRE(ErrPolicy_c<ErrPolicy_nothing<int, dummyStrView>, int>);
-  STATIC_REQUIRE(ErrPolicy_c<ErrPolicy_optional<int>, int>);
-  STATIC_REQUIRE(ErrPolicy_c<ErrPolicy_throws<int, Exception>, int>);
+  STATIC_REQUIRE(ErrPolicy_c<ErrPolicyNothing<int, dummyStrView>, int>);
+  STATIC_REQUIRE(ErrPolicy_c<ErrPolicyOptional<int>, int>);
+  STATIC_REQUIRE(ErrPolicy_c<ErrPolicyThrows<int, Exception>, int>);
 
-  STATIC_REQUIRE(!ErrPolicy_c<ErrPolicy_nothing<void, dummyStrView>, void>);
-  STATIC_REQUIRE(!ErrPolicy_c<ErrPolicy_optional<void>, void>);
-  STATIC_REQUIRE(!ErrPolicy_c<ErrPolicy_throws<void, Exception>, void>);
+  STATIC_REQUIRE(!ErrPolicy_c<ErrPolicyNothing<void, dummyStrView>, void>);
+  STATIC_REQUIRE(!ErrPolicy_c<ErrPolicyOptional<void>, void>);
+  STATIC_REQUIRE(!ErrPolicy_c<ErrPolicyThrows<void, Exception>, void>);
 
-  STATIC_REQUIRE(VoidErrPolicy_c<ErrPolicy_nothing<void, dummyStrView>>);
-  STATIC_REQUIRE(VoidErrPolicy_c<ErrPolicy_optional<void>>);
-  STATIC_REQUIRE(VoidErrPolicy_c<ErrPolicy_throws<void, Exception>>);
+  STATIC_REQUIRE(VoidErrPolicy_c<ErrPolicyNothing<void, dummyStrView>>);
+  STATIC_REQUIRE(VoidErrPolicy_c<ErrPolicyOptional<void>>);
+  STATIC_REQUIRE(VoidErrPolicy_c<ErrPolicyThrows<void, Exception>>);
 }
 
 PF_TEST_CASE("nothing policy", "[core][errPolicy]") {
-  STATIC_REQUIRE(ErrPolicy_nothing<int, dummyStrView>::is_noexcept);
-  STATIC_REQUIRE(std::is_same_v<ErrPolicy_nothing<int, dummyStrView>::return_type, int>);
+  STATIC_REQUIRE(ErrPolicyNothing<int, dummyStrView>::is_noexcept);
+  STATIC_REQUIRE(std::is_same_v<ErrPolicyNothing<int, dummyStrView>::ReturnType, int>);
 
-  REQUIRE(ErrPolicy_nothing<int, dummyStrView>::success(42) == 42);
+  REQUIRE(ErrPolicyNothing<int, dummyStrView>::success(42) == 42);
 
   int lvalue = 7;
-  REQUIRE(ErrPolicy_nothing<int, dummyStrView>::success(lvalue) == 7);
+  REQUIRE(ErrPolicyNothing<int, dummyStrView>::success(lvalue) == 7);
 }
 
 PF_TEST_CASE("nothing policy fail requires", "[core][errPolicy]") {
-  auto dummy = []() { ErrPolicy_nothing<int, dummyStrView>::fail(0); };
+  auto dummy = []() { ErrPolicyNothing<int, dummyStrView>::fail(0); };
   REQUIRE_PF_REQUIRE_FAIL(dummy());
 }
 
 PF_TEST_CASE("nothing policy void", "[core][errPolicy]") {
-  STATIC_REQUIRE(
-      std::is_same_v<ErrPolicy_nothing<void, dummyStrView>::return_type, void>);
+  STATIC_REQUIRE(std::is_same_v<ErrPolicyNothing<void, dummyStrView>::ReturnType, void>);
 
-  REQUIRE_NOTHROW(ErrPolicy_nothing<void, dummyStrView>::success());
-  auto dummy = []() { ErrPolicy_nothing<int, dummyStrView>::fail(0); };
+  REQUIRE_NOTHROW(ErrPolicyNothing<void, dummyStrView>::success());
+  auto dummy = []() { ErrPolicyNothing<int, dummyStrView>::fail(0); };
   REQUIRE_PF_REQUIRE_FAIL(dummy());
 }
 
 PF_TEST_CASE("optional policy", "[core][errPolicy]") {
-  STATIC_REQUIRE(ErrPolicy_optional<int>::is_noexcept);
-  STATIC_REQUIRE(
-      std::is_same_v<ErrPolicy_optional<int>::return_type, std::optional<int>>);
+  STATIC_REQUIRE(ErrPolicyOptional<int>::is_noexcept);
+  STATIC_REQUIRE(std::is_same_v<ErrPolicyOptional<int>::ReturnType, std::optional<int>>);
 
-  REQUIRE(ErrPolicy_optional<int>::success(42) == std::optional<int>{42});
-  REQUIRE_FALSE(ErrPolicy_optional<int>::fail("some reason").has_value());
+  REQUIRE(ErrPolicyOptional<int>::success(42) == std::optional<int>{42});
+  REQUIRE_FALSE(ErrPolicyOptional<int>::fail("some reason").has_value());
 }
 
 PF_TEST_CASE("optional policy void", "[core][errPolicy]") {
-  STATIC_REQUIRE(std::is_same_v<ErrPolicy_optional<void>::return_type, bool>);
+  STATIC_REQUIRE(std::is_same_v<ErrPolicyOptional<void>::ReturnType, bool>);
 
-  REQUIRE(ErrPolicy_optional<void>::success());
-  REQUIRE_FALSE(ErrPolicy_optional<void>::fail("some reason"));
+  REQUIRE(ErrPolicyOptional<void>::success());
+  REQUIRE_FALSE(ErrPolicyOptional<void>::fail("some reason"));
 }
 
 PF_TEST_CASE("throws policy", "[core][errPolicy]") {
-  STATIC_REQUIRE(!ErrPolicy_throws<int, Exception>::is_noexcept);
-  STATIC_REQUIRE(std::is_same_v<ErrPolicy_throws<int, Exception>::return_type, int>);
+  STATIC_REQUIRE(!ErrPolicyThrows<int, Exception>::is_noexcept);
+  STATIC_REQUIRE(std::is_same_v<ErrPolicyThrows<int, Exception>::ReturnType, int>);
 
-  REQUIRE(ErrPolicy_throws<int, Exception>::success(42) == 42);
+  REQUIRE(ErrPolicyThrows<int, Exception>::success(42) == 42);
 
   try {
-    ErrPolicy_throws<int, Exception>::fail("boom");
+    ErrPolicyThrows<int, Exception>::fail("boom");
     REQUIRE_FALSE(true);
   } catch (const Exception& e) {
     REQUIRE(std::string_view{e.what()} == "boom");
@@ -83,16 +81,16 @@ PF_TEST_CASE("throws policy", "[core][errPolicy]") {
 }
 
 PF_TEST_CASE("throws policy builtin exception type", "[core][errPolicy]") {
-  REQUIRE_THROWS_AS((ErrPolicy_throws<int, int>::fail(7)), int);
+  REQUIRE_THROWS_AS((ErrPolicyThrows<int, int>::fail(7)), int);
 }
 
 PF_TEST_CASE("throws policy void", "[core][errPolicy]") {
-  STATIC_REQUIRE(std::is_same_v<ErrPolicy_throws<void, Exception>::return_type, void>);
+  STATIC_REQUIRE(std::is_same_v<ErrPolicyThrows<void, Exception>::ReturnType, void>);
 
-  REQUIRE_NOTHROW(ErrPolicy_throws<void, Exception>::success());
+  REQUIRE_NOTHROW(ErrPolicyThrows<void, Exception>::success());
 
   try {
-    ErrPolicy_throws<void, Exception>::fail("void boom");
+    ErrPolicyThrows<void, Exception>::fail("void boom");
     REQUIRE_FALSE(true);
   } catch (const Exception& e) {
     REQUIRE(std::string_view{e.what()} == "void boom");

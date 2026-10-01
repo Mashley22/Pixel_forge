@@ -21,17 +21,18 @@ namespace {
 alignas(pf_vh::LifeTimeTracker)
     std::array<std::byte, BUF_SIZE * sizeof(pf_vh::LifeTimeTracker)> M_buf;
 pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf.data());
-auto M_buf_storage = Buffer::from(M_buf).asObjects<pf_vh::LifeTimeTracker>(BUF_SIZE);
+auto M_buf_storage = Buffer::from(M_buf).as_objects<pf_vh::LifeTimeTracker>(BUF_SIZE);
 
 alignas(pf_vh::LifeTimeTracker)
     std::array<std::byte, BUF_SIZE * sizeof(pf_vh::LifeTimeTracker)> M_buf2;
 pf_vh::LifeTimeTracker* M_p_buf2 =
     reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf2.data());
-auto M_buf2_storage = Buffer::from(M_buf2).asObjects<pf_vh::LifeTimeTracker>(BUF_SIZE);
+auto M_buf2_storage = Buffer::from(M_buf2).as_objects<pf_vh::LifeTimeTracker>(BUF_SIZE);
 
 struct M_UnsizedInputRange {
   struct iterator {
     using iterator_category = std::input_iterator_tag;
+    // std-mandated iterator member names, not project style
     using value_type = std::uint32_t;
     using difference_type = std::ptrdiff_t;
     std::uint32_t v = 0;
@@ -71,7 +72,7 @@ static_assert(
 PF_TEST_CASE("basic", "[containers][RingQueue]") {
   std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
   auto buffer = Buffer::from(buf);
-  auto storage = buffer.asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage = buffer.as_objects<std::uint32_t>(BUF_SIZE);
   RingQueue<std::uint32_t> queue(storage);
 
   SECTION("buffer untouched") {
@@ -279,7 +280,7 @@ PF_TEST_CASE("force ops destroy replaced elements", "[containers][RingQueue]") {
 PF_TEST_CASE("push_range basic", "[containers][RingQueue]") {
   alignas(std::uint32_t) std::byte buf[BUF_SIZE * sizeof(std::uint32_t)]{};
   Buffer buffer = {.data = buf, .size = BUF_SIZE * sizeof(std::uint32_t)};
-  ObjectStorage<std::uint32_t> storage = buffer.asObjects<std::uint32_t>(BUF_SIZE);
+  ObjectStorage<std::uint32_t> storage = buffer.as_objects<std::uint32_t>(BUF_SIZE);
   RingQueue<std::uint32_t> queue(storage);
 
   std::vector<std::uint32_t> input{1, 2, 3, 4, 5};
@@ -312,7 +313,7 @@ PF_TEST_CASE("push_range move only", "[containers][RingQueue]") {
       std::array<std::byte, BUF_SIZE * sizeof(std::unique_ptr<int>)>
           buf;
   auto buffer = Buffer::from(buf);
-  auto storage = buffer.asObjects<std::unique_ptr<int>>(BUF_SIZE);
+  auto storage = buffer.as_objects<std::unique_ptr<int>>(BUF_SIZE);
   RingQueue<std::unique_ptr<int>> queue(storage);
 
   std::vector<std::unique_ptr<int>> input;
@@ -380,11 +381,11 @@ PF_TEST_CASE("move assignment", "[containers][RingQueue]") {
 
 PF_TEST_CASE("pow2 capacity validation", "[containers][RingQueue]") {
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf;
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
   REQUIRE_NOTHROW((RingQueue<std::uint32_t>(storage)));
 
   auto dummy = [&]() {
-    auto storageSmall = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE - 1);
+    auto storageSmall = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE - 1);
     (RingQueue<std::uint32_t>(storageSmall));
   };
 
@@ -394,8 +395,8 @@ PF_TEST_CASE("pow2 capacity validation", "[containers][RingQueue]") {
 PF_TEST_CASE("copy assignment", "[containers][RingQueue]") {
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> bufA;
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> bufB;
-  auto storageA = Buffer::from(bufA).asObjects<std::uint32_t>(BUF_SIZE);
-  auto storageB = Buffer::from(bufB).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storageA = Buffer::from(bufA).as_objects<std::uint32_t>(BUF_SIZE);
+  auto storageB = Buffer::from(bufB).as_objects<std::uint32_t>(BUF_SIZE);
 
   SECTION("basic copy assignment") {
     RingQueue<std::uint32_t> queueA(storageA);

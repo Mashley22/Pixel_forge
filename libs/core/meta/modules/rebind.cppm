@@ -2,19 +2,19 @@ export module PixelForge.core:meta.rebind;
 
 export namespace pf {
 
-template <typename T>
+template <typename Bound>
 struct Rebind;
 
-template <template <typename> class T, typename T_arg>
-struct Rebind<T<T_arg>> {
-  template <typename T_newArg>
-  using to = T<T_newArg>;
+template <template <typename> class Template, typename Arg>
+struct Rebind<Template<Arg>> {
+  template <typename NewArg>
+  using To = Template<NewArg>;
 };
 
-template <template <typename, typename> class T, typename T_arg1, typename T_arg2>
-struct Rebind<T<T_arg1, T_arg2>> {
-  template <typename T_newArg1, typename T_newArg2>
-  using to = T<T_newArg1, T_newArg2>;
+template <template <typename, typename> class Template, typename Arg1, typename Arg2>
+struct Rebind<Template<Arg1, Arg2>> {
+  template <typename NewArg1, typename NewArg2>
+  using To = Template<NewArg1, NewArg2>;
 };
 
 }

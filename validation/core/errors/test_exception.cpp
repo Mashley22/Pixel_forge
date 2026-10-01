@@ -39,10 +39,10 @@ PF_TEST_CASE("long message is truncated", "[core][errors]") {
   const std::string longMessage(600, 'a');
   const Exception e{std::string_view{longMessage}};
 
-  REQUIRE(std::string_view{e.what()}.size() == Exception::msgBufSize - 1);
+  REQUIRE(std::string_view{e.what()}.size() == Exception::msg_buf_size - 1);
   REQUIRE(std::string_view{e.what()} ==
-          std::string_view{longMessage}.substr(0, Exception::msgBufSize - 1));
-  REQUIRE(e.what()[Exception::msgBufSize - 1] == '\0');
+          std::string_view{longMessage}.substr(0, Exception::msg_buf_size - 1));
+  REQUIRE(e.what()[Exception::msg_buf_size - 1] == '\0');
 }
 
 PF_TEST_CASE("embedded null truncates message", "[core][errors]") {

@@ -19,6 +19,33 @@ import :utils.traits;
 
 import PixelForge.core;
 
+namespace pf::detail {
+
+/**
+ *@brief re-checks a predicate a bounded number of times before a thread
+ *  parks, a short spin is cheaper than a park and covers the case where a
+ *  signal is already in flight
+ */
+template <class Predicate>
+void
+spin_until(Predicate&& predicate) PF_NOEXCEPT {
+  using SpinCount = std::uint32_t;
+
+  constexpr SpinCount spin_limit = 65536;
+
+  for (SpinCount i = 0; i < spin_limit; ++i) {
+    if (predicate()) {
+      return;
+    }
+    constexpr SpinCount random_num = 128;
+    if ((i & random_num) == random_num) {
+      std::this_thread::yield();
+    }
+  }
+}
+
+}
+
 export namespace pf::adapters {
 
 /**
@@ -50,22 +77,22 @@ template <typename T>
 class MPMCRingQueue {
 public:
   struct Traits {
-    using value_type = T;
-    using size_type = std::size_t;
-    using difference_type = std::ptrdiff_t;
-    using reference = value_type&;
-    using const_reference = const value_type&;
-    using pointer = T*;
-    using const_pointer = const T*;
-    using storage_type = T;
+    using ValueType = T;
+    using SizeType = std::size_t;
+    using DifferenceType = std::ptrdiff_t;
+    using Reference = ValueType&;
+    using ConstReference = const ValueType&;
+    using Pointer = T*;
+    using ConstPointer = const T*;
+    using StorageType = T;
 
     static constexpr bool is_nothrow_copy_construct_v =
         std::is_nothrow_copy_constructible_v<T>;
     static constexpr bool is_nothrow_move_construct_v =
         std::is_nothrow_move_constructible_v<T>;
-    template <typename... V_args>
+    template <typename... VArgs>
     static constexpr bool is_nothrow_construct_v =
-        std::is_nothrow_constructible_v<T, V_args...>;
+        std::is_nothrow_constructible_v<T, VArgs...>;
   };
 
   PF_CONTAINERS_INHERIT_TRAITS(Traits);
@@ -73,14 +100,14 @@ public:
   /**
    *@brief Constructs a queue over a typed ObjectStorage
    *
-   * The storage's data pointer must be aligned for @p T and its size must be
+   * The storage's data Pointer must be aligned for @p T and its size must be
    * a power of two. The storage holds raw storage, the queue constructs and
    * destroys the values in it, and it must outlive the queue.
    */
-  explicit MPMCRingQueue(ObjectStorage<storage_type> storage) PF_NOEXCEPT
-    : m_data(pointer_cast<pointer>(storage.data)),
+  explicit MPMCRingQueue(ObjectStorage<StorageType> storage) PF_NOEXCEPT
+    : m_data(pointer_cast<Pointer>(storage.data)),
       m_mask(storage.size - 1) {
-    PF_REQUIRE(valid_init_());
+    PF_REQUIRE(valid_init());
   }
 
   ~MPMCRingQueue() PF_NOEXCEPT {
@@ -94,7 +121,7 @@ public:
   MPMCRingQueue&
   operator=(MPMCRingQueue&&) = delete;
 
-  [[nodiscard]] constexpr size_type
+  [[nodiscard]] constexpr SizeType
   capacity() const PF_NOEXCEPT {
     return m_mask + 1;
   }
@@ -103,16 +130,16 @@ public:
    *@brief the number of values that have been written to the queue but do not have
    * a read reserved
    */
-  [[nodiscard]] size_type
+  [[nodiscard]] SizeType
   size() const PF_NOEXCEPT {
     // the consumed cursor is read first, the produced one can only have grown
     // since, so the subtraction never underflows
-    const size_type consumed = m_read.reserved.load(std::memory_order_acquire);
-    const size_type produced = m_write.committed.load(std::memory_order_acquire);
+    const SizeType consumed = m_read.reserved.load(std::memory_order_acquire);
+    const SizeType produced = m_write.committed.load(std::memory_order_acquire);
     return produced - consumed;
   }
 
-  [[nodiscard]] size_type
+  [[nodiscard]] SizeType
   remaining() const PF_NOEXCEPT {
     return capacity() - size();
   }
@@ -131,8 +158,8 @@ public:
    */
   [[nodiscard]] bool
   full() const PF_NOEXCEPT {
-    const size_type consumed = m_read.committed.load(std::memory_order_acquire);
-    const size_type reserved = m_write.reserved.load(std::memory_order_acquire);
+    const SizeType consumed = m_read.committed.load(std::memory_order_acquire);
+    const SizeType reserved = m_write.reserved.load(std::memory_order_acquire);
     return (reserved - consumed) >= capacity();
   }
 
@@ -142,14 +169,13 @@ public:
    *@returns false when the queue is closed, full, or another thread is
    *  midway through a push
    */
-  template <class... V_Args>
+  template <class... VArgs>
   bool
-  try_emplace(V_Args&&... args)
-      PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
+  try_emplace(VArgs&&... args) PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
 
-    const size_type consumed = m_read.committed.load(std::memory_order_acquire);
-    const size_type committed = m_write.committed.load(std::memory_order_acquire);
-    size_type reserved = m_write.reserved.load(std::memory_order_relaxed);
+    const SizeType consumed = m_read.committed.load(std::memory_order_acquire);
+    const SizeType committed = m_write.committed.load(std::memory_order_acquire);
+    SizeType reserved = m_write.reserved.load(std::memory_order_relaxed);
 
     // a producer that is already writing is the only way the committed cursor
     // can lag the reserved one, and committing out of ticket order would let a
@@ -167,7 +193,7 @@ public:
 
     // taking the ticket makes this the only push in flight, so this thread is
     // the one that advances the committed cursor
-    std::construct_at(&m_data[idx_(reserved)], std::forward<V_Args>(args)...);
+    std::construct_at(&m_data[idx(reserved)], std::forward<VArgs>(args)...);
     m_write.committed.fetch_add(1, std::memory_order_release);
 
     return true;
@@ -179,11 +205,11 @@ public:
    *
    *@returns false when the queue is closed while waiting
    */
-  template <class... V_Args>
+  template <class... VArgs>
   bool
-  wait_emplace(V_Args&&... args)
+  wait_emplace(VArgs&&... args)
       PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
-    size_type reserved = 0;
+    SizeType reserved = 0;
 
     // taking the ticket and waiting for the tickets ahead are two phases, a
     // thread that has a ticket must never come back here and take another
@@ -191,12 +217,12 @@ public:
 
       // the event counter is read before the cursors are, so a signal that
       // lands in between leaves it changed and the wait returns straight away
-      const size_type consumed = m_read.committed.load(std::memory_order_acquire);
+      const SizeType consumed = m_read.committed.load(std::memory_order_acquire);
       reserved = m_write.reserved.load(std::memory_order_relaxed);
       if ((reserved - consumed) >= capacity()) {
         // no slot is free, a consumer has to finish reading one before it can
         // be handed back
-        spinUntil_(
+        detail::spin_until(
             [&] { return m_read.committed.load(std::memory_order_acquire) != consumed; });
         continue;
       }
@@ -213,15 +239,15 @@ public:
     // been written. The cursor waited on is the one that moves, so waiting on
     // the value it was read at cannot miss the change that releases it
     for (;;) {
-      const size_type cur = m_write.committed.load(std::memory_order_acquire);
+      const SizeType cur = m_write.committed.load(std::memory_order_acquire);
       if (cur == reserved) {
         break;
       }
-      spinUntil_(
+      detail::spin_until(
           [&]() { return m_write.committed.load(std::memory_order_acquire) != cur; });
     }
 
-    std::construct_at(&m_data[idx_(reserved)], std::forward<V_Args>(args)...);
+    std::construct_at(&m_data[idx(reserved)], std::forward<VArgs>(args)...);
     m_write.committed.store(reserved + 1, std::memory_order_release);
 
     return true;
@@ -233,11 +259,11 @@ public:
    *@returns std::nullopt when the queue is empty or another thread is
    *  midway through a pop
    */
-  [[nodiscard]] std::optional<value_type>
+  [[nodiscard]] std::optional<ValueType>
   try_pop() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
-    const size_type produced = m_write.committed.load(std::memory_order_acquire);
-    const size_type committed = m_read.committed.load(std::memory_order_acquire);
-    size_type reserved = m_read.reserved.load(std::memory_order_relaxed);
+    const SizeType produced = m_write.committed.load(std::memory_order_acquire);
+    const SizeType committed = m_read.committed.load(std::memory_order_acquire);
+    SizeType reserved = m_read.reserved.load(std::memory_order_relaxed);
 
     // a slot that is reserved but not yet written cannot be read, and
     // committing out of ticket order would hand the same slot out twice
@@ -254,8 +280,8 @@ public:
 
     // taking the ticket makes this the only pop in flight, so this thread is
     // the one that hands the slot back
-    std::optional<value_type> popped{std::move(m_data[idx_(reserved)])};
-    std::destroy_at(&m_data[idx_(reserved)]);
+    std::optional<ValueType> popped{std::move(m_data[idx(reserved)])};
+    std::destroy_at(&m_data[idx(reserved)]);
     m_read.committed.fetch_add(1, std::memory_order_release);
 
     return popped;
@@ -268,17 +294,17 @@ public:
    *@note a closed queue can still be drained, and reports itself drained
    *  with std::nullopt once it is
    */
-  [[nodiscard]] std::optional<value_type>
+  [[nodiscard]] std::optional<ValueType>
   wait_pop() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
-    size_type reserved = 0;
+    SizeType reserved = 0;
 
     for (;;) {
-      const size_type produced = m_write.committed.load(std::memory_order_acquire);
+      const SizeType produced = m_write.committed.load(std::memory_order_acquire);
       reserved = m_read.reserved.load(std::memory_order_relaxed);
       if (produced <= reserved) {
         // nothing to read, either the queue is empty or a producer is midway
         // through writing a slot
-        spinUntil_([&] {
+        detail::spin_until([&] {
           return m_write.committed.load(std::memory_order_acquire) != produced;
         });
         continue;
@@ -295,31 +321,31 @@ public:
     // the slot can only be read once every ticket ahead of this one has been
     // read, and the cursor waited on is the one that moves
     for (;;) {
-      const size_type cur = m_read.committed.load(std::memory_order_acquire);
+      const SizeType cur = m_read.committed.load(std::memory_order_acquire);
       if (cur == reserved) {
         break;
       }
-      spinUntil_(
+      detail::spin_until(
           [&]() { return m_read.committed.load(std::memory_order_acquire) != cur; });
     }
 
-    std::optional<value_type> popped{std::move(m_data[idx_(reserved)])};
-    std::destroy_at(&m_data[idx_(reserved)]);
+    std::optional<ValueType> popped{std::move(m_data[idx(reserved)])};
+    std::destroy_at(&m_data[idx(reserved)]);
     m_read.committed.store(reserved + 1, std::memory_order_release);
 
     return popped;
   }
 
-  template <class... V_Args>
+  template <class... VArgs>
   bool
-  try_push(V_Args&&... args) PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
-    return try_emplace(std::forward<V_Args>(args)...);
+  try_push(VArgs&&... args) PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
+    return try_emplace(std::forward<VArgs>(args)...);
   }
 
-  template <class... V_Args>
+  template <class... VArgs>
   bool
-  wait_push(V_Args&&... args) PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
-    return wait_emplace(std::forward<V_Args>(args)...);
+  wait_push(VArgs&&... args) PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
+    return wait_emplace(std::forward<VArgs>(args)...);
   }
 
 private:
@@ -329,49 +355,23 @@ private:
    *  has been dealt with
    */
   struct Cursors {
-    PF_CACHE_LINE_ALIGN_VAR std::atomic<size_type> reserved{0};
-    PF_CACHE_LINE_ALIGN_VAR std::atomic<size_type> committed{0};
+    PF_CACHE_LINE_ALIGN_VAR std::atomic<SizeType> reserved{0};
+    PF_CACHE_LINE_ALIGN_VAR std::atomic<SizeType> committed{0};
   };
 
-  using spin_t = std::uint32_t;
-  static constexpr spin_t SPIN_LIMIT = 65536;
-
-  /**
-   *@brief re-checks a predicate a bounded number of times before a thread
-   *  parks, a short spin is cheaper than a park and covers the case where a
-   *  signal is already in flight
-   *
-   *@returns true if the predicate held, in which case the caller should
-   *  re-evaluate everything
-   */
-  template <class T_Predicate>
-  void
-  spinUntil_(T_Predicate&& predicate) PF_NOEXCEPT {
-    for (spin_t i = 0; i < SPIN_LIMIT; ++i) {
-      if (predicate()) {
-        return;
-      }
-      constexpr spin_t randomNum = 128;
-      if ((i & randomNum) == randomNum) {
-        std::this_thread::yield();
-      }
-    }
-    return;
-  }
-
-  [[nodiscard]] constexpr size_type
-  idx_(size_type num) const PF_NOEXCEPT {
+  [[nodiscard]] constexpr SizeType
+  idx(SizeType num) const PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(m_data != nullptr && m_mask > 0);
     return num & m_mask;
   }
 
   [[nodiscard]] constexpr bool
-  valid_init_() const PF_NOEXCEPT {
+  valid_init() const PF_NOEXCEPT {
     return m_data != nullptr && capacity() > 0 && std::has_single_bit(capacity());
   }
 
-  pointer m_data{nullptr};
-  size_type m_mask{0};
+  Pointer m_data{nullptr};
+  SizeType m_mask{0};
 
   PF_CACHE_LINE_ALIGN_VAR Cursors m_read;
   PF_CACHE_LINE_ALIGN_VAR Cursors m_write;

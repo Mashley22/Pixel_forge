@@ -26,22 +26,22 @@ concept EnumClass_c =
  *
  *@tparam T_Bit_t the scoped enum type whose enumerators act as bits
  */
-template <EnumClass_c T_Bit_t>
+template <EnumClass_c BitEnumT>
 class Flag {
 public:
   /// The enum's underlying integer type
-  using underlying_t = std::underlying_type_t<T_Bit_t>;
+  using UnderlyingT = std::underlying_type_t<BitEnumT>;
 
   /**
    *@brief Wraps a single enumerator as a flag set
    */
-  constexpr Flag(T_Bit_t bit) PF_NOEXCEPT : m_val(static_cast<underlying_t>(bit)) {};
+  constexpr Flag(BitEnumT bit) PF_NOEXCEPT : m_val(static_cast<UnderlyingT>(bit)) {};
 
   /**
    *@brief The raw underlying bit pattern
    */
   [[nodiscard]]
-  constexpr underlying_t
+  constexpr UnderlyingT
   val() const PF_NOEXCEPT {
     return m_val;
   }
@@ -55,7 +55,7 @@ public:
    */
   [[nodiscard]]
   constexpr bool
-  operator==(T_Bit_t bit) const {
+  operator==(BitEnumT bit) const {
     return m_val == cast(bit);
   }
 
@@ -106,9 +106,9 @@ public:
    */
   [[nodiscard]]
   friend constexpr // no implied self
-      T_Bit_t
-      operator&(T_Bit_t lhs, T_Bit_t rhs) PF_NOEXCEPT {
-    return static_cast<T_Bit_t>(cast(lhs) | cast(rhs));
+      BitEnumT
+      operator&(BitEnumT lhs, BitEnumT rhs) PF_NOEXCEPT {
+    return static_cast<BitEnumT>(cast(lhs) | cast(rhs));
   }
 
   /**
@@ -116,7 +116,7 @@ public:
    */
   [[nodiscard]]
   constexpr Flag&
-  operator&=(T_Bit_t rhs) PF_NOEXCEPT {
+  operator&=(BitEnumT rhs) PF_NOEXCEPT {
     m_val &= cast(rhs);
     return *this;
   }
@@ -126,7 +126,7 @@ public:
    */
   [[nodiscard]]
   friend constexpr Flag
-  operator|(T_Bit_t lhs, T_Bit_t rhs) PF_NOEXCEPT {
+  operator|(BitEnumT lhs, BitEnumT rhs) PF_NOEXCEPT {
     Flag retval(lhs);
     retval.m_val |= cast(rhs);
     return retval;
@@ -137,18 +137,18 @@ public:
    */
   [[nodiscard]]
   constexpr Flag&
-  operator|=(T_Bit_t rhs) PF_NOEXCEPT {
+  operator|=(BitEnumT rhs) PF_NOEXCEPT {
     m_val |= cast(rhs);
     return *this;
   }
 
 private:
-  underlying_t m_val;
+  UnderlyingT m_val;
 
   [[nodiscard]]
-  static constexpr underlying_t
-  cast(T_Bit_t val) PF_NOEXCEPT {
-    return static_cast<underlying_t>(val);
+  static constexpr UnderlyingT
+  cast(BitEnumT val) PF_NOEXCEPT {
+    return static_cast<UnderlyingT>(val);
   }
 };
 

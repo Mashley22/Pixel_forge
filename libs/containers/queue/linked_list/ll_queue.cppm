@@ -23,7 +23,7 @@ export namespace pf::adapters {
  *@note A moved from, or default constructed object must be
  *  initialized by one of the move operations before use.
  *
- *@note The spare must be popped with \ref popSpare before destruction.
+ *@note The spare must be popped with \ref pop_spare before destruction.
  *
  */
 template <typename T>
@@ -41,30 +41,30 @@ public:
   };
 
   struct Traits {
-    using value_type = T;
-    using size_type = std::size_t;
-    using difference_type = std::ptrdiff_t;
-    using reference = value_type&;
-    using const_reference = const value_type&;
-    using pointer = T*;
-    using const_pointer = const T*;
-    using storage_type = Node;
+    using ValueType = T;
+    using SizeType = std::size_t;
+    using DifferenceType = std::ptrdiff_t;
+    using Reference = ValueType&;
+    using ConstReference = const ValueType&;
+    using Pointer = T*;
+    using ConstPointer = const T*;
+    using StorageType = Node;
 
     static constexpr bool is_nothrow_copy_construct_v =
         std::is_nothrow_copy_constructible_v<T>;
     static constexpr bool is_nothrow_move_construct_v =
         std::is_nothrow_move_constructible_v<T>;
-    template <typename... V_args>
+    template <typename... VArgs>
     static constexpr bool is_nothrow_construct_v =
-        std::is_nothrow_constructible_v<T, V_args...>;
+        std::is_nothrow_constructible_v<T, VArgs...>;
   };
 
   PF_CONTAINERS_INHERIT_TRAITS(Traits);
 
-  LLQueue(const ObjectStorage<storage_type>& spareStorage)
-    : m_front(NonNull<Node*>(pointer_cast<Node*>(spareStorage.data))),
-      m_back(NonNull<Node*>(pointer_cast<Node*>(spareStorage.data))) {
-    PF_REQUIRE(spareStorage.size == 1);
+  LLQueue(const ObjectStorage<StorageType>& spare_storage)
+    : m_front(NonNull<Node*>(pointer_cast<Node*>(spare_storage.data))),
+      m_back(NonNull<Node*>(pointer_cast<Node*>(spare_storage.data))) {
+    PF_REQUIRE(spare_storage.size == 1);
   }
 
   // A moved-from or otherwise null queue may only be destroyed or assigned a
@@ -74,7 +74,7 @@ public:
   LLQueue(LLQueue<T>&& other) PF_NOEXCEPT : m_front(other.m_front), m_back(other.m_back) {
     other.m_front = nullptr;
     other.m_back = nullptr;
-    PF_REQUIRE(other.isNull());
+    PF_REQUIRE(other.is_null());
   }
 
   LLQueue<T>&
@@ -96,77 +96,77 @@ public:
     return m_front->next == nullptr;
   }
 
-  template <class... V_Args>
+  template <class... VArgs>
   void
-  emplace(const ObjectStorage<storage_type>& storage, V_Args&&... args)
+  emplace(const ObjectStorage<StorageType>& storage, VArgs&&... args)
       PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
     PF_REQUIRE_ASSUME(storage.size == 1);
 
-    Node* newNode = std::construct_at(
-        pointer_cast<Node*>(storage.data), nullptr, std::forward<V_Args>(args)...);
+    Node* new_node = std::construct_at(
+        pointer_cast<Node*>(storage.data), nullptr, std::forward<VArgs>(args)...);
 
-    m_back->next = newNode;
-    m_back = NonNull<Node*>::from(newNode);
+    m_back->next = new_node;
+    m_back = NonNull<Node*>::from(new_node);
   }
 
   void
-  push(const ObjectStorage<storage_type>& storage, T&& val)
+  push(const ObjectStorage<StorageType>& storage, T&& val)
       PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
     emplace(storage, std::forward<T>(val));
   }
 
   void
-  push(const ObjectStorage<storage_type>& storage, const T& val)
+  push(const ObjectStorage<StorageType>& storage, const T& val)
       PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
     emplace(storage, val);
   }
 
-  template <typename T_ErrPolicy = ErrPolicy_throws<NonNull<Node*>, EmptyError>>
-    requires ErrPolicy_c<T_ErrPolicy, NonNull<Node*>> && requires {
-      { T_ErrPolicy::fail() } -> std::same_as<typename T_ErrPolicy::return_type>;
+  template <typename ErrPolicy = ErrPolicyThrows<NonNull<Node*>, EmptyError>>
+    requires ErrPolicy_c<ErrPolicy, NonNull<Node*>> && requires {
+      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::ReturnType>;
     }
-  [[nodiscard]] typename T_ErrPolicy::return_type
-  pop() PF_NOEXCEPT_COND(T_ErrPolicy::is_noexcept) {
-    PF_REQUIRE_ASSUME(!isNull());
-    NonNull<Node*> dummyNode{m_front};
-    Node* next = dummyNode->next;
-    PF_CHECK_ERR_POLICY(T_ErrPolicy, next == nullptr);
+  [[nodiscard]] typename ErrPolicy::ReturnType
+  pop() PF_NOEXCEPT_COND(ErrPolicy::is_noexcept) {
+    PF_REQUIRE_ASSUME(!is_null());
+    NonNull<Node*> dummy_node{m_front};
+    Node* next = dummy_node->next;
+    PF_CHECK_ERR_POLICY(ErrPolicy, next == nullptr);
 
-    dummyNode->val = std::move(next->val);
+    dummy_node->val = std::move(next->val);
     m_front = NonNull<Node*>::from(next);
 
-    return T_ErrPolicy::success(dummyNode);
+    return ErrPolicy::success(dummy_node);
   }
 
   [[nodiscard]] std::optional<NonNull<Node*>>
   try_pop() PF_NOEXCEPT {
-    return pop<ErrPolicy_optional<NonNull<Node*>>>();
+    return pop<ErrPolicyOptional<NonNull<Node*>>>();
   }
 
   [[nodiscard]] NonNull<Node*>
   pop_unchecked() PF_NOEXCEPT {
-    return pop<ErrPolicy_nothing<NonNull<Node*>, EmptyError::what_arg>>();
+    return pop<ErrPolicyNothing<NonNull<Node*>, EmptyError::what_arg>>();
   }
 
   [[nodiscard]] NonNull<Node*>
-  popSpare() PF_NOEXCEPT {
+  pop_spare() PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(m_front != nullptr && empty());
-    const auto retVal = NonNull<Node*>(m_front);
+    const auto ret_val = NonNull<Node*>(m_front);
     m_front = nullptr;
     m_back = nullptr;
 
-    return retVal;
+    return ret_val;
   }
 
   [[nodiscard]] constexpr bool
-  isNull() PF_NOEXCEPT {
+  is_null() PF_NOEXCEPT {
     return m_front == nullptr || m_back == nullptr;
   }
 
 private:
   void
   clear_() PF_NOEXCEPT {
-    PF_REQUIRE(isNull(), "The spare should be popped before destruction");
+    PF_REQUIRE(is_null(), "The spare should be popped before destruction");
   }
 
   Node* m_front{nullptr};

@@ -26,7 +26,7 @@ namespace meta {
  *
  *@tparam V_strs the std::string_view instances to join, in order
  */
-export template <std::string_view const&... V_strs>
+export template <std::string_view const&... VStrs>
 struct ConcatStrings {
 private:
   /**
@@ -35,7 +35,7 @@ private:
   [[nodiscard]]
   static consteval std::size_t
   total_len() { // including null terminator
-    return (V_strs.size() + ...) + 1;
+    return (VStrs.size() + ...) + 1;
   }
 
   /**
@@ -45,18 +45,18 @@ private:
   [[nodiscard]]
   static consteval std::array<char, total_len()>
   impl() {
-    std::array<char, total_len()> retVal{};
+    std::array<char, total_len()> ret_val{};
     std::size_t pos = 0;
 
     auto copy = [&](std::string_view str) {
-      std::copy(str.begin(), str.end(), retVal.begin() + pos);
+      std::copy(str.begin(), str.end(), ret_val.begin() + pos);
       pos += str.size();
     };
 
-    (copy(V_strs), ...);
+    (copy(VStrs), ...);
 
-    retVal.back() = '\0';
-    return retVal;
+    ret_val.back() = '\0';
+    return ret_val;
   }
 
 public:

@@ -31,14 +31,14 @@ PF_TEST_CASE("construction and type traits", "[containers][MPMCRingQueue]") {
   using Queue = MPMCRingQueue<std::uint32_t>;
 
   SECTION("Traits") {
-    static_assert(std::is_same_v<Queue::value_type, std::uint32_t>);
-    static_assert(std::is_same_v<Queue::size_type, std::size_t>);
-    static_assert(std::is_same_v<Queue::difference_type, std::ptrdiff_t>);
-    static_assert(std::is_same_v<Queue::reference, std::uint32_t&>);
-    static_assert(std::is_same_v<Queue::const_reference, const std::uint32_t&>);
-    static_assert(std::is_same_v<Queue::pointer, std::uint32_t*>);
-    static_assert(std::is_same_v<Queue::const_pointer, const std::uint32_t*>);
-    static_assert(std::is_same_v<Queue::storage_type, std::uint32_t>);
+    static_assert(std::is_same_v<Queue::ValueType, std::uint32_t>);
+    static_assert(std::is_same_v<Queue::SizeType, std::size_t>);
+    static_assert(std::is_same_v<Queue::DifferenceType, std::ptrdiff_t>);
+    static_assert(std::is_same_v<Queue::Reference, std::uint32_t&>);
+    static_assert(std::is_same_v<Queue::ConstReference, const std::uint32_t&>);
+    static_assert(std::is_same_v<Queue::Pointer, std::uint32_t*>);
+    static_assert(std::is_same_v<Queue::ConstPointer, const std::uint32_t*>);
+    static_assert(std::is_same_v<Queue::StorageType, std::uint32_t>);
     static_assert(std::is_same_v<pf::adapters::MPMCRingQueue<std::uint32_t>, Queue>);
     static_assert(!std::is_default_constructible_v<Queue>);
     static_assert(!std::is_copy_constructible_v<Queue>);
@@ -48,7 +48,7 @@ PF_TEST_CASE("construction and type traits", "[containers][MPMCRingQueue]") {
   }
 
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
   Queue queue(storage);
 
   REQUIRE(queue.capacity() == BUF_SIZE);
@@ -65,8 +65,8 @@ PF_TEST_CASE("construction and type traits", "[containers][MPMCRingQueue]") {
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
   SECTION("invalid storage is rejected") {
     auto nullStorage = ObjectStorage<std::uint32_t>{.data = nullptr, .size = BUF_SIZE};
-    auto makeNullQueue = [&] { Queue candidateQueue(nullStorage); };
-    REQUIRE_PF_REQUIRE_FAIL(makeNullQueue());
+    auto make_null_queue = [&] { Queue candidateQueue(nullStorage); };
+    REQUIRE_PF_REQUIRE_FAIL(make_null_queue());
 
     auto emptyStorage = ObjectStorage<std::uint32_t>{.data = storage.data, .size = 0};
     auto makeEmptyQueue = [&] { Queue candidateQueue(emptyStorage); };
@@ -74,7 +74,7 @@ PF_TEST_CASE("construction and type traits", "[containers][MPMCRingQueue]") {
 
     // the capacity has to be a power of two
     alignas(std::uint32_t) std::array<std::byte, 3 * sizeof(std::uint32_t)> oddBuf{};
-    auto oddStorage = Buffer::from(oddBuf).asObjects<std::uint32_t>(3);
+    auto oddStorage = Buffer::from(oddBuf).as_objects<std::uint32_t>(3);
     auto makeOddQueue = [&] { Queue candidateQueue(oddStorage); };
     REQUIRE_PF_REQUIRE_FAIL(makeOddQueue());
   }
@@ -83,7 +83,7 @@ PF_TEST_CASE("construction and type traits", "[containers][MPMCRingQueue]") {
 
 PF_TEST_CASE("try_push and try_pop", "[containers][MPMCRingQueue]") {
   alignas(std::uint32_t) std::array<std::byte, 8 * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(8);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(8);
   MPMCRingQueue<std::uint32_t> queue(storage);
 
   REQUIRE_FALSE(queue.try_pop().has_value());
@@ -118,7 +118,7 @@ PF_TEST_CASE("try_push and try_pop", "[containers][MPMCRingQueue]") {
 
 PF_TEST_CASE("wait_push and wait_pop", "[containers][MPMCRingQueue]") {
   alignas(std::uint32_t) std::array<std::byte, 8 * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(8);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(8);
   MPMCRingQueue<std::uint32_t> queue(storage);
 
   for (std::uint32_t i = 0; i < 8; ++i) {
@@ -151,7 +151,7 @@ PF_TEST_CASE("wait_push and wait_pop", "[containers][MPMCRingQueue]") {
 PF_TEST_CASE("move only values", "[containers][MPMCRingQueue]") {
   alignas(std::unique_ptr<int>) std::array<std::byte, 4 * sizeof(std::unique_ptr<int>)>
       buf{};
-  auto storage = Buffer::from(buf).asObjects<std::unique_ptr<int>>(4);
+  auto storage = Buffer::from(buf).as_objects<std::unique_ptr<int>>(4);
   MPMCRingQueue<std::unique_ptr<int>> queue(storage);
 
   auto source = std::make_unique<int>(42);
@@ -172,14 +172,15 @@ PF_TEST_CASE("move only values", "[containers][MPMCRingQueue]") {
   REQUIRE(queue.empty());
 }
 
-PF_TEST_CASE("multiple producers and consumers with try_", "[containers][MPMCRingQueue]") {
+PF_TEST_CASE("multiple producers and consumers with try_",
+             "[containers][MPMCRingQueue]") {
   constexpr std::size_t producerCount = 4;
   constexpr std::size_t consumerCount = 4;
   constexpr std::size_t perProducer = 2000;
   constexpr std::size_t total = producerCount * perProducer;
 
   alignas(std::uint32_t) std::array<std::byte, 64 * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(64);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(64);
   MPMCRingQueue<std::uint32_t> queue(storage);
 
   std::atomic<bool> start{false};
@@ -252,14 +253,15 @@ PF_TEST_CASE("multiple producers and consumers with try_", "[containers][MPMCRin
   REQUIRE(queue.empty());
 }
 
-PF_TEST_CASE("multiple producers and consumers with wait_", "[containers][MPMCRingQueue]") {
+PF_TEST_CASE("multiple producers and consumers with wait_",
+             "[containers][MPMCRingQueue]") {
   constexpr std::size_t producerCount = 4;
   constexpr std::size_t consumerCount = 4;
   constexpr std::size_t perProducer = 2000;
   constexpr std::size_t total = producerCount * perProducer;
 
   alignas(std::uint32_t) std::array<std::byte, 64 * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(64);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(64);
   MPMCRingQueue<std::uint32_t> queue(storage);
 
   std::atomic<bool> start{false};

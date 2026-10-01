@@ -38,11 +38,11 @@ struct MoveOnlyValue {
 template <typename T>
 class NodeStorage {
 public:
-  using Node = SPSCLLQueue<T>::storage_type;
+  using Node = SPSCLLQueue<T>::StorageType;
 
   [[nodiscard]] ObjectStorage<Node>
   objStore() {
-    return Buffer::from(buffer.data, buffer.size).template asObjects<Node>(1);
+    return Buffer::from(buffer.data, buffer.size).template as_objects<Node>(1);
   }
 
   [[nodiscard]] Node*
@@ -67,17 +67,17 @@ public:
 
 PF_TEST_CASE("construction and type traits", "[containers][SPSCLLQueue]") {
   using Queue = SPSCLLQueue<std::uint32_t>;
-  using Node = Queue::storage_type;
+  using Node = Queue::StorageType;
 
   SECTION("Traits") {
-    static_assert(std::is_same_v<Queue::value_type, std::uint32_t>);
-    static_assert(std::is_same_v<Queue::size_type, std::size_t>);
-    static_assert(std::is_same_v<Queue::difference_type, std::ptrdiff_t>);
-    static_assert(std::is_same_v<Queue::reference, std::uint32_t&>);
-    static_assert(std::is_same_v<Queue::const_reference, const std::uint32_t&>);
-    static_assert(std::is_same_v<Queue::pointer, std::uint32_t*>);
-    static_assert(std::is_same_v<Queue::const_pointer, const std::uint32_t*>);
-    static_assert(std::is_same_v<Queue::storage_type, Node>);
+    static_assert(std::is_same_v<Queue::ValueType, std::uint32_t>);
+    static_assert(std::is_same_v<Queue::SizeType, std::size_t>);
+    static_assert(std::is_same_v<Queue::DifferenceType, std::ptrdiff_t>);
+    static_assert(std::is_same_v<Queue::Reference, std::uint32_t&>);
+    static_assert(std::is_same_v<Queue::ConstReference, const std::uint32_t&>);
+    static_assert(std::is_same_v<Queue::Pointer, std::uint32_t*>);
+    static_assert(std::is_same_v<Queue::ConstPointer, const std::uint32_t*>);
+    static_assert(std::is_same_v<Queue::StorageType, Node>);
     static_assert(std::is_same_v<decltype(Node::next), std::atomic<Node*>>);
     static_assert(std::is_same_v<pf::adapters::SPSCLLQueue<std::uint32_t>, Queue>);
     static_assert(std::is_default_constructible_v<Queue>);
@@ -92,10 +92,10 @@ PF_TEST_CASE("construction and type traits", "[containers][SPSCLLQueue]") {
 
   REQUIRE(queue.empty());
   REQUIRE(spare.data()->next.load(std::memory_order_relaxed) == nullptr);
-  REQUIRE_FALSE(queue.isNull());
+  REQUIRE_FALSE(queue.is_null());
 
-  REQUIRE(queue.popSpare() == spare.data());
-  REQUIRE(queue.isNull());
+  REQUIRE(queue.pop_spare() == spare.data());
+  REQUIRE(queue.is_null());
 
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
   SECTION("invalid spare storage is rejected") {
@@ -105,7 +105,7 @@ PF_TEST_CASE("construction and type traits", "[containers][SPSCLLQueue]") {
 
     alignas(Node) std::array<std::byte, 2 * sizeof(Node)> twoNodes{};
     ObjectStorage<Node> oversizedStorage =
-        Buffer::from(twoNodes.data(), twoNodes.size()).asObjects<Node>(2);
+        Buffer::from(twoNodes.data(), twoNodes.size()).as_objects<Node>(2);
     auto makeOversizedStorageQueue = [&] { Queue candidateQueue(oversizedStorage); };
     REQUIRE_PF_REQUIRE_FAIL(makeOversizedStorageQueue());
   }
@@ -134,8 +134,8 @@ PF_TEST_CASE("move construction", "[containers][SPSCLLQueue]") {
   std::destroy_at(second);
 
   REQUIRE(moved.empty());
-  REQUIRE(moved.popSpare() != nullptr);
-  REQUIRE(moved.isNull());
+  REQUIRE(moved.pop_spare() != nullptr);
+  REQUIRE(moved.is_null());
 }
 
 PF_TEST_CASE("move assignment", "[containers][SPSCLLQueue]") {
@@ -162,8 +162,8 @@ PF_TEST_CASE("move assignment", "[containers][SPSCLLQueue]") {
     std::destroy_at(second);
 
     REQUIRE(destination.empty());
-    REQUIRE(destination.popSpare() != nullptr);
-    REQUIRE(destination.isNull());
+    REQUIRE(destination.pop_spare() != nullptr);
+    REQUIRE(destination.is_null());
   }
 }
 
@@ -194,8 +194,8 @@ PF_TEST_CASE("FIFO order and pop semantics", "[containers][SPSCLLQueue]") {
 
   REQUIRE(queue.empty());
   REQUIRE(queue.pop() == nullptr);
-  REQUIRE(queue.popSpare() != nullptr);
-  REQUIRE(queue.isNull());
+  REQUIRE(queue.pop_spare() != nullptr);
+  REQUIRE(queue.is_null());
 }
 
 PF_TEST_CASE("push and emplace overloads", "[containers][SPSCLLQueue]") {
@@ -213,8 +213,8 @@ PF_TEST_CASE("push and emplace overloads", "[containers][SPSCLLQueue]") {
     REQUIRE(node == storage[0].data());
     REQUIRE(node->val == 17);
     std::destroy_at(node);
-    REQUIRE(queue.popSpare() != nullptr);
-    REQUIRE(queue.isNull());
+    REQUIRE(queue.pop_spare() != nullptr);
+    REQUIRE(queue.is_null());
   }
 
   SECTION("rvalue push accepts a moved value") {
@@ -230,8 +230,8 @@ PF_TEST_CASE("push and emplace overloads", "[containers][SPSCLLQueue]") {
     REQUIRE(node == storage[0].data());
     REQUIRE(node->val == 23);
     std::destroy_at(node);
-    REQUIRE(queue.popSpare() != nullptr);
-    REQUIRE(queue.isNull());
+    REQUIRE(queue.pop_spare() != nullptr);
+    REQUIRE(queue.is_null());
   }
 
   SECTION("emplace forwards constructor arguments") {
@@ -246,8 +246,8 @@ PF_TEST_CASE("push and emplace overloads", "[containers][SPSCLLQueue]") {
     REQUIRE(node == storage[0].data());
     REQUIRE(node->val == 31);
     std::destroy_at(node);
-    REQUIRE(queue.popSpare() != nullptr);
-    REQUIRE(queue.isNull());
+    REQUIRE(queue.pop_spare() != nullptr);
+    REQUIRE(queue.is_null());
   }
 
   SECTION("move-only values can be queued") {
@@ -263,14 +263,14 @@ PF_TEST_CASE("push and emplace overloads", "[containers][SPSCLLQueue]") {
     REQUIRE(node == storage[0].data());
     REQUIRE(node->val.value == 41);
     std::destroy_at(node);
-    REQUIRE(queue.popSpare() != nullptr);
-    REQUIRE(queue.isNull());
+    REQUIRE(queue.pop_spare() != nullptr);
+    REQUIRE(queue.is_null());
   }
 }
 
 PF_TEST_CASE("the popped head can be emplaced again", "[containers][SPSCLLQueue]") {
   using Queue = SPSCLLQueue<std::uint32_t>;
-  using Node = Queue::storage_type;
+  using Node = Queue::StorageType;
 
   std::array<NodeStorage<std::uint32_t>, 2> storage;
   Queue queue(storage[0].objStore());
@@ -288,7 +288,7 @@ PF_TEST_CASE("the popped head can be emplaced again", "[containers][SPSCLLQueue]
 
   // and it can be linked again once the queue is drained
   queue.emplace(
-      Buffer::from(pointer_cast<std::byte*>(node), sizeof(Node)).asObjects<Node>(1), 20);
+      Buffer::from(pointer_cast<std::byte*>(node), sizeof(Node)).as_objects<Node>(1), 20);
   REQUIRE_FALSE(queue.empty());
 
   // the pop hands over the head it vacated, which is the other node
@@ -298,8 +298,8 @@ PF_TEST_CASE("the popped head can be emplaced again", "[containers][SPSCLLQueue]
   std::destroy_at(second);
 
   // the re emplaced node is the head now, so it is the spare that is left
-  REQUIRE(queue.popSpare() == node);
-  REQUIRE(queue.isNull());
+  REQUIRE(queue.pop_spare() == node);
+  REQUIRE(queue.is_null());
 }
 
 PF_TEST_CASE("popping an empty queue", "[containers][SPSCLLQueue]") {
@@ -320,8 +320,8 @@ PF_TEST_CASE("popping an empty queue", "[containers][SPSCLLQueue]") {
   REQUIRE(node->val == 42);
   std::destroy_at(node);
   REQUIRE(queue.empty());
-  REQUIRE(queue.popSpare() != nullptr);
-  REQUIRE(queue.isNull());
+  REQUIRE(queue.pop_spare() != nullptr);
+  REQUIRE(queue.is_null());
 }
 
 PF_TEST_CASE("single producer and consumer", "[containers][SPSCLLQueue]") {
@@ -376,8 +376,8 @@ PF_TEST_CASE("single producer and consumer", "[containers][SPSCLLQueue]") {
     REQUIRE(consumed[i] == i);
   }
   REQUIRE(queue.empty());
-  REQUIRE(queue.popSpare() != nullptr);
-  REQUIRE(queue.isNull());
+  REQUIRE(queue.pop_spare() != nullptr);
+  REQUIRE(queue.is_null());
 }
 
 } // namespace pf::adapters

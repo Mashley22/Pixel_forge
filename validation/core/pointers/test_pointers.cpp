@@ -70,22 +70,22 @@ PF_TEST_CASE("pointer_cast", "[core][pointer]") {
   REQUIRE(pointer_cast<std::uintptr_t>(null_ptr) == 0);
 }
 
-PF_TEST_CASE("isAligned", "[core][pointer]") {
+PF_TEST_CASE("is_aligned", "[core][pointer]") {
   alignas(16) std::array<std::byte, 32> buf16{};
   alignas(8) std::array<std::byte, 32> buf8{};
   alignas(4) std::array<std::byte, 32> buf4{};
 
-  REQUIRE(isAligned<std::max_align_t>(buf16.data()));
-  REQUIRE(isAligned<int64_t>(buf16.data()));
-  REQUIRE(isAligned<int>(buf16.data()));
+  REQUIRE(is_aligned<std::max_align_t>(buf16.data()));
+  REQUIRE(is_aligned<int64_t>(buf16.data()));
+  REQUIRE(is_aligned<int>(buf16.data()));
 
-  REQUIRE(isAligned<int64_t>(buf8.data()));
+  REQUIRE(is_aligned<int64_t>(buf8.data()));
 
-  REQUIRE(isAligned<int>(buf4.data()));
+  REQUIRE(is_aligned<int>(buf4.data()));
 
-  REQUIRE(isAligned<int>(reinterpret_cast<char*>(buf4.data())));
-  REQUIRE(isAligned<int>(reinterpret_cast<unsigned char*>(buf4.data())));
-  REQUIRE(isAligned<int>(buf4.data()));
+  REQUIRE(is_aligned<int>(reinterpret_cast<char*>(buf4.data())));
+  REQUIRE(is_aligned<int>(reinterpret_cast<unsigned char*>(buf4.data())));
+  REQUIRE(is_aligned<int>(buf4.data()));
 }
 
 PF_TEST_CASE("basic construction and access", "[core][pointers][NonNull]") {

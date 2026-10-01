@@ -14,7 +14,7 @@ export namespace pf {
 
 /**
  *@brief Payload describing a failed requirement, thrown by
- * RequireFail_throw and usable as a custom exception type
+ * RequireFailThrow and usable as a custom exception type
  */
 struct RequireFail {
   std::string_view msg;
@@ -38,7 +38,7 @@ concept RequireFailHandler_c =
 /**
  *@brief Fail policy that silently ignores failures, execution continues
  */
-struct RequireFail_doNothing {
+struct RequireFailDoNothing {
   constexpr static void
   fail(const std::string_view msg, const std::source_location loc) PF_NOEXCEPT {
     (void) msg;
@@ -49,7 +49,7 @@ struct RequireFail_doNothing {
 /**
  *@brief Fail policy that terminates the program on failure
  */
-struct RequireFail_terminate {
+struct RequireFailTerminate {
   [[noreturn]] constexpr static void
   fail(const std::string_view msg, const std::source_location loc) PF_NOEXCEPT {
     (void) msg;
@@ -62,7 +62,7 @@ struct RequireFail_terminate {
  *@note BE CAREFUL, if using this make sure to
  * PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
  */
-struct RequireFail_throw {
+struct RequireFailThrow {
   [[noreturn]] constexpr static void
   fail(const std::string_view msg, const std::source_location loc) {
     throw RequireFail{.msg = msg, .loc = loc};
@@ -94,7 +94,7 @@ struct RequireFailInfo {
  * The buffer holds PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE entries; once full,
  * the oldest entry is overwritten.
  */
-struct RequireFail_logContinue {
+struct RequireFailLogContinue {
   /**
    *@brief Records the failure into the circular buffer and returns
    */
@@ -105,33 +105,33 @@ struct RequireFail_logContinue {
    *@brief Index where the next failure will be written
    */
   [[nodiscard]] static std::size_t
-  currentIdx() PF_NOEXCEPT;
+  current_idx() PF_NOEXCEPT;
 
   /**
    *@brief The raw circular log storage, oldest entries may sit past
-   * currentIdx()
+   * current_idx()
    */
   [[nodiscard]] static std::span<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE>
-  failInfos() PF_NOEXCEPT;
+  fail_infos() PF_NOEXCEPT;
 
   /**
    *@brief The most recently recorded failure
    */
   [[nodiscard]] static const RequireFailInfo&
-  getLastError() PF_NOEXCEPT;
+  get_last_error() PF_NOEXCEPT;
 
 private:
   static thread_local std::array<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE>
-      m_failInfos;
-  static thread_local std::size_t m_currentIdx;
+      m_fail_infos;
+  static thread_local std::size_t m_current_idx;
 };
 
 /**
  *@brief Failure policy that logs a single failure then terminates
  */
-struct RequireFail_logTerminate {
+struct RequireFailLogTerminate {
   /**
-   *@brief Records the failure into m_failInfo and terminates
+   *@brief Records the failure into m_fail_info and terminates
    */
   [[noreturn]] static void
   fail(std::string_view msg, std::source_location loc);
@@ -140,27 +140,27 @@ struct RequireFail_logTerminate {
    *@brief The recorded failure info of the last (terminating) failure
    */
   const RequireFailInfo&
-  failInfo() PF_NOEXCEPT;
+  fail_info() PF_NOEXCEPT;
 
 private:
-  static RequireFailInfo m_failInfo;
+  static RequireFailInfo m_fail_info;
 };
 
 /**
  *@brief Runtime assertion. If @p expr evaluates to false the configured fail
  * policy is invoked with @p msg and @p location
  *
- *@tparam RequireFail_policy handler invoked on failure, defaults to
+ *@tparam RequireFailPolicy handler invoked on failure, defaults to
  * RequireFail_terminate
  *@param expr condition that must hold
  *@param msg optional diagnostic forwarded to the handler
  *@param location call site, captured automatically via source_location
  *
  *@note when compiled with PIXELFORGE_REQUIRE_THROWS_ON_FAILURE (validation
- * builds) the policy is bypassed and RequireFail_throw::fail() throws a
+ * builds) the policy is bypassed and RequireFailThrow::fail() throws a
  * pf::RequireFail on every failure
  */
-template <RequireFailHandler_c RequireFail_policy = RequireFail_terminate>
+template <RequireFailHandler_c RequireFailPolicy = RequireFailTerminate>
 constexpr void
 require(const bool expr,
         const std::string_view msg = {},
@@ -171,9 +171,9 @@ require(const bool expr,
 #endif
 
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
-    RequireFail_throw::fail(msg, location);
+    RequireFailThrow::fail(msg, location);
 #else
-    RequireFail_policy::fail(msg, location);
+    RequireFailPolicy::fail(msg, location);
 #endif
   }
 }

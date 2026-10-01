@@ -57,17 +57,17 @@ PF_TEST_CASE("correct infos", "[core][assert]") { M_testRequireInfos(); }
 PF_TEST_CASE("logContinue records a fail", "[core][assert]") {
   std::string msg = "log and continue";
   const auto loc = std::source_location::current();
-  const auto idxBefore = RequireFail_logContinue::currentIdx();
+  const auto idxBefore = RequireFailLogContinue::current_idx();
 
-  RequireFail_logContinue::fail(msg, loc);
+  RequireFailLogContinue::fail(msg, loc);
 
-  REQUIRE(RequireFail_logContinue::currentIdx() == idxBefore + 1);
-  const auto& last = RequireFail_logContinue::getLastError();
+  REQUIRE(RequireFailLogContinue::current_idx() == idxBefore + 1);
+  const auto& last = RequireFailLogContinue::get_last_error();
   REQUIRE(last.msg == msg);
   REQUIRE(last.loc.file_name() == loc.file_name());
   REQUIRE(last.loc.line() == loc.line());
   REQUIRE(last.loc.column() == loc.column());
-  REQUIRE(RequireFail_logContinue::failInfos()[RequireFail_logContinue::currentIdx() %
+  REQUIRE(RequireFailLogContinue::fail_infos()[RequireFailLogContinue::current_idx() %
                                                PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE]
               .msg == msg);
 }
@@ -80,14 +80,14 @@ PF_TEST_CASE("logContinue is a circular buffer", "[core][assert]") {
     msgs.push_back("fail #" + std::to_string(i));
   }
 
-  const auto base = RequireFail_logContinue::currentIdx();
+  const auto base = RequireFailLogContinue::current_idx();
   for (std::size_t i = 0; i < size; ++i) {
-    RequireFail_logContinue::fail(msgs[i], std::source_location::current());
+    RequireFailLogContinue::fail(msgs[i], std::source_location::current());
   }
 
-  REQUIRE(RequireFail_logContinue::currentIdx() == base + size);
-  REQUIRE(RequireFail_logContinue::getLastError().msg == msgs[size - 1]);
-  const auto infos = RequireFail_logContinue::failInfos();
+  REQUIRE(RequireFailLogContinue::current_idx() == base + size);
+  REQUIRE(RequireFailLogContinue::get_last_error().msg == msgs[size - 1]);
+  const auto infos = RequireFailLogContinue::fail_infos();
   for (std::size_t i = 0; i < size; ++i) {
     REQUIRE(infos[(base + i + 1) % size].msg == msgs[i]);
   }
@@ -97,9 +97,9 @@ PF_TEST_CASE("logContinue is thread local", "[core][assert]") {
   std::string mainMsg = "main thread fail";
   std::string workerMsg = "worker thread fail";
 
-  RequireFail_logContinue::fail(mainMsg, std::source_location::current());
-  const auto mainIdx = RequireFail_logContinue::currentIdx();
-  REQUIRE(RequireFail_logContinue::getLastError().msg == mainMsg);
+  RequireFailLogContinue::fail(mainMsg, std::source_location::current());
+  const auto mainIdx = RequireFailLogContinue::current_idx();
+  REQUIRE(RequireFailLogContinue::get_last_error().msg == mainMsg);
 
   std::size_t workerIdxBefore = 0;
   std::size_t workerIdxAfter = 0;
@@ -107,11 +107,11 @@ PF_TEST_CASE("logContinue is thread local", "[core][assert]") {
   bool workerStartedEmpty = false;
 
   std::thread worker([&] {
-    workerIdxBefore = RequireFail_logContinue::currentIdx();
-    workerStartedEmpty = RequireFail_logContinue::getLastError().empty();
-    RequireFail_logContinue::fail(workerMsg, std::source_location::current());
-    workerIdxAfter = RequireFail_logContinue::currentIdx();
-    workerLastMsg = std::string(RequireFail_logContinue::getLastError().msg);
+    workerIdxBefore = RequireFailLogContinue::current_idx();
+    workerStartedEmpty = RequireFailLogContinue::get_last_error().empty();
+    RequireFailLogContinue::fail(workerMsg, std::source_location::current());
+    workerIdxAfter = RequireFailLogContinue::current_idx();
+    workerLastMsg = std::string(RequireFailLogContinue::get_last_error().msg);
   });
   worker.join();
 
@@ -120,8 +120,8 @@ PF_TEST_CASE("logContinue is thread local", "[core][assert]") {
   REQUIRE(workerIdxAfter == 0);
   REQUIRE(workerLastMsg == workerMsg);
 
-  REQUIRE(RequireFail_logContinue::currentIdx() == mainIdx);
-  REQUIRE(RequireFail_logContinue::getLastError().msg == mainMsg);
+  REQUIRE(RequireFailLogContinue::current_idx() == mainIdx);
+  REQUIRE(RequireFailLogContinue::get_last_error().msg == mainMsg);
 }
 
 }

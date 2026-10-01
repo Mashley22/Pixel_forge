@@ -15,7 +15,7 @@ void
 M_testFmtAgainstStd(std::format_string<V_args...> str, V_args&&... args) {
   const auto pfRes = fmt<BUF_SIZE>(str, std::forward<V_args>(args)...);
   const auto stdRes = std::format(str, std::forward<V_args>(args)...);
-  const std::string pfStr(pfRes.toStrView());
+  const std::string pfStr(pfRes.to_str_view());
 
   REQUIRE(pfStr == stdRes);
 }
@@ -26,7 +26,7 @@ M_testFmt_cstrAgainstStd(std::format_string<V_args...> str, V_args&&... args) {
   const auto pfRes = fmt_cstr<BUF_SIZE>(str, std::forward<V_args>(args)...);
   const auto stdRes = std::format(str, std::forward<V_args>(args)...);
 
-  const std::string pfStr(pfRes.toStrView());
+  const std::string pfStr(pfRes.to_str_view());
 
   REQUIRE(pfRes.str[pfRes.size] == '\0');
   REQUIRE(pfStr == stdRes);

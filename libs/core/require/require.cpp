@@ -12,34 +12,34 @@ module PixelForge.core;
 
 namespace pf {
 
-RequireFailInfo RequireFail_logTerminate::m_failInfo{};
+RequireFailInfo RequireFailLogTerminate::m_fail_info{};
 
 thread_local std::array<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE>
-    RequireFail_logContinue::m_failInfos{};
+    RequireFailLogContinue::m_fail_infos{};
 
-thread_local std::size_t RequireFail_logContinue::m_currentIdx =
+thread_local std::size_t RequireFailLogContinue::m_current_idx =
     std::numeric_limits<std::size_t>::max();
 
 void
-RequireFail_logTerminate::fail(const std::string_view msg,
-                               const std::source_location loc) {
-  m_failInfo = {.msg = msg, .loc = loc};
+RequireFailLogTerminate::fail(const std::string_view msg,
+                              const std::source_location loc) {
+  m_fail_info = {.msg = msg, .loc = loc};
   std::terminate();
 }
 
 const RequireFailInfo&
-RequireFail_logTerminate::failInfo() PF_NOEXCEPT {
-  return m_failInfo;
+RequireFailLogTerminate::fail_info() PF_NOEXCEPT {
+  return m_fail_info;
 }
 
 std::size_t
-RequireFail_logContinue::currentIdx() PF_NOEXCEPT {
-  return m_currentIdx;
+RequireFailLogContinue::current_idx() PF_NOEXCEPT {
+  return m_current_idx;
 }
 
 const RequireFailInfo&
-RequireFail_logContinue::getLastError() PF_NOEXCEPT {
-  return m_failInfos[m_currentIdx % m_failInfos.size()];
+RequireFailLogContinue::get_last_error() PF_NOEXCEPT {
+  return m_fail_infos[m_current_idx % m_fail_infos.size()];
 }
 
 bool
@@ -48,14 +48,14 @@ RequireFailInfo::empty() const PF_NOEXCEPT {
 }
 
 std::span<RequireFailInfo, PIXELFORGE_REQUIRE_FAIL_LOG_BUF_SIZE>
-RequireFail_logContinue::failInfos() PF_NOEXCEPT {
-  return m_failInfos;
+RequireFailLogContinue::fail_infos() PF_NOEXCEPT {
+  return m_fail_infos;
 }
 
 void
-RequireFail_logContinue::fail(const std::string_view msg,
-                              const std::source_location loc) PF_NOEXCEPT {
-  m_failInfos[(++m_currentIdx) % m_failInfos.size()] = {.msg = msg, .loc = loc};
+RequireFailLogContinue::fail(const std::string_view msg,
+                             const std::source_location loc) PF_NOEXCEPT {
+  m_fail_infos[(++m_current_idx) % m_fail_infos.size()] = {.msg = msg, .loc = loc};
 }
 
 }

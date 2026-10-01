@@ -21,7 +21,7 @@ constexpr std::array<std::string_view, TEST_VALS_NUM> testStrs = {"5", "9", "-42
 
 auto strToIntSuccessful = []() {
   for (std::size_t i = 0; i < TEST_VALS_NUM; i++) {
-    if (strToInt<int>(testStrs[i]) != testInts[i]) {
+    if (str_to_int<int>(testStrs[i]) != testInts[i]) {
       return false;
     }
   }
@@ -29,15 +29,15 @@ auto strToIntSuccessful = []() {
   return true;
 };
 
-template <std::size_t T_idx = testInts.size()>
+template <std::size_t Idx = testInts.size()>
 [[nodiscard]]
 consteval bool
 intToStrSuccessful() {
-  if (!intToStrSuccessful<T_idx - 1>()) {
+  if (!intToStrSuccessful<Idx - 1>()) {
     return false;
   }
 
-  return IntToStr<int, 1>::sv() == "1"; // testVals[T_idx].str;
+  return IntToStr<int, 1>::sv() == "1"; // testVals[Idx].str;
 };
 
 template <>

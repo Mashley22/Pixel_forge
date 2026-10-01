@@ -34,12 +34,12 @@ PF_TEST_CASE("ConsoleBackend satisfies Backend_c", "[log][console]") {
   STATIC_REQUIRE(Backend_c<ConsoleBackend>);
 }
 
-PF_TEST_CASE("ConsoleBackend formatLine", "[log][console]") {
+PF_TEST_CASE("ConsoleBackend format_line", "[log][console]") {
 
   SECTION("renders timestamp, level, id and message") {
     const Record rec = makeRecord(Level::ERROR, "boom");
-    std::array<char, ConsoleBackend::lineBufSize> buf{};
-    const std::size_t n = ConsoleBackend::formatLine(rec, buf);
+    std::array<char, ConsoleBackend::line_buf_size> buf{};
+    const std::size_t n = ConsoleBackend::format_line(rec, buf);
 
     REQUIRE(n < buf.size());
     const std::string_view out(buf.data(), n);
@@ -58,19 +58,19 @@ PF_TEST_CASE("ConsoleBackend formatLine", "[log][console]") {
   }
 
   SECTION("level tags map through toStr") {
-    std::array<char, ConsoleBackend::lineBufSize> buf{};
+    std::array<char, ConsoleBackend::line_buf_size> buf{};
 
     const std::size_t dbgLen =
-        ConsoleBackend::formatLine(makeRecord(Level::DEBUG, "x"), buf);
+        ConsoleBackend::format_line(makeRecord(Level::DEBUG, "x"), buf);
     REQUIRE(std::string_view(buf.data(), dbgLen).find("[DBG]") != std::string_view::npos);
 
     const std::size_t warnLen =
-        ConsoleBackend::formatLine(makeRecord(Level::WARNING, "x"), buf);
+        ConsoleBackend::format_line(makeRecord(Level::WARNING, "x"), buf);
     REQUIRE(std::string_view(buf.data(), warnLen).find("[WRN]") !=
             std::string_view::npos);
 
     const std::size_t infLen =
-        ConsoleBackend::formatLine(makeRecord(Level::INFO, "x"), buf);
+        ConsoleBackend::format_line(makeRecord(Level::INFO, "x"), buf);
     REQUIRE(std::string_view(buf.data(), infLen).find("[INF]") != std::string_view::npos);
   }
 
@@ -79,7 +79,7 @@ PF_TEST_CASE("ConsoleBackend formatLine", "[log][console]") {
     const Record rec = makeRecord(Level::INFO, longMsg);
 
     std::array<char, 64> smallBuf{};
-    const std::size_t n = ConsoleBackend::formatLine(rec, smallBuf);
+    const std::size_t n = ConsoleBackend::format_line(rec, smallBuf);
 
     // full line would be ~41 prefix chars + message, well past 64
     REQUIRE(n > smallBuf.size());

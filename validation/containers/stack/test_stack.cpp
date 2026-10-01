@@ -20,18 +20,18 @@ namespace {
 alignas(pf_vh::LifeTimeTracker)
     std::array<std::byte, BUF_SIZE * sizeof(pf_vh::LifeTimeTracker)> M_buf;
 pf_vh::LifeTimeTracker* M_p_buf = reinterpret_cast<pf_vh::LifeTimeTracker*>(M_buf.data());
-auto M_buf_storage = Buffer::from(M_buf).asObjects<pf_vh::LifeTimeTracker>(BUF_SIZE);
+auto M_buf_storage = Buffer::from(M_buf).as_objects<pf_vh::LifeTimeTracker>(BUF_SIZE);
 
 alignas(pf_vh::LifeTimeTracker)
     std::array<std::byte, BUF_SIZE * sizeof(pf_vh::LifeTimeTracker)> M_buf2;
-auto M_buf2_storage = Buffer::from(M_buf2).asObjects<pf_vh::LifeTimeTracker>(BUF_SIZE);
+auto M_buf2_storage = Buffer::from(M_buf2).as_objects<pf_vh::LifeTimeTracker>(BUF_SIZE);
 
 }
 
 PF_TEST_CASE("basic", "[containers][Stack]") {
 
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
   Stack<std::uint32_t> stack(storage);
 
   SECTION("buffer untouched") {
@@ -125,7 +125,7 @@ PF_TEST_CASE("lifetimes", "[containers][Stack]") {
 
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
-      auto storage = Buffer::from(M_buf).asObjects<pf_vh::LifeTimeTracker>(BUF_SIZE);
+      auto storage = Buffer::from(M_buf).as_objects<pf_vh::LifeTimeTracker>(BUF_SIZE);
       Stack<pf_vh::LifeTimeTracker> stack(storage);
 
       for (std::size_t j = 0; j < 5; j++) {
@@ -160,7 +160,7 @@ PF_TEST_CASE("lifetimes", "[containers][Stack]") {
 
 PF_TEST_CASE("top", "[containers][Stack]") {
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
   Stack<std::uint32_t> stack(storage);
 
   for (std::size_t i = 0; i < 10; i++) {
@@ -180,7 +180,7 @@ PF_TEST_CASE("clear and destructor destroy elements", "[containers][Stack]") {
   SECTION("clear destroys all elements and stack stays reusable") {
     {
       pf_vh::LifeTimeTracker::DeferClear clearer{};
-      auto storage = Buffer::from(M_buf).asObjects<pf_vh::LifeTimeTracker>(BUF_SIZE);
+      auto storage = Buffer::from(M_buf).as_objects<pf_vh::LifeTimeTracker>(BUF_SIZE);
       Stack<pf_vh::LifeTimeTracker> stack(storage);
 
       for (std::size_t i = 0; i < 4; i++) {
@@ -239,7 +239,7 @@ PF_TEST_CASE("clear and destructor destroy elements", "[containers][Stack]") {
 
 PF_TEST_CASE("push_range basic", "[containers][Stack]") {
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
 
   Stack<std::uint32_t> stack(storage);
 
@@ -298,7 +298,7 @@ PF_TEST_CASE("push_range basic", "[containers][Stack]") {
 
 PF_TEST_CASE("move construction", "[containers][Stack]") {
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
 
   SECTION("moved stack owns elements, source is empty") {
     Stack<std::uint32_t> original(storage);
@@ -324,7 +324,7 @@ PF_TEST_CASE("move construction", "[containers][Stack]") {
   SECTION("moved-from stack is safe to destroy") {
     [[maybe_unused]] Stack<std::uint32_t>* movedFrom = nullptr;
     {
-      auto storage2 = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+      auto storage2 = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
       Stack<std::uint32_t> original(storage2);
       original.try_push(42);
       movedFrom = &original;
@@ -351,8 +351,8 @@ PF_TEST_CASE("move construction", "[containers][Stack]") {
 PF_TEST_CASE("move assignment", "[containers][Stack]") {
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf2{};
-  auto storage1 = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
-  auto storage2 = Buffer::from(buf2).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage1 = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
+  auto storage2 = Buffer::from(buf2).as_objects<std::uint32_t>(BUF_SIZE);
 
   SECTION("move assigned stack takes ownership, source is emptied") {
     Stack<std::uint32_t> stack1(storage1);
@@ -412,7 +412,7 @@ PF_TEST_CASE("move assignment", "[containers][Stack]") {
 
 PF_TEST_CASE("copy construction is deleted", "[containers][Stack]") {
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
-  auto storage = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
   Stack<std::uint32_t> stack(storage);
   stack.try_push(42);
 
@@ -428,7 +428,7 @@ PF_TEST_CASE("copy construction is deleted", "[containers][Stack]") {
 
 PF_TEST_CASE("copy assignment", "[containers][Stack]") {
   alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf{};
-  auto storage1 = Buffer::from(buf).asObjects<std::uint32_t>(BUF_SIZE);
+  auto storage1 = Buffer::from(buf).as_objects<std::uint32_t>(BUF_SIZE);
 
   SECTION("copies all elements from source") {
     Stack<std::uint32_t> source(storage1);
@@ -438,7 +438,7 @@ PF_TEST_CASE("copy assignment", "[containers][Stack]") {
     REQUIRE(source.size() == 5);
 
     alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf2{};
-    auto storage2 = Buffer::from(buf2).asObjects<std::uint32_t>(BUF_SIZE);
+    auto storage2 = Buffer::from(buf2).as_objects<std::uint32_t>(BUF_SIZE);
     Stack<std::uint32_t> dest(storage2);
 
     dest = source;
@@ -458,7 +458,7 @@ PF_TEST_CASE("copy assignment", "[containers][Stack]") {
     source.try_push(200);
 
     alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf2{};
-    auto storage2 = Buffer::from(buf2).asObjects<std::uint32_t>(BUF_SIZE);
+    auto storage2 = Buffer::from(buf2).as_objects<std::uint32_t>(BUF_SIZE);
     Stack<std::uint32_t> dest(storage2);
     dest.try_push(1);
 
@@ -480,7 +480,7 @@ PF_TEST_CASE("copy assignment", "[containers][Stack]") {
     source.try_push(2);
 
     alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf2{};
-    auto storage2 = Buffer::from(buf2).asObjects<std::uint32_t>(BUF_SIZE);
+    auto storage2 = Buffer::from(buf2).as_objects<std::uint32_t>(BUF_SIZE);
     Stack<std::uint32_t> dest(storage2);
     dest.try_push(99);
     REQUIRE(dest.size() == 1);
@@ -494,7 +494,7 @@ PF_TEST_CASE("copy assignment", "[containers][Stack]") {
     Stack<std::uint32_t> source(storage1);
 
     alignas(std::uint32_t) std::array<std::byte, BUF_SIZE * sizeof(std::uint32_t)> buf2{};
-    auto storage2 = Buffer::from(buf2).asObjects<std::uint32_t>(BUF_SIZE);
+    auto storage2 = Buffer::from(buf2).as_objects<std::uint32_t>(BUF_SIZE);
     Stack<std::uint32_t> dest(storage2);
     dest.try_push(1);
     dest.try_push(2);

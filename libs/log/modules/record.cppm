@@ -19,18 +19,18 @@ export namespace pf::log {
   PF_LOG_LEVEL_X_MACRO(WARNING, 30, "WRN") \
   PF_LOG_LEVEL_X_MACRO(ERROR, 40, "ERR")
 
-using Level_t = std::uint8_t;
+using LevelT = std::uint8_t;
 
 using LogIdentifier = std::uint8_t;
 
-enum class Level : Level_t {
+enum class Level : LevelT {
 #define PF_LOG_LEVEL_X_MACRO(name, val, str) name = (val),
   PF_DEFAULT_LOG_LEVEL_LIST
 #undef PF_LOG_LEVEL_X_MACRO
 };
 
 [[nodiscard]] constexpr const char*
-toStr(const Level& lvl) PF_NOEXCEPT {
+to_str(const Level& lvl) PF_NOEXCEPT {
 #define PF_LOG_LEVEL_X_MACRO(name, val, str) \
   case Level::name:                          \
     return str;
@@ -56,7 +56,7 @@ template <>
 struct std::formatter<pf::log::Level> : std::formatter<std::string_view> {
   auto
   format(pf::log::Level level, std::format_context& ctx) const {
-    return std::formatter<std::string_view>::format(pf::log::toStr(level), ctx);
+    return std::formatter<std::string_view>::format(pf::log::to_str(level), ctx);
   }
 };
 
@@ -65,7 +65,7 @@ export namespace pf::log {
 // kept as string_view so backends can pass it through pf::fmt without
 // clashing with its template argument deduction
 
-constexpr std::string_view defaultFormat =
+constexpr std::string_view default_format =
     "[{:%Y-%m-%d %H:%M:%S}] [{:>3}] [thread-{:02X}] {}";
 
 template <class LoggerBackend>

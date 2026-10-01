@@ -37,11 +37,11 @@ public:
   /**
    *@brief Stack space reserved per logged line; longer messages truncate
    */
-  static constexpr std::size_t lineBufSize = 512;
+  static constexpr std::size_t line_buf_size = 512;
 
   /**
    *@brief Renders a record into a single console line following
-   * defaultFormat
+   * default_format
    *
    *@param record the record to render
    *@param buf destination buffer; output is truncated to fit and NOT null
@@ -51,12 +51,12 @@ public:
    * buf.size(); exactly min(return value, buf.size()) bytes were written
    */
   [[nodiscard]] static std::size_t
-  formatLine(const Record& record, std::span<char> buf) PF_NOEXCEPT {
-    return fmt(buf, defaultFormat, record.time, record.level, record.id, record.msg);
+  format_line(const Record& record, std::span<char> buf) PF_NOEXCEPT {
+    return fmt(buf, default_format, record.time, record.level, record.id, record.msg);
   }
 
   /**
-   *@brief Formats @p record with formatLine() and writes it followed by a
+   *@brief Formats @p record with format_line() and writes it followed by a
    * newline
    *
    *@param record the record to log
@@ -68,9 +68,9 @@ public:
    */
   static void
   log(const Record& record) PF_NOEXCEPT {
-    std::array<char, lineBufSize> buf{};
+    std::array<char, line_buf_size> buf{};
 
-    const std::size_t size = formatLine(record, buf);
+    const std::size_t size = format_line(record, buf);
     std::size_t len = (size < buf.size()) ? size : buf.size() - 1;
     buf[len++] = '\n';
 

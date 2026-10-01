@@ -16,7 +16,7 @@ constexpr std::size_t alignment = 8;
 
 ObjectStorage<std::byte>
 storageFor(std::array<std::byte, arenaSize>& storage) {
-  return Buffer::from(storage).asObjects<std::byte>(storage.size());
+  return Buffer::from(storage).as_objects<std::byte>(storage.size());
 }
 
 }
@@ -67,7 +67,7 @@ PF_TEST_CASE("aligned allocation pads and rejects insufficient storage",
     constexpr std::size_t alignedSize = 4;
     constexpr std::size_t expectedPadding = alignment - prefixSize % alignment;
     alignas(std::max_align_t) std::array<std::byte, paddedArenaSize> storage{};
-    LinearArena arena{Buffer::from(storage).asObjects<std::byte>(storage.size())};
+    LinearArena arena{Buffer::from(storage).as_objects<std::byte>(storage.size())};
 
     REQUIRE(arena.alloc(prefixSize) == storage.data());
     const auto aligned = arena.try_alloc(alignedSize, alignment);
