@@ -40,8 +40,12 @@ CheckOptions:
     value: true
   - key: readability-identifier-naming.ClassCase
     value: CamelCase
+  - key: readability-identifier-naming.ClassIgnoredRegexp
+    value: "(.*_as|is_.*)"
   - key: readability-identifier-naming.StructCase
     value: CamelCase
+  - key: readability-identifier-naming.StructIgnoredRegexp
+    value: "(.*_as|is_.*)"
   - key: readability-identifier-naming.UnionCase
     value: CamelCase
   - key: readability-identifier-naming.EnumCase
@@ -100,6 +104,8 @@ CheckOptions:
     value: lower_case
   - key: readability-identifier-naming.TypeAliasCase
     value: CamelCase
+  - key: readability-identifier-naming.TypeAliasIgnoredRegexp
+    value: "(.*_as|is_.*)"
   - key: readability-identifier-naming.TypedefCase
     value: CamelCase
   - key: readability-identifier-naming.TypeTemplateParameterCase
