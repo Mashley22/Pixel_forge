@@ -19,11 +19,11 @@ export namespace pf::log {
   PF_LOG_LEVEL_X_MACRO(WARNING, 30, "WRN") \
   PF_LOG_LEVEL_X_MACRO(ERROR, 40, "ERR")
 
-using LevelT = std::uint8_t;
+using level_t = std::uint8_t;
 
-using LogIdentifier = std::uint8_t;
+using log_identifier = std::uint8_t;
 
-enum class Level : LevelT {
+enum class Level : level_t {
 #define PF_LOG_LEVEL_X_MACRO(name, val, str) name = (val),
   PF_DEFAULT_LOG_LEVEL_LIST
 #undef PF_LOG_LEVEL_X_MACRO
@@ -46,7 +46,7 @@ to_str(const Level& lvl) PF_NOEXCEPT {
 struct Record {
   std::chrono::system_clock::time_point time;
   Level level;
-  LogIdentifier id;
+  log_identifier id;
   std::string_view msg;
 };
 

@@ -136,17 +136,17 @@ export template <std::signed_integral T,
                  const std::string_view& TDigitSet = digit_set_upper>
 struct IntToStr {
 private:
-  using UnsignedT = std::make_unsigned_t<T>;
+  using unsigned_t = std::make_unsigned_t<T>;
 
   /**
    *@brief Magnitude of T_val computed without signed overflow, so even the
    * most negative value converts correctly
    */
-  static constexpr UnsignedT magnitude =
-      (ValT < 0) ? static_cast<UnsignedT>(-static_cast<UnsignedT>(ValT))
-                 : static_cast<UnsignedT>(ValT);
+  static constexpr unsigned_t magnitude =
+      (ValT < 0) ? static_cast<unsigned_t>(-static_cast<unsigned_t>(ValT))
+                 : static_cast<unsigned_t>(ValT);
 
-  static constexpr auto uint_arr = UintToStr<UnsignedT, magnitude, BaseT, TDigitSet>::arr;
+  static constexpr auto uint_arr = UintToStr<unsigned_t, magnitude, BaseT, TDigitSet>::arr;
 
   [[nodiscard]]
   static consteval std::size_t

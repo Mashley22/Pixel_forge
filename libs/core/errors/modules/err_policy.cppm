@@ -80,26 +80,26 @@ struct ErrPolicyNothing {
       true;
 #endif
 
-  using ReturnType = ResultType;
+  using return_type = ResultType;
 
-  [[nodiscard]] static constexpr ReturnType
+  [[nodiscard]] static constexpr return_type
   success(ResultType&& successful_result) PF_NOEXCEPT {
     return std::forward<ResultType>(successful_result);
   }
 
-  [[nodiscard]] static constexpr ReturnType
+  [[nodiscard]] static constexpr return_type
   success(const ResultType& successful_result) PF_NOEXCEPT {
     return successful_result;
   }
 
-  [[noreturn]] static constexpr ReturnType
+  [[noreturn]] static constexpr return_type
   fail([[maybe_unused]] const char* str) PF_NOEXCEPT {
     PF_REQUIRE(false, str);
     std::unreachable();
   }
 
   template <class... VArgs>
-  [[noreturn]] static constexpr ReturnType
+  [[noreturn]] static constexpr return_type
   fail([[maybe_unused]] VArgs... args) PF_NOEXCEPT {
     PF_REQUIRE(false, FailMsg);
     std::unreachable();
@@ -120,13 +120,13 @@ struct ErrPolicyNothing<void, FailMsg> {
       true;
 #endif
 
-  using ReturnType = void;
+  using return_type = void;
 
   static constexpr void
   success() PF_NOEXCEPT {};
 
   template <class... VArgs>
-  static constexpr ReturnType
+  static constexpr return_type
   fail(VArgs... args) PF_NOEXCEPT {
     PF_REQUIRE(false, FailMsg);
     ((void) args, ...);
@@ -146,20 +146,20 @@ struct ErrPolicyOptional {
 
   static constexpr bool is_noexcept = true;
   static constexpr bool enabled = true;
-  using ReturnType = std::optional<ResultType>;
+  using return_type = std::optional<ResultType>;
 
-  [[nodiscard]] static constexpr ReturnType
+  [[nodiscard]] static constexpr return_type
   success(ResultType&& successful_result) PF_NOEXCEPT {
     return std::make_optional(std::forward<ResultType>(successful_result));
   }
 
-  [[nodiscard]] static constexpr ReturnType
+  [[nodiscard]] static constexpr return_type
   success(const ResultType& successful_result) PF_NOEXCEPT {
     return std::make_optional(successful_result);
   }
 
   template <class... VArgs>
-  [[nodiscard]] static constexpr ReturnType
+  [[nodiscard]] static constexpr return_type
   fail(VArgs... args) PF_NOEXCEPT {
     ((void) args, ...);
     return std::nullopt;
@@ -175,15 +175,15 @@ struct ErrPolicyOptional<void> {
 
   static constexpr bool is_noexcept = true;
   static constexpr bool enabled = true;
-  using ReturnType = bool;
+  using return_type = bool;
 
-  [[nodiscard]] static constexpr ReturnType
+  [[nodiscard]] static constexpr return_type
   success() PF_NOEXCEPT {
     return true;
   };
 
   template <class... VArgs>
-  [[nodiscard]] static constexpr ReturnType
+  [[nodiscard]] static constexpr return_type
   fail(VArgs... args) PF_NOEXCEPT {
     ((void) args, ...);
     return false;
@@ -201,20 +201,20 @@ template <typename ResultType, class ExceptionT>
 struct ErrPolicyThrows {
   static constexpr bool is_noexcept = false;
   static constexpr bool enabled = true;
-  using ReturnType = ResultType;
+  using return_type = ResultType;
 
-  [[nodiscard]] static constexpr ReturnType
+  [[nodiscard]] static constexpr return_type
   success(ResultType&& successful_result) PF_NOEXCEPT {
     return std::forward<ResultType>(successful_result);
   }
 
-  [[nodiscard]] static constexpr ReturnType
+  [[nodiscard]] static constexpr return_type
   success(const ResultType& successful_result) PF_NOEXCEPT {
     return successful_result;
   }
 
   template <class... VArgs>
-  [[noreturn]] static constexpr ReturnType
+  [[noreturn]] static constexpr return_type
   fail(VArgs... args) {
     throw ExceptionT{std::forward<VArgs>(args)...};
   }
@@ -230,13 +230,13 @@ template <class ExceptionT>
 struct ErrPolicyThrows<void, ExceptionT> {
   static constexpr bool is_noexcept = false;
   static constexpr bool enabled = true;
-  using ReturnType = void;
+  using return_type = void;
 
-  static constexpr ReturnType
+  static constexpr return_type
   success() PF_NOEXCEPT {}
 
   template <class... VArgs>
-  static constexpr ReturnType
+  static constexpr return_type
   fail(VArgs... args) {
     throw ExceptionT{std::forward<VArgs>(args)...};
   }

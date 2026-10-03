@@ -73,8 +73,8 @@ template <typename T>
   requires PointerLike_c<T> && NullptrComparable_c<T>
 class NonNull {
 public:
-  using PointerType = T;
-  using ElementType = std::remove_pointer_t<T>;
+  using pointer_type = T;
+  using element_type = std::remove_pointer_t<T>;
 
   /**
    * @brief Construct from a pointer - explicit to prevent accidental creation
@@ -103,7 +103,7 @@ public:
   /**
    * @brief Dereference
    */
-  [[nodiscard]] constexpr ElementType&
+  [[nodiscard]] constexpr element_type&
   operator*() const PF_NOEXCEPT {
     [[assume(m_ptr != nullptr)]];
     return *m_ptr;
@@ -112,7 +112,7 @@ public:
   /**
    * @brief Member access
    */
-  [[nodiscard]] constexpr ElementType*
+  [[nodiscard]] constexpr element_type*
   operator->() const PF_NOEXCEPT {
     [[assume(m_ptr != nullptr)]];
     return m_ptr;

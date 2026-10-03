@@ -29,15 +29,15 @@ namespace pf::detail {
 template <class Predicate>
 void
 spin_until(Predicate&& predicate) PF_NOEXCEPT {
-  using SpinCount = std::uint32_t;
+  using spin_count = std::uint32_t;
 
-  constexpr SpinCount spin_limit = 65536;
+  constexpr spin_count spin_limit = 65536;
 
-  for (SpinCount i = 0; i < spin_limit; ++i) {
+  for (spin_count i = 0; i < spin_limit; ++i) {
     if (predicate()) {
       return;
     }
-    constexpr SpinCount random_num = 128;
+    constexpr spin_count random_num = 128;
     if ((i & random_num) == random_num) {
       std::this_thread::yield();
     }
@@ -77,14 +77,14 @@ template <typename T>
 class MPMCRingQueue {
 public:
   struct Traits {
-    using ValueType = T;
-    using SizeType = std::size_t;
-    using DifferenceType = std::ptrdiff_t;
-    using Reference = ValueType&;
-    using ConstReference = const ValueType&;
-    using Pointer = T*;
-    using ConstPointer = const T*;
-    using StorageType = T;
+    using value_type = T;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+    using reference = value_type&;
+    using const_reference = const value_type&;
+    using pointer = T*;
+    using const_pointer = const T*;
+    using storage_type = T;
 
     static constexpr bool is_nothrow_copy_construct_v =
         std::is_nothrow_copy_constructible_v<T>;

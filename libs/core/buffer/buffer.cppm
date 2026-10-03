@@ -29,31 +29,31 @@ export namespace pf {
 template <typename T>
 struct ObjectStorage {
 public:
-  using SizeType = std::size_t;
+  using size_type = std::size_t;
   // no derefencing (atleast automatically)
-  using Pointer = void*;
+  using pointer = void*;
 
-  Pointer data{nullptr};
-  SizeType size{0};
+  pointer data{nullptr};
+  size_type size{0};
 
   [[nodiscard]] constexpr T&
-  operator[](SizeType idx) PF_NOEXCEPT {
+  operator[](size_type idx) PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(idx < size);
     return *std::launder(pointer_cast<T*>(data) + idx);
   }
 
   [[nodiscard]] PF_PURE_FUNC constexpr const T&
-  operator[](SizeType idx) const PF_NOEXCEPT {
+  operator[](size_type idx) const PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(idx < size);
     return *std::launder(pointer_cast<T*>(data) + idx);
   }
 };
 
 struct Buffer {
-  using Pointer = std::byte*;
-  using SizeType = std::size_t;
-  Pointer data{nullptr};
-  SizeType size{0};
+  using pointer = std::byte*;
+  using size_type = std::size_t;
+  pointer data{nullptr};
+  size_type size{0};
 
   static constexpr Buffer
   null() {
@@ -66,7 +66,7 @@ struct Buffer {
   }
 
   static constexpr Buffer
-  from(Pointer ptr, SizeType sze) PF_NOEXCEPT {
+  from(pointer ptr, size_type sze) PF_NOEXCEPT {
     return Buffer{.data = ptr, .size = sze};
   }
 
@@ -88,15 +88,15 @@ struct Buffer {
         "Object store creation alignment error, required: {}, got ptr: {}";
 
   private:
-    static constexpr SizeType char_count_for64_bit_int = 32;
-    static constexpr SizeType fmt_buf_size =
+    static constexpr size_type char_count_for64_bit_int = 32;
+    static constexpr size_type fmt_buf_size =
         what_fmt.size() + 2 * char_count_for64_bit_int;
 
   public:
-    SizeType required_alignment{0};
+    size_type required_alignment{0};
     std::uintptr_t ptr_val{0};
 
-    constexpr AlignmentError(SizeType alignment, std::uintptr_t ptr)
+    constexpr AlignmentError(size_type alignment, std::uintptr_t ptr)
       : Error(fmt<fmt_buf_size>(what_fmt, alignment, ptr)), required_alignment(alignment),
         ptr_val(ptr) PF_NOEXCEPT {}
   };
@@ -107,24 +107,24 @@ struct Buffer {
         "Object store creation size error {} bytes supplied for {} objects of size {}";
 
   private:
-    static constexpr SizeType char_count_for64_bit_int = 32;
-    static constexpr SizeType fmt_buf_size =
+    static constexpr size_type char_count_for64_bit_int = 32;
+    static constexpr size_type fmt_buf_size =
         what_fmt.size() + 3 * char_count_for64_bit_int;
 
   public:
-    SizeType buffer_size{0};
-    SizeType num_objects{0};
-    SizeType object_size{0};
+    size_type buffer_size{0};
+    size_type num_objects{0};
+    size_type object_size{0};
 
-    constexpr SizeError(SizeType buf_size, SizeType num_objs, SizeType obj_size)
+    constexpr SizeError(size_type buf_size, size_type num_objs, size_type obj_size)
       : Error(fmt<fmt_buf_size>(what_fmt, buf_size, num_objs, obj_size)),
         buffer_size(buf_size), num_objects(num_objs), object_size(obj_size) PF_NOEXCEPT {}
   };
 
   template <PointerLike_c PtrT>
-  [[nodiscard]] constexpr Pointer
+  [[nodiscard]] constexpr pointer
   to_ptr_t(PtrT ptr) PF_NOEXCEPT {
-    return pointer_cast<Pointer>(ptr);
+    return pointer_cast<pointer>(ptr);
   }
 
   template <
@@ -135,11 +135,11 @@ struct Buffer {
              ErrPolicy_c<SizeErrPolicy, ObjectStorage<T>> &&
              std::is_same_v<typename AlignmentErrPolicy::ReturnType,
                             typename SizeErrPolicy::ReturnType> &&
-             requires(SizeType required_alignment,
+             requires(size_type required_alignment,
                       std::uintptr_t ptr_val,
-                      SizeType buf_size,
-                      SizeType obj_num,
-                      SizeType obj_size) {
+                      size_type buf_size,
+                      size_type obj_num,
+                      size_type obj_size) {
                {
                  AlignmentErrPolicy::fail(required_alignment, ptr_val)
                } -> std::same_as<typename AlignmentErrPolicy::ReturnType>;
@@ -148,7 +148,7 @@ struct Buffer {
                } -> std::same_as<typename SizeErrPolicy::ReturnType>;
              }
   [[nodiscard]] constexpr AlignmentErrPolicy::ReturnType
-  as_objects(SizeType num_objs)
+  as_objects(size_type num_objs)
       PF_NOEXCEPT_COND(T_SizeErrPolicy::is_noexcept&& T_AlignmentErrPolicy::is_noexcept) {
 
     PF_CHECK_ERR_POLICY(AlignmentErrPolicy,
@@ -156,7 +156,7 @@ struct Buffer {
                         alignof(T),
                         pointer_cast<std::uintptr_t>(data));
 
-    PF_CHECK_ERR_POLICY(SizeErrPolicy, SizeType required_size = num_objs * sizeof(T);
+    PF_CHECK_ERR_POLICY(SizeErrPolicy, size_type required_size = num_objs * sizeof(T);
                         required_size > size, size, num_objs, sizeof(T));
 
     return AlignmentErrPolicy::success(
@@ -165,7 +165,7 @@ struct Buffer {
 
   template <typename T>
   [[nodiscard]] constexpr ObjectStorage<T>
-  as_objects_unchecked(SizeType num_objs) PF_NOEXCEPT {
+  as_objects_unchecked(size_type num_objs) PF_NOEXCEPT {
     static constexpr std::string_view alignment_issue = "Alignemnt issue";
     static constexpr std::string_view size_issue = "Incorrect size";
     return as_objects<T,
@@ -175,7 +175,7 @@ struct Buffer {
 
   template <typename T>
   [[nodiscard]] constexpr std::optional<ObjectStorage<T>>
-  try_as_objects(SizeType num_objs) PF_NOEXCEPT {
+  try_as_objects(size_type num_objs) PF_NOEXCEPT {
     return as_objects<T,
                       ErrPolicyOptional<ObjectStorage<T>>,
                       ErrPolicyOptional<ObjectStorage<T>>>(num_objs);

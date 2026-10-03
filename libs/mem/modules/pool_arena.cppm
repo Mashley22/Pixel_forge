@@ -20,12 +20,12 @@ namespace pf::mem {
 
 export class ConcurrentPoolArena {
 public:
-  using SizeType = std::size_t;
+  using size_type = std::size_t;
   constexpr ConcurrentPoolArena() PF_NOEXCEPT = default;
 
   struct Slot {
     Buffer buffer;
-    SizeType block_idx{};
+    size_type block_idx{};
     [[nodiscard]] constexpr bool
     is_null() const PF_NOEXCEPT {
       return buffer.is_null();
@@ -34,15 +34,15 @@ public:
 
   struct CreateParams {
     Buffer buffer;
-    SizeType block_size{};
-    SizeType block_count{};
-    SizeType alignment{0};
+    size_type block_size{};
+    size_type block_count{};
+    size_type alignment{0};
   };
 
   ConcurrentPoolArena(const CreateParams& params)
     : m_free_head(0), m_data(params.buffer.data), m_cap_mask(params.block_count - 1),
-      m_alignment(std::max(params.alignment, alignof(SizeType))),
-      m_stride(std::max(align(params.block_size, alignment()), sizeof(SizeType))),
+      m_alignment(std::max(params.alignment, alignof(size_type))),
+      m_stride(std::max(align(params.block_size, alignment()), sizeof(size_type))),
       m_user_block_size(params.block_size) PF_NOEXCEPT {
     PF_REQUIRE(std::has_single_bit(params.block_size));
     PF_REQUIRE(std::has_single_bit(params.block_count));
@@ -80,13 +80,13 @@ public:
 
   ~ConcurrentPoolArena() PF_NOEXCEPT = default;
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   block_capacity() const PF_NOEXCEPT {
     PF_REQUIRE(!is_null(), "a null arena has no capacity");
     return m_cap_mask + 1;
   }
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   capacity() const PF_NOEXCEPT {
     PF_REQUIRE(!is_null(), "a null arena has no capacity");
     return block_capacity() * stride();
@@ -102,29 +102,29 @@ public:
     return m_data == nullptr;
   }
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   alignment() const PF_NOEXCEPT {
     return m_alignment;
   }
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   stride() const PF_NOEXCEPT {
     return m_stride;
   }
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   block_size() const PF_NOEXCEPT {
     return m_user_block_size;
   }
 
   [[nodiscard]] constexpr const std::byte*
-  resolve(SizeType block_idx) const PF_NOEXCEPT {
+  resolve(size_type block_idx) const PF_NOEXCEPT {
     PF_REQUIRE(block_idx < block_capacity());
     return &m_data[block_idx * stride()];
   }
 
   [[nodiscard]] constexpr std::byte*
-  resolve(SizeType block_idx) PF_NOEXCEPT {
+  resolve(size_type block_idx) PF_NOEXCEPT {
     PF_REQUIRE(block_idx < block_capacity());
     return &m_data[block_idx * stride()];
   }
@@ -147,21 +147,21 @@ public:
    */
   [[nodiscard]] Slot
   alloc() PF_NOEXCEPT {
-    SizeType head = m_free_head.load(std::memory_order_acquire);
+    size_type head = m_free_head.load(std::memory_order_acquire);
 
     for (;;) {
       if (head == null) {
         return Slot{.buffer = Buffer::null()};
       }
 
-      const SizeType head_block_idx = index_of(head);
-      const SizeType next_block_idx = get_next_block_idx(head_block_idx);
-      const SizeType generation = generation_of(head);
-      const SizeType next_head =
+      const size_type head_block_idx = index_of(head);
+      const size_type next_block_idx = get_next_block_idx(head_block_idx);
+      const size_type generation = generation_of(head);
+      const size_type next_head =
           next_block_idx == null ? null : tag_idx(generation, next_block_idx);
 
       if (m_free_head.compare_exchange_weak(head, next_head, std::memory_order_acq_rel)) {
-        std::destroy_at(pointer_cast<SizeType*>(&m_data[head_block_idx * stride()]));
+        std::destroy_at(pointer_cast<size_type*>(&m_data[head_block_idx * stride()]));
         return Slot{.buffer{.data = resolve(head_block_idx), .size = m_user_block_size},
                     .block_idx = head_block_idx};
       }
@@ -169,12 +169,12 @@ public:
   }
 
   void
-  dealloc(SizeType block_idx) PF_NOEXCEPT {
-    SizeType head = m_free_head.load(std::memory_order_acquire);
-    SizeType* const ptr = pointer_cast<SizeType*>(resolve(block_idx));
+  dealloc(size_type block_idx) PF_NOEXCEPT {
+    size_type head = m_free_head.load(std::memory_order_acquire);
+    size_type* const ptr = pointer_cast<size_type*>(resolve(block_idx));
     for (;;) {
       std::construct_at(ptr, head == null ? null : index_of(head));
-      const SizeType generation = head == null ? 0 : generation_of(head);
+      const size_type generation = head == null ? 0 : generation_of(head);
       if (m_free_head.compare_exchange_weak(
               head,
               tag_idx(bump_generation(generation), block_idx),
@@ -190,7 +190,7 @@ public:
         (pointer_cast<std::uintptr_t>(ptr) - pointer_cast<std::uintptr_t>(m_data)) %
             m_stride ==
         0);
-    const SizeType block_idx =
+    const size_type block_idx =
         (pointer_cast<std::uintptr_t>(ptr) - pointer_cast<std::uintptr_t>(m_data)) /
         m_stride;
 
@@ -198,69 +198,69 @@ public:
   }
 
 private:
-  static constexpr SizeType null = std::numeric_limits<SizeType>::max();
+  static constexpr size_type null = std::numeric_limits<size_type>::max();
 
   PF_CACHE_LINE_ALIGN_VAR
-  std::atomic<SizeType> m_free_head{null};
+  std::atomic<size_type> m_free_head{null};
 
   std::byte* m_data{nullptr};
-  SizeType m_cap_mask{0}; // in units of the stride
-  SizeType m_alignment{0};
-  SizeType m_stride{0};
-  SizeType m_user_block_size{0};
+  size_type m_cap_mask{0}; // in units of the stride
+  size_type m_alignment{0};
+  size_type m_stride{0};
+  size_type m_user_block_size{0};
 
   constexpr void
   initialise_free_list() PF_NOEXCEPT {
-    for (SizeType i = 0; i < block_capacity(); i++) {
-      const SizeType next_idx = i + 1 == block_capacity() ? null : i + 1;
-      std::construct_at(pointer_cast<SizeType*>(&m_data[i * stride()]), next_idx);
+    for (size_type i = 0; i < block_capacity(); i++) {
+      const size_type next_idx = i + 1 == block_capacity() ? null : i + 1;
+      std::construct_at(pointer_cast<size_type*>(&m_data[i * stride()]), next_idx);
     }
   }
 
-  constexpr SizeType
-  get_next_block_idx(SizeType block_idx) const PF_NOEXCEPT {
-    SizeType next_idx{0};
-    std::memcpy(&next_idx, &m_data[block_idx * stride()], sizeof(SizeType));
+  constexpr size_type
+  get_next_block_idx(size_type block_idx) const PF_NOEXCEPT {
+    size_type next_idx{0};
+    std::memcpy(&next_idx, &m_data[block_idx * stride()], sizeof(size_type));
     return next_idx;
   }
 
-  [[nodiscard]] constexpr SizeType
-  index_of(SizeType tagged) const PF_NOEXCEPT {
+  [[nodiscard]] constexpr size_type
+  index_of(size_type tagged) const PF_NOEXCEPT {
     return tagged & m_cap_mask;
   }
 
-  [[nodiscard]] constexpr SizeType
-  generation_of(SizeType tagged) const PF_NOEXCEPT {
+  [[nodiscard]] constexpr size_type
+  generation_of(size_type tagged) const PF_NOEXCEPT {
     return (tagged & ~m_cap_mask);
   }
 
-  [[nodiscard]] constexpr SizeType
-  tag_idx(SizeType generation, SizeType index) const PF_NOEXCEPT {
+  [[nodiscard]] constexpr size_type
+  tag_idx(size_type generation, size_type index) const PF_NOEXCEPT {
     return (generation) | (index & m_cap_mask);
   }
 
-  [[nodiscard]] constexpr SizeType
-  bump_generation(SizeType generation) const PF_NOEXCEPT {
+  [[nodiscard]] constexpr size_type
+  bump_generation(size_type generation) const PF_NOEXCEPT {
     return generation + block_capacity();
   }
 };
 
 export class PoolArena {
 public:
-  using SizeType = std::size_t;
+  using size_type = std::size_t;
   constexpr PoolArena() PF_NOEXCEPT = default;
 
   struct CreateParams {
     Buffer buffer;
-    SizeType block_size{};
-    SizeType block_count{};
-    SizeType alignment{0};
+    size_type block_size{};
+    size_type block_count{};
+    size_type alignment{0};
   };
 
   PoolArena(const CreateParams& params)
     : m_data(params.buffer.data), m_block_capacity(params.block_count),
       m_alignment(std::max(params.alignment, alignof(void*))),
-      m_stride(std::max(align(params.block_size, alignment()), sizeof(SizeType))),
+      m_stride(std::max(align(params.block_size, alignment()), sizeof(size_type))),
       m_user_block_size(params.block_size) PF_NOEXCEPT {
     PF_REQUIRE(std::has_single_bit(params.block_size));
     PF_REQUIRE(std::has_single_bit(params.block_count));
@@ -308,27 +308,27 @@ public:
     return m_data == nullptr;
   }
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   alignment() const PF_NOEXCEPT {
     return m_alignment;
   }
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   stride() const PF_NOEXCEPT {
     return m_stride;
   }
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   block_size() const PF_NOEXCEPT {
     return m_user_block_size;
   }
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   block_capacity() const PF_NOEXCEPT {
     return m_block_capacity;
   }
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   capacity() const PF_NOEXCEPT {
     return block_capacity() * stride();
   }
@@ -369,10 +369,10 @@ private:
 
   Link* m_free_head{nullptr};
   std::byte* m_data{nullptr};
-  SizeType m_block_capacity{0};
-  SizeType m_alignment{0};
-  SizeType m_stride{0};
-  SizeType m_user_block_size{0};
+  size_type m_block_capacity{0};
+  size_type m_alignment{0};
+  size_type m_stride{0};
+  size_type m_user_block_size{0};
 
   constexpr void
   initialise_free_list() PF_NOEXCEPT {

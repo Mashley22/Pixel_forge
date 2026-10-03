@@ -348,8 +348,8 @@ private:
   };
 
 public:
-  using SPSC = Skeleton<SpFront, SpBack>;
-  using MPSC = Skeleton<SpFront, MpBack>;
+  using spsc = Skeleton<SpFront, SpBack>;
+  using mpsc = Skeleton<SpFront, MpBack>;
 };
 
 }
@@ -369,7 +369,7 @@ export namespace adapters {
  *
  */
 template <typename T>
-using SPSCLLQueue = detail::ConcurrentLLQueue<T>::SPSC;
+using spscll_queue = detail::ConcurrentLLQueue<T>::SPSC;
 
 /**
  *@brief a queue data class, represented via a linked list
@@ -384,7 +384,7 @@ using SPSCLLQueue = detail::ConcurrentLLQueue<T>::SPSC;
  *
  */
 template <typename T>
-using MPSCLLQueue = detail::ConcurrentLLQueue<T>::MPSC;
+using mpscll_queue = detail::ConcurrentLLQueue<T>::MPSC;
 }
 
 }

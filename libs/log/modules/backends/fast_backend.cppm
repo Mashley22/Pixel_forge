@@ -21,22 +21,22 @@ export namespace pf::log {
  */
 class FastBackend {
 
-  using Clock = std::chrono::system_clock;
+  using clock = std::chrono::system_clock;
 
-  using TimePointT = Clock::time_point;
+  using time_point_t = clock::time_point;
 
-  static_assert(sizeof(TimePointT) == sizeof(std::uint64_t));
+  static_assert(sizeof(time_point_t) == sizeof(std::uint64_t));
 
   struct Header {
-    TimePointT time{};
+    time_point_t time{};
     std::uint32_t id{};
     std::uint16_t size{0};
     Level level{Level::DEBUG};
     bool is_last{};
   };
 
-  static_assert(sizeof(Header) == 2 * sizeof(TimePointT));
-  static_assert(alignof(Header) == alignof(TimePointT));
+  static_assert(sizeof(Header) == 2 * sizeof(time_point_t));
+  static_assert(alignof(Header) == alignof(time_point_t));
 
   struct Payload {
     Header header;

@@ -30,18 +30,18 @@ template <EnumClass_c BitEnumT>
 class Flag {
 public:
   /// The enum's underlying integer type
-  using UnderlyingT = std::underlying_type_t<BitEnumT>;
+  using underlying_t = std::underlying_type_t<BitEnumT>;
 
   /**
    *@brief Wraps a single enumerator as a flag set
    */
-  constexpr Flag(BitEnumT bit) PF_NOEXCEPT : m_val(static_cast<UnderlyingT>(bit)) {};
+  constexpr Flag(BitEnumT bit) PF_NOEXCEPT : m_val(static_cast<underlying_t>(bit)) {};
 
   /**
    *@brief The raw underlying bit pattern
    */
   [[nodiscard]]
-  constexpr UnderlyingT
+  constexpr underlying_t
   val() const PF_NOEXCEPT {
     return m_val;
   }
@@ -143,12 +143,12 @@ public:
   }
 
 private:
-  UnderlyingT m_val;
+  underlying_t m_val;
 
   [[nodiscard]]
-  static constexpr UnderlyingT
+  static constexpr underlying_t
   cast(BitEnumT val) PF_NOEXCEPT {
-    return static_cast<UnderlyingT>(val);
+    return static_cast<underlying_t>(val);
   }
 };
 

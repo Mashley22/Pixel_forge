@@ -41,14 +41,14 @@ public:
   };
 
   struct Traits {
-    using ValueType = T;
-    using SizeType = std::size_t;
-    using DifferenceType = std::ptrdiff_t;
-    using Reference = ValueType&;
-    using ConstReference = const ValueType&;
-    using Pointer = T*;
-    using ConstPointer = const T*;
-    using StorageType = Node;
+    using value_type = T;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+    using reference = value_type&;
+    using const_reference = const value_type&;
+    using pointer = T*;
+    using const_pointer = const T*;
+    using storage_type = Node;
 
     static constexpr bool is_nothrow_copy_construct_v =
         std::is_nothrow_copy_constructible_v<T>;
