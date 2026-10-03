@@ -38,7 +38,7 @@ struct MoveOnlyValue {
 template <typename T>
 class NodeStorage {
 public:
-  using Node = SPSCLLQueue<T>::StorageType;
+  using Node = SPSCLLQueue<T>::storage_type;
 
   [[nodiscard]] ObjectStorage<Node>
   objStore() {
@@ -67,17 +67,17 @@ public:
 
 PF_TEST_CASE("construction and type traits", "[containers][SPSCLLQueue]") {
   using Queue = SPSCLLQueue<std::uint32_t>;
-  using Node = Queue::StorageType;
+  using Node = Queue::storage_type;
 
   SECTION("Traits") {
-    static_assert(std::is_same_v<Queue::ValueType, std::uint32_t>);
-    static_assert(std::is_same_v<Queue::SizeType, std::size_t>);
-    static_assert(std::is_same_v<Queue::DifferenceType, std::ptrdiff_t>);
-    static_assert(std::is_same_v<Queue::Reference, std::uint32_t&>);
-    static_assert(std::is_same_v<Queue::ConstReference, const std::uint32_t&>);
-    static_assert(std::is_same_v<Queue::Pointer, std::uint32_t*>);
-    static_assert(std::is_same_v<Queue::ConstPointer, const std::uint32_t*>);
-    static_assert(std::is_same_v<Queue::StorageType, Node>);
+    static_assert(std::is_same_v<Queue::value_type, std::uint32_t>);
+    static_assert(std::is_same_v<Queue::size_type, std::size_t>);
+    static_assert(std::is_same_v<Queue::difference_type, std::ptrdiff_t>);
+    static_assert(std::is_same_v<Queue::reference, std::uint32_t&>);
+    static_assert(std::is_same_v<Queue::const_reference, const std::uint32_t&>);
+    static_assert(std::is_same_v<Queue::pointer, std::uint32_t*>);
+    static_assert(std::is_same_v<Queue::const_pointer, const std::uint32_t*>);
+    static_assert(std::is_same_v<Queue::storage_type, Node>);
     static_assert(std::is_same_v<decltype(Node::next), std::atomic<Node*>>);
     static_assert(std::is_same_v<pf::adapters::SPSCLLQueue<std::uint32_t>, Queue>);
     static_assert(std::is_default_constructible_v<Queue>);
@@ -270,7 +270,7 @@ PF_TEST_CASE("push and emplace overloads", "[containers][SPSCLLQueue]") {
 
 PF_TEST_CASE("the popped head can be emplaced again", "[containers][SPSCLLQueue]") {
   using Queue = SPSCLLQueue<std::uint32_t>;
-  using Node = Queue::StorageType;
+  using Node = Queue::storage_type;
 
   std::array<NodeStorage<std::uint32_t>, 2> storage;
   Queue queue(storage[0].objStore());

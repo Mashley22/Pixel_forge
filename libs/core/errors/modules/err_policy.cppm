@@ -33,18 +33,18 @@ concept ErrPolicy_c = !std::is_same_v<ResultType, void> &&
                         typename std::bool_constant<Policy::is_noexcept>;
                         typename std::bool_constant<Policy::enabled>;
 
-                        typename Policy::ReturnType;
+                        typename Policy::return_type;
 
                         {
                           Policy::success(std::forward<ResultType>(rvalue))
-                        } -> std::same_as<typename Policy::ReturnType>;
+                        } -> std::same_as<typename Policy::return_type>;
                         {
                           Policy::success(static_cast<ResultType&&>(rvalue))
-                        } -> std::same_as<typename Policy::ReturnType>;
+                        } -> std::same_as<typename Policy::return_type>;
 
                         {
                           Policy::success(lvalue)
-                        } -> std::same_as<typename Policy::ReturnType>;
+                        } -> std::same_as<typename Policy::return_type>;
                       };
 
 /**
@@ -57,9 +57,9 @@ concept VoidErrPolicy_c = requires() {
   typename std::bool_constant<VoidPolicy::is_noexcept>;
   typename std::bool_constant<VoidPolicy::enabled>;
 
-  typename VoidPolicy::ReturnType;
+  typename VoidPolicy::return_type;
 
-  { VoidPolicy::success() } -> std::same_as<typename VoidPolicy::ReturnType>;
+  { VoidPolicy::success() } -> std::same_as<typename VoidPolicy::return_type>;
 };
 
 /**

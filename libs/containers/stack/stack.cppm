@@ -56,7 +56,7 @@ public:
   /**
    *@brief Constructs a stack over a typed ObjectStorage
    *
-   * The storage's data Pointer must be aligned for @p T. Storage must
+   * The storage's data pointer must be aligned for @p T. Storage must
    * outlive the stack.
    */
   explicit constexpr Stack(ObjectStorage<T> storage) PF_NOEXCEPT
@@ -85,7 +85,7 @@ public:
 
     clear();
 
-    for (Pointer it = other.m_data; it != other.m_top; ++it) {
+    for (pointer it = other.m_data; it != other.m_top; ++it) {
       std::construct_at(m_top, *it);
       m_top++;
     }
@@ -106,42 +106,42 @@ public:
     return *this;
   }
 
-  [[nodiscard]] constexpr Pointer
+  [[nodiscard]] constexpr pointer
   data() PF_NOEXCEPT {
     return m_data;
   }
 
-  [[nodiscard]] constexpr ConstPointer
+  [[nodiscard]] constexpr const_pointer
   data() const PF_NOEXCEPT {
     return m_data;
   }
 
-  [[nodiscard]] constexpr Pointer
+  [[nodiscard]] constexpr pointer
   end() PF_NOEXCEPT {
     return m_end;
   }
 
-  [[nodiscard]] constexpr ConstPointer
+  [[nodiscard]] constexpr const_pointer
   end() const PF_NOEXCEPT {
     return m_end;
   }
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   size() const PF_NOEXCEPT {
     [[assume(m_top >= m_data)]];
-    return static_cast<SizeType>(m_top - m_data);
+    return static_cast<size_type>(m_top - m_data);
   }
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   capacity() const PF_NOEXCEPT {
     [[assume(m_end > m_data)]];
-    return static_cast<SizeType>(m_end - m_data);
+    return static_cast<size_type>(m_end - m_data);
   }
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   remaining() const PF_NOEXCEPT {
     [[assume(m_end >= m_top)]];
-    return static_cast<SizeType>(m_end - m_top);
+    return static_cast<size_type>(m_end - m_top);
   }
 
   [[nodiscard]] constexpr bool
@@ -154,13 +154,13 @@ public:
     return size() == 0;
   }
 
-  [[nodiscard]] constexpr Reference
+  [[nodiscard]] constexpr reference
   top() PF_NOEXCEPT {
     PF_REQUIRE(!empty(), "stack empty");
     return *(m_top - 1);
   }
 
-  [[nodiscard]] constexpr ConstReference
+  [[nodiscard]] constexpr const_reference
   top() const PF_NOEXCEPT {
     PF_REQUIRE(!empty(), "stack empty");
     return *(m_top - 1);
@@ -168,9 +168,9 @@ public:
 
   template <class ErrPolicy = ErrPolicyThrows<void, FullError>>
     requires VoidErrPolicy_c<ErrPolicy> && requires {
-      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::ReturnType>;
+      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::return_type>;
     }
-  constexpr ErrPolicy::ReturnType
+  constexpr ErrPolicy::return_type
   push(const T& value)
       PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v&& ErrPolicy::is_noexcept) {
     PF_CHECK_ERR_POLICY(ErrPolicy, full());
@@ -180,7 +180,7 @@ public:
     return ErrPolicy::success();
   }
 
-  constexpr ErrPolicyOptional<void>::ReturnType
+  constexpr ErrPolicyOptional<void>::return_type
   try_push(const T& value) PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
     return push<ErrPolicyOptional<void>>(value);
   }
@@ -193,9 +193,9 @@ public:
 
   template <class ErrPolicy = ErrPolicyThrows<void, FullError>>
     requires VoidErrPolicy_c<ErrPolicy> && requires {
-      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::ReturnType>;
+      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::return_type>;
     }
-  constexpr ErrPolicy::ReturnType
+  constexpr ErrPolicy::return_type
   push(T&& value)
       PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& ErrPolicy::is_noexcept) {
     PF_CHECK_ERR_POLICY(ErrPolicy, full());
@@ -210,16 +210,16 @@ public:
     return push<ErrPolicyNothing<void, func_info>>(std::forward<T>(value));
   }
 
-  constexpr ErrPolicyOptional<void>::ReturnType
+  constexpr ErrPolicyOptional<void>::return_type
   try_push(T&& value) PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
     return push<ErrPolicyOptional<void>>(std::forward<T>(value));
   }
 
   template <class ErrPolicy = ErrPolicyThrows<T, FullError>>
     requires ErrPolicy_c<ErrPolicy, T> && requires {
-      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::ReturnType>;
+      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::return_type>;
     }
-  constexpr ErrPolicy::ReturnType
+  constexpr ErrPolicy::return_type
   pop() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& ErrPolicy::is_noexcept) {
     PF_CHECK_ERR_POLICY(ErrPolicy, empty());
 
@@ -230,7 +230,7 @@ public:
     return ErrPolicy::success(std::move(temp));
   }
 
-  constexpr ErrPolicyOptional<T>::ReturnType
+  constexpr ErrPolicyOptional<T>::return_type
   try_pop() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
     return pop<ErrPolicyOptional<T>>();
   }
@@ -242,40 +242,40 @@ public:
   }
 
   template <class ErrPolicy, class... VArgs>
-    requires ErrPolicy_c<ErrPolicy, Pointer> && requires {
-      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::ReturnType>;
+    requires ErrPolicy_c<ErrPolicy, pointer> && requires {
+      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::return_type>;
     }
-  constexpr ErrPolicy::ReturnType
+  constexpr ErrPolicy::return_type
   emplace(VArgs&&... args) PF_NOEXCEPT_COND(
       Traits::template is_nothrow_construct_v<V_args...>&& ErrPolicy::is_noexcept) {
     PF_CHECK_ERR_POLICY(ErrPolicy, full());
 
     std::construct_at(m_top, std::forward<VArgs>(args)...);
-    Pointer ret_val = m_top;
+    pointer ret_val = m_top;
     m_top++;
 
     return ErrPolicy::success(ret_val);
   }
 
   template <class... VArgs>
-  constexpr ErrPolicyThrows<Pointer, FullError>::ReturnType
+  constexpr ErrPolicyThrows<pointer, FullError>::return_type
   emplace(VArgs&&... args) {
-    return emplace<ErrPolicyThrows<Pointer, FullError>>(std::forward<VArgs>(args)...);
+    return emplace<ErrPolicyThrows<pointer, FullError>>(std::forward<VArgs>(args)...);
   }
 
   template <class... VArgs>
-  constexpr ErrPolicyOptional<Pointer>::ReturnType
+  constexpr ErrPolicyOptional<pointer>::return_type
   try_emplace(VArgs&&... args)
       PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...>) {
-    return emplace<ErrPolicyOptional<Pointer>>(std::forward<VArgs>(args)...);
+    return emplace<ErrPolicyOptional<pointer>>(std::forward<VArgs>(args)...);
   }
 
   template <class... VArgs>
-  Pointer
+  pointer
   emplace_unchecked(VArgs&&... args)
       PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...>) {
     static constexpr std::string_view func_info{PF_FUNC_INFO};
-    return emplace<ErrPolicyNothing<Pointer, func_info>>(std::forward<VArgs>(args)...);
+    return emplace<ErrPolicyNothing<pointer, func_info>>(std::forward<VArgs>(args)...);
   }
 
   template <typename RangeT>
@@ -289,9 +289,9 @@ public:
   template <typename RangeT, class ErrPolicy = ErrPolicyThrows<void, FullError>>
     requires CompatibleInputRange_c<Stack<T>, RangeT> && VoidErrPolicy_c<ErrPolicy> &&
              requires {
-               { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::ReturnType>;
+               { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::return_type>;
              }
-  constexpr ErrPolicy::ReturnType
+  constexpr ErrPolicy::return_type
   push_range(RangeT&& range) {
     PF_CHECK_ERR_POLICY(ErrPolicy, std::ranges::size(range) > remaining());
 

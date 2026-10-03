@@ -20,9 +20,9 @@ template <typename ErrPolicy, typename ValueReturnType, typename ImplFunc>
   requires ErrPolicy_c<ErrPolicy, ValueReturnType> && std::invocable<ImplFunc> &&
            std::same_as<ValueReturnType, std::invoke_result_t<ImplFunc>> &&
            requires(const char* str) {
-             { ErrPolicy::fail(str) } -> std::same_as<typename ErrPolicy::ReturnType>;
+             { ErrPolicy::fail(str) } -> std::same_as<typename ErrPolicy::return_type>;
            }
-PF_PURE_FUNC [[nodiscard]] ErrPolicy::ReturnType
+PF_PURE_FUNC [[nodiscard]] ErrPolicy::return_type
 fmt_structure_impl(ImplFunc fmt_impl)
     PF_NOEXCEPT_COND(ErrPolicy::is_noexcept && !ErrPolicy::enabled) {
 
@@ -92,9 +92,9 @@ export struct FmtError : Exception {
 export template <typename ErrPolicy = ErrPolicyThrows<std::size_t, FmtError>,
                  class... VArgs>
   requires ErrPolicy_c<ErrPolicy, std::size_t> && requires(const char* str) {
-    { ErrPolicy::fail(str) } -> std::same_as<typename ErrPolicy::ReturnType>;
+    { ErrPolicy::fail(str) } -> std::same_as<typename ErrPolicy::return_type>;
   }
-PF_PURE_FUNC [[nodiscard]] ErrPolicy::ReturnType
+PF_PURE_FUNC [[nodiscard]] ErrPolicy::return_type
 fmt(std::span<char> buf, std::format_string<VArgs...> format_str, VArgs&&... args)
     PF_NOEXCEPT_COND(ErrPolicy::is_noexcept && !ErrPolicy::enabled) {
   PF_REQUIRE_ASSUME(format_str.get().size() <= buf.size());
@@ -147,9 +147,9 @@ export template <std::size_t BufLen,
                  typename ErrPolicy = ErrPolicyThrows<FmtResult<BufLen>, FmtError>,
                  class... VArgs>
   requires ErrPolicy_c<ErrPolicy, FmtResult<BufLen>> && requires(const char* str) {
-    { ErrPolicy::fail(str) } -> std::same_as<typename ErrPolicy::ReturnType>;
+    { ErrPolicy::fail(str) } -> std::same_as<typename ErrPolicy::return_type>;
   }
-PF_PURE_FUNC [[nodiscard]] ErrPolicy::ReturnType
+PF_PURE_FUNC [[nodiscard]] ErrPolicy::return_type
 fmt(std::format_string<VArgs...> format_str, VArgs&&... args)
     PF_NOEXCEPT_COND(ErrPolicy::is_noexcept && !ErrPolicy::enabled) {
   FmtResult<BufLen> result;
@@ -197,9 +197,9 @@ try_fmt(std::format_string<VArgs...> format_str, VArgs&&... args) PF_NOEXCEPT {
 export template <typename ErrPolicy = ErrPolicyThrows<std::size_t, FmtError>,
                  class... VArgs>
   requires ErrPolicy_c<ErrPolicy, std::size_t> && requires(const char* str) {
-    { ErrPolicy::fail(str) } -> std::same_as<typename ErrPolicy::ReturnType>;
+    { ErrPolicy::fail(str) } -> std::same_as<typename ErrPolicy::return_type>;
   }
-PF_PURE_FUNC [[nodiscard]] ErrPolicy::ReturnType
+PF_PURE_FUNC [[nodiscard]] ErrPolicy::return_type
 fmt_cstr(std::span<char> buf, std::format_string<VArgs...> format_str, VArgs&&... args)
     PF_NOEXCEPT_COND(ErrPolicy::is_noexcept && !ErrPolicy::enabled) {
   PF_REQUIRE_ASSUME(format_str.get().size() < buf.size());
@@ -243,9 +243,9 @@ export template <std::size_t BufLen,
                  typename ErrPolicy = ErrPolicyThrows<FmtResult<BufLen>, FmtError>,
                  class... VArgs>
   requires ErrPolicy_c<ErrPolicy, FmtResult<BufLen>> && requires(const char* str) {
-    { ErrPolicy::fail(str) } -> std::same_as<typename ErrPolicy::ReturnType>;
+    { ErrPolicy::fail(str) } -> std::same_as<typename ErrPolicy::return_type>;
   }
-PF_PURE_FUNC [[nodiscard]] ErrPolicy::ReturnType
+PF_PURE_FUNC [[nodiscard]] ErrPolicy::return_type
 fmt_cstr(std::format_string<VArgs...> format_str, VArgs&&... args)
     PF_NOEXCEPT_COND(ErrPolicy::is_noexcept && !ErrPolicy::enabled) {
   FmtResult<BufLen> result;

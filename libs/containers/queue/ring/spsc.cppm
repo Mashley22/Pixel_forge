@@ -57,14 +57,14 @@ public:
   constexpr SPSCRingQueue() PF_NOEXCEPT = default;
 
   /**
-   *@brief Constructs a queue over a typed ObjectStorage
+   *@brief ructs a queue over a typed ObjectStorage
    *
-   * The storage's data Pointer must be aligned for @p T and its size must be
+   * The storage's data pointer must be aligned for @p T and its size must be
    * a power of two (when @p T_isPowerOfTwo is true). Storage must outlive
    * the queue.
    */
-  explicit constexpr SPSCRingQueue(ObjectStorage<StorageType> storage) PF_NOEXCEPT
-    : m_data(pointer_cast<Pointer>(storage.data)),
+  explicit constexpr SPSCRingQueue(ObjectStorage<storage_type> storage) PF_NOEXCEPT
+    : m_data(pointer_cast<pointer>(storage.data)),
       m_mask(storage.size - 1) {
     PF_REQUIRE(valid_init());
   }
@@ -78,22 +78,22 @@ public:
   SPSCRingQueue&
   operator=(SPSCRingQueue&&) = delete;
 
-  [[nodiscard]] constexpr Pointer
+  [[nodiscard]] constexpr pointer
   data() PF_NOEXCEPT {
     return m_data;
   }
 
-  [[nodiscard]] constexpr ConstPointer
+  [[nodiscard]] constexpr pointer
   data() const PF_NOEXCEPT {
     return m_data;
   }
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   capacity() const PF_NOEXCEPT {
     return m_mask + 1;
   }
 
-  [[nodiscard]] SizeType
+  [[nodiscard]] size_type
   size() const PF_NOEXCEPT {
     // m_head/m_tail are monotonically increasing; unsigned subtraction stays
     // consistent across their wrap-around
@@ -101,7 +101,7 @@ public:
            m_front.load(std::memory_order_acquire);
   }
 
-  [[nodiscard]] SizeType
+  [[nodiscard]] size_type
   remaining() const PF_NOEXCEPT {
     return capacity() - size();
   }
@@ -116,26 +116,26 @@ public:
     return remaining() == 0;
   }
 
-  [[nodiscard]] constexpr Reference
+  [[nodiscard]] constexpr reference
   front() PF_NOEXCEPT {
     ASSUMPTIONS;
     return m_data[idx(m_front.load(std::memory_order_acquire))];
   }
 
-  [[nodiscard]] constexpr ConstReference
+  [[nodiscard]] constexpr reference
   front() const PF_NOEXCEPT {
     ASSUMPTIONS;
     return m_data[idx(m_front.load(std::memory_order_acquire))];
   }
 
-  [[nodiscard]] constexpr Reference
+  [[nodiscard]] constexpr reference
   back() PF_NOEXCEPT {
     ASSUMPTIONS;
     PF_REQUIRE(!empty(), "queue empty");
     return m_data[idx(m_back.load(std::memory_order_acquire) - 1)];
   }
 
-  [[nodiscard]] constexpr ConstReference
+  [[nodiscard]] constexpr reference
   back() const PF_NOEXCEPT {
     ASSUMPTIONS;
     PF_REQUIRE(!empty(), "queue empty");
@@ -144,15 +144,15 @@ public:
 
   template <class ErrPolicy = ErrPolicyThrows<void, FullError>>
     requires VoidErrPolicy_c<ErrPolicy> && requires {
-      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::ReturnType>;
+      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::return_type>;
     }
-  constexpr ErrPolicy::ReturnType
+  constexpr ErrPolicy::return_type
   push(const T& value)
       PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v&& ErrPolicy::is_noexcept) {
     PF_CHECK_ERR_POLICY(ErrPolicy, full());
 
     static constexpr std::string_view func_info{PF_FUNC_INFO};
-    static_cast<void>(emplace<ErrPolicyNothing<Pointer, func_info>>(value));
+    static_cast<void>(emplace<ErrPolicyNothing<pointer, func_info>>(value));
     return ErrPolicy::success();
   }
 
@@ -162,23 +162,23 @@ public:
     push<ErrPolicyNothing<void, func_info>>(value);
   }
 
-  constexpr ErrPolicyOptional<void>::ReturnType
+  constexpr ErrPolicyOptional<void>::return_type
   try_push(const T& val) PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
     return push<ErrPolicyOptional<void>>(val);
   }
 
   template <class ErrPolicy = ErrPolicyThrows<void, FullError>>
     requires VoidErrPolicy_c<ErrPolicy> && requires {
-      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::ReturnType>;
+      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::return_type>;
     }
-  constexpr ErrPolicy::ReturnType
+  constexpr ErrPolicy::return_type
   push(T&& val)
       PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& ErrPolicy::is_noexcept) {
     PF_CHECK_ERR_POLICY(ErrPolicy, full());
 
     static constexpr std::string_view func_info{PF_FUNC_INFO};
     static_cast<void>(
-        emplace<ErrPolicyNothing<Pointer, func_info>>(std::forward<T>(val)));
+        emplace<ErrPolicyNothing<pointer, func_info>>(std::forward<T>(val)));
     return ErrPolicy::success();
   }
 
@@ -188,22 +188,22 @@ public:
     push<ErrPolicyNothing<void, func_info>>(std::forward<T>(val));
   }
 
-  constexpr ErrPolicyOptional<void>::ReturnType
+  constexpr ErrPolicyOptional<void>::return_type
   try_push(T&& val) PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
     return push<ErrPolicyOptional<void>>(std::forward<T>(val));
   }
 
   template <class ErrPolicy, class... VArgs>
-    requires ErrPolicy_c<ErrPolicy, Pointer> && requires {
-      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::ReturnType>;
+    requires ErrPolicy_c<ErrPolicy, pointer> && requires {
+      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::return_type>;
     }
-  constexpr ErrPolicy::ReturnType
+  constexpr ErrPolicy::return_type
   emplace(VArgs&&... args) PF_NOEXCEPT_COND(
       Traits::template is_nothrow_construct_v<V_args...>&& ErrPolicy::is_noexcept) {
     PF_CHECK_ERR_POLICY(ErrPolicy, full());
 
     ASSUMPTIONS;
-    SizeType head = m_back.load(std::memory_order_relaxed);
+    size_type head = m_back.load(std::memory_order_relaxed);
     std::construct_at(&m_data[idx(head)], std::forward<VArgs>(args)...);
     m_back.store(head + 1, std::memory_order_release);
 
@@ -211,37 +211,37 @@ public:
   }
 
   template <class... VArgs>
-  Pointer
+  pointer
   emplace_unchecked(VArgs&&... args)
       PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...>) {
     static constexpr std::string_view func_info{PF_FUNC_INFO};
-    return emplace<ErrPolicyNothing<Pointer, func_info>, VArgs...>(
+    return emplace<ErrPolicyNothing<pointer, func_info>, VArgs...>(
         std::forward<VArgs>(args)...);
   }
 
   template <class... VArgs>
-  constexpr ErrPolicyThrows<Pointer, FullError>::ReturnType
+  constexpr ErrPolicyThrows<pointer, FullError>::return_type
   emplace(VArgs&&... args) {
-    return emplace<ErrPolicyThrows<Pointer, FullError>>(std::forward<VArgs>(args)...);
+    return emplace<ErrPolicyThrows<pointer, FullError>>(std::forward<VArgs>(args)...);
   }
 
   template <class... VArgs>
-  constexpr ErrPolicyOptional<Pointer>::ReturnType
+  constexpr ErrPolicyOptional<pointer>::return_type
   try_emplace(VArgs&&... args)
       PF_NOEXCEPT_COND(Traits::template is_nothrow_construct_v<V_args...>) {
-    return emplace<ErrPolicyOptional<Pointer>>(std::forward<VArgs>(args)...);
+    return emplace<ErrPolicyOptional<pointer>>(std::forward<VArgs>(args)...);
   }
 
   template <class ErrPolicy = ErrPolicyThrows<T, EmptyError>>
     requires ErrPolicy_c<ErrPolicy, T> && requires {
-      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::ReturnType>;
+      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::return_type>;
     }
-  constexpr ErrPolicy::ReturnType
+  constexpr ErrPolicy::return_type
   pop() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& ErrPolicy::is_noexcept) {
     PF_CHECK_ERR_POLICY(ErrPolicy, empty());
 
     ASSUMPTIONS;
-    SizeType tail = m_front.load(std::memory_order_relaxed);
+    size_type tail = m_front.load(std::memory_order_relaxed);
     T temp = std::move(m_data[idx(tail)]);
     std::destroy_at(&m_data[idx(tail)]);
     m_front.store(tail + 1, std::memory_order_release);
@@ -255,7 +255,7 @@ public:
     return pop<ErrPolicyNothing<T, func_info>>();
   }
 
-  constexpr ErrPolicyOptional<T>::ReturnType
+  constexpr ErrPolicyOptional<T>::return_type
   try_pop() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
     return pop<ErrPolicyOptional<T>>();
   }
@@ -271,14 +271,14 @@ public:
   }
 
 private:
-  Pointer m_data{nullptr};
-  SizeType m_mask{0};
+  pointer m_data{nullptr};
+  size_type m_mask{0};
 
-  PF_CACHE_LINE_ALIGN_VAR std::atomic<SizeType> m_back{0};
-  PF_CACHE_LINE_ALIGN_VAR std::atomic<SizeType> m_front{0};
+  PF_CACHE_LINE_ALIGN_VAR std::atomic<size_type> m_back{0};
+  PF_CACHE_LINE_ALIGN_VAR std::atomic<size_type> m_front{0};
 
-  [[nodiscard]] constexpr SizeType
-  idx(SizeType num) const PF_NOEXCEPT {
+  [[nodiscard]] constexpr size_type
+  idx(size_type num) const PF_NOEXCEPT {
     ASSUMPTIONS;
     return num & m_mask;
   }

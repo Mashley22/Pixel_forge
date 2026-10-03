@@ -133,8 +133,8 @@ struct Buffer {
       typename SizeErrPolicy = ErrPolicyThrows<ObjectStorage<T>, SizeError>>
     requires ErrPolicy_c<AlignmentErrPolicy, ObjectStorage<T>> &&
              ErrPolicy_c<SizeErrPolicy, ObjectStorage<T>> &&
-             std::is_same_v<typename AlignmentErrPolicy::ReturnType,
-                            typename SizeErrPolicy::ReturnType> &&
+             std::is_same_v<typename AlignmentErrPolicy::return_type,
+                            typename SizeErrPolicy::return_type> &&
              requires(size_type required_alignment,
                       std::uintptr_t ptr_val,
                       size_type buf_size,
@@ -142,12 +142,12 @@ struct Buffer {
                       size_type obj_size) {
                {
                  AlignmentErrPolicy::fail(required_alignment, ptr_val)
-               } -> std::same_as<typename AlignmentErrPolicy::ReturnType>;
+               } -> std::same_as<typename AlignmentErrPolicy::return_type>;
                {
                  SizeErrPolicy::fail(buf_size, obj_num, obj_size)
-               } -> std::same_as<typename SizeErrPolicy::ReturnType>;
+               } -> std::same_as<typename SizeErrPolicy::return_type>;
              }
-  [[nodiscard]] constexpr AlignmentErrPolicy::ReturnType
+  [[nodiscard]] constexpr AlignmentErrPolicy::return_type
   as_objects(size_type num_objs)
       PF_NOEXCEPT_COND(T_SizeErrPolicy::is_noexcept&& T_AlignmentErrPolicy::is_noexcept) {
 

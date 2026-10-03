@@ -16,14 +16,14 @@ import PixelForge.core;
 
 #define TRAITS                                          \
   struct Traits {                                       \
-    using ValueType = T;                                \
-    using SizeType = std::size_t;                       \
-    using DifferenceType = std::ptrdiff_t;              \
-    using Reference = ValueType&;                       \
-    using ConstReference = const ValueType&;            \
-    using Pointer = T*;                                 \
-    using ConstPointer = const T*;                      \
-    using StorageType = Node;                           \
+    using value_type = T;                                \
+    using size_type = std::size_t;                       \
+    using difference_type = std::ptrdiff_t;              \
+    using reference = value_type&;                       \
+    using const_reference = const value_type&;            \
+    using pointer = T*;                                 \
+    using const_pointer = const T*;                      \
+    using storage_type = Node;                           \
                                                         \
     static constexpr bool is_nothrow_copy_construct_v = \
         std::is_nothrow_copy_constructible_v<T>;        \
@@ -61,7 +61,7 @@ private:
   class SpFront {
   public:
     SpFront() PF_NOEXCEPT = default;
-    SpFront(const ObjectStorage<StorageType>& spare_storage)
+    SpFront(const ObjectStorage<storage_type>& spare_storage)
       : m_front(pointer_cast<Node*>(spare_storage.data)) {
       PF_REQUIRE(spare_storage.size == 1);
     }
@@ -149,7 +149,7 @@ private:
   class SpBack {
   public:
     SpBack() PF_NOEXCEPT = default;
-    SpBack(const ObjectStorage<StorageType>& spare_storage)
+    SpBack(const ObjectStorage<storage_type>& spare_storage)
       : m_back(pointer_cast<Node*>(spare_storage.data)) {
       PF_REQUIRE(spare_storage.size == 1);
     }
@@ -203,7 +203,7 @@ private:
   class MpBack {
   public:
     MpBack() PF_NOEXCEPT = default;
-    MpBack(const ObjectStorage<StorageType>& spare_storage)
+    MpBack(const ObjectStorage<storage_type>& spare_storage)
       : m_back(pointer_cast<Node*>(spare_storage.data)) {
       PF_REQUIRE(spare_storage.size == 1);
     }
@@ -270,7 +270,7 @@ private:
 
     ~Skeleton() PF_NOEXCEPT = default;
 
-    Skeleton(const ObjectStorage<StorageType>& storage) PF_NOEXCEPT : m_front(storage),
+    Skeleton(const ObjectStorage<storage_type>& storage) PF_NOEXCEPT : m_front(storage),
                                                                       m_back(storage) {}
 
     [[nodiscard]] bool
@@ -291,7 +291,7 @@ private:
      */
     template <class... VArgs>
     Node*
-    emplace(const ObjectStorage<StorageType>& storage, VArgs&&... args)
+    emplace(const ObjectStorage<storage_type>& storage, VArgs&&... args)
         PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
       PF_REQUIRE_ASSUME(storage.size == 1 && !m_front.is_null());
 
@@ -300,13 +300,13 @@ private:
     }
 
     void
-    push(const ObjectStorage<StorageType>& storage, T&& val)
+    push(const ObjectStorage<storage_type>& storage, T&& val)
         PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
       static_cast<void>(emplace(storage, std::forward<T>(val)));
     }
 
     void
-    push(const ObjectStorage<StorageType>& storage, const T& val)
+    push(const ObjectStorage<storage_type>& storage, const T& val)
         PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
       static_cast<void>(emplace(storage, val));
     }
@@ -348,8 +348,10 @@ private:
   };
 
 public:
-  using spsc = Skeleton<SpFront, SpBack>;
-  using mpsc = Skeleton<SpFront, MpBack>;
+  //NOLINTNEXTLINE
+  using SPSC = Skeleton<SpFront, SpBack>;
+  //NOLINTNEXTLINE
+  using MPSC = Skeleton<SpFront, MpBack>;
 };
 
 }
@@ -369,7 +371,8 @@ export namespace adapters {
  *
  */
 template <typename T>
-using spscll_queue = detail::ConcurrentLLQueue<T>::SPSC;
+//NOLINTNEXTLINE
+using SPSCLLQueue = detail::ConcurrentLLQueue<T>::SPSC;
 
 /**
  *@brief a queue data class, represented via a linked list
@@ -384,7 +387,8 @@ using spscll_queue = detail::ConcurrentLLQueue<T>::SPSC;
  *
  */
 template <typename T>
-using mpscll_queue = detail::ConcurrentLLQueue<T>::MPSC;
+//NOLINTNEXTLINE
+using MPSCLLQueue = detail::ConcurrentLLQueue<T>::MPSC;
 }
 
 }

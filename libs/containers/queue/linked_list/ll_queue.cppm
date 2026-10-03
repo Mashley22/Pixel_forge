@@ -61,7 +61,7 @@ public:
 
   PF_CONTAINERS_INHERIT_TRAITS(Traits);
 
-  LLQueue(const ObjectStorage<StorageType>& spare_storage)
+  LLQueue(const ObjectStorage<storage_type>& spare_storage)
     : m_front(NonNull<Node*>(pointer_cast<Node*>(spare_storage.data))),
       m_back(NonNull<Node*>(pointer_cast<Node*>(spare_storage.data))) {
     PF_REQUIRE(spare_storage.size == 1);
@@ -98,7 +98,7 @@ public:
 
   template <class... VArgs>
   void
-  emplace(const ObjectStorage<StorageType>& storage, VArgs&&... args)
+  emplace(const ObjectStorage<storage_type>& storage, VArgs&&... args)
       PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
     PF_REQUIRE_ASSUME(storage.size == 1);
 
@@ -110,22 +110,22 @@ public:
   }
 
   void
-  push(const ObjectStorage<StorageType>& storage, T&& val)
+  push(const ObjectStorage<storage_type>& storage, T&& val)
       PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
     emplace(storage, std::forward<T>(val));
   }
 
   void
-  push(const ObjectStorage<StorageType>& storage, const T& val)
+  push(const ObjectStorage<storage_type>& storage, const T& val)
       PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v) {
     emplace(storage, val);
   }
 
   template <typename ErrPolicy = ErrPolicyThrows<NonNull<Node*>, EmptyError>>
     requires ErrPolicy_c<ErrPolicy, NonNull<Node*>> && requires {
-      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::ReturnType>;
+      { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::return_type>;
     }
-  [[nodiscard]] typename ErrPolicy::ReturnType
+  [[nodiscard]] typename ErrPolicy::return_type
   pop() PF_NOEXCEPT_COND(ErrPolicy::is_noexcept) {
     PF_REQUIRE_ASSUME(!is_null());
     NonNull<Node*> dummy_node{m_front};

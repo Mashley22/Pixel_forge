@@ -1,5 +1,8 @@
 module;
 
+#include <array>
+#include <string_view>
+
 #ifdef PIXELFORGE_TEST
 #include <print>
 #endif

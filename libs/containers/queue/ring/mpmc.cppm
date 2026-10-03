@@ -100,12 +100,12 @@ public:
   /**
    *@brief Constructs a queue over a typed ObjectStorage
    *
-   * The storage's data Pointer must be aligned for @p T and its size must be
+   * The storage's data pointer must be aligned for @p T and its size must be
    * a power of two. The storage holds raw storage, the queue constructs and
    * destroys the values in it, and it must outlive the queue.
    */
-  explicit MPMCRingQueue(ObjectStorage<StorageType> storage) PF_NOEXCEPT
-    : m_data(pointer_cast<Pointer>(storage.data)),
+  explicit MPMCRingQueue(ObjectStorage<storage_type> storage) PF_NOEXCEPT
+    : m_data(pointer_cast<pointer>(storage.data)),
       m_mask(storage.size - 1) {
     PF_REQUIRE(valid_init());
   }
@@ -121,7 +121,7 @@ public:
   MPMCRingQueue&
   operator=(MPMCRingQueue&&) = delete;
 
-  [[nodiscard]] constexpr SizeType
+  [[nodiscard]] constexpr size_type
   capacity() const PF_NOEXCEPT {
     return m_mask + 1;
   }
@@ -130,16 +130,16 @@ public:
    *@brief the number of values that have been written to the queue but do not have
    * a read reserved
    */
-  [[nodiscard]] SizeType
+  [[nodiscard]] size_type
   size() const PF_NOEXCEPT {
     // the consumed cursor is read first, the produced one can only have grown
     // since, so the subtraction never underflows
-    const SizeType consumed = m_read.reserved.load(std::memory_order_acquire);
-    const SizeType produced = m_write.committed.load(std::memory_order_acquire);
+    const size_type consumed = m_read.reserved.load(std::memory_order_acquire);
+    const size_type produced = m_write.committed.load(std::memory_order_acquire);
     return produced - consumed;
   }
 
-  [[nodiscard]] SizeType
+  [[nodiscard]] size_type
   remaining() const PF_NOEXCEPT {
     return capacity() - size();
   }
@@ -158,8 +158,8 @@ public:
    */
   [[nodiscard]] bool
   full() const PF_NOEXCEPT {
-    const SizeType consumed = m_read.committed.load(std::memory_order_acquire);
-    const SizeType reserved = m_write.reserved.load(std::memory_order_acquire);
+    const size_type consumed = m_read.committed.load(std::memory_order_acquire);
+    const size_type reserved = m_write.reserved.load(std::memory_order_acquire);
     return (reserved - consumed) >= capacity();
   }
 
@@ -173,9 +173,9 @@ public:
   bool
   try_emplace(VArgs&&... args) PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
 
-    const SizeType consumed = m_read.committed.load(std::memory_order_acquire);
-    const SizeType committed = m_write.committed.load(std::memory_order_acquire);
-    SizeType reserved = m_write.reserved.load(std::memory_order_relaxed);
+    const size_type consumed = m_read.committed.load(std::memory_order_acquire);
+    const size_type committed = m_write.committed.load(std::memory_order_acquire);
+    size_type reserved = m_write.reserved.load(std::memory_order_relaxed);
 
     // a producer that is already writing is the only way the committed cursor
     // can lag the reserved one, and committing out of ticket order would let a
@@ -209,7 +209,7 @@ public:
   bool
   wait_emplace(VArgs&&... args)
       PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
-    SizeType reserved = 0;
+    size_type reserved = 0;
 
     // taking the ticket and waiting for the tickets ahead are two phases, a
     // thread that has a ticket must never come back here and take another
@@ -217,7 +217,7 @@ public:
 
       // the event counter is read before the cursors are, so a signal that
       // lands in between leaves it changed and the wait returns straight away
-      const SizeType consumed = m_read.committed.load(std::memory_order_acquire);
+      const size_type consumed = m_read.committed.load(std::memory_order_acquire);
       reserved = m_write.reserved.load(std::memory_order_relaxed);
       if ((reserved - consumed) >= capacity()) {
         // no slot is free, a consumer has to finish reading one before it can
@@ -239,7 +239,7 @@ public:
     // been written. The cursor waited on is the one that moves, so waiting on
     // the value it was read at cannot miss the change that releases it
     for (;;) {
-      const SizeType cur = m_write.committed.load(std::memory_order_acquire);
+      const size_type cur = m_write.committed.load(std::memory_order_acquire);
       if (cur == reserved) {
         break;
       }
@@ -259,11 +259,11 @@ public:
    *@returns std::nullopt when the queue is empty or another thread is
    *  midway through a pop
    */
-  [[nodiscard]] std::optional<ValueType>
+  [[nodiscard]] std::optional<value_type>
   try_pop() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
-    const SizeType produced = m_write.committed.load(std::memory_order_acquire);
-    const SizeType committed = m_read.committed.load(std::memory_order_acquire);
-    SizeType reserved = m_read.reserved.load(std::memory_order_relaxed);
+    const size_type produced = m_write.committed.load(std::memory_order_acquire);
+    const size_type committed = m_read.committed.load(std::memory_order_acquire);
+    size_type reserved = m_read.reserved.load(std::memory_order_relaxed);
 
     // a slot that is reserved but not yet written cannot be read, and
     // committing out of ticket order would hand the same slot out twice
@@ -280,7 +280,7 @@ public:
 
     // taking the ticket makes this the only pop in flight, so this thread is
     // the one that hands the slot back
-    std::optional<ValueType> popped{std::move(m_data[idx(reserved)])};
+    std::optional<value_type> popped{std::move(m_data[idx(reserved)])};
     std::destroy_at(&m_data[idx(reserved)]);
     m_read.committed.fetch_add(1, std::memory_order_release);
 
@@ -294,12 +294,12 @@ public:
    *@note a closed queue can still be drained, and reports itself drained
    *  with std::nullopt once it is
    */
-  [[nodiscard]] std::optional<ValueType>
+  [[nodiscard]] std::optional<value_type>
   wait_pop() PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v) {
-    SizeType reserved = 0;
+    size_type reserved = 0;
 
     for (;;) {
-      const SizeType produced = m_write.committed.load(std::memory_order_acquire);
+      const size_type produced = m_write.committed.load(std::memory_order_acquire);
       reserved = m_read.reserved.load(std::memory_order_relaxed);
       if (produced <= reserved) {
         // nothing to read, either the queue is empty or a producer is midway
@@ -321,7 +321,7 @@ public:
     // the slot can only be read once every ticket ahead of this one has been
     // read, and the cursor waited on is the one that moves
     for (;;) {
-      const SizeType cur = m_read.committed.load(std::memory_order_acquire);
+      const size_type cur = m_read.committed.load(std::memory_order_acquire);
       if (cur == reserved) {
         break;
       }
@@ -329,7 +329,7 @@ public:
           [&]() { return m_read.committed.load(std::memory_order_acquire) != cur; });
     }
 
-    std::optional<ValueType> popped{std::move(m_data[idx(reserved)])};
+    std::optional<value_type> popped{std::move(m_data[idx(reserved)])};
     std::destroy_at(&m_data[idx(reserved)]);
     m_read.committed.store(reserved + 1, std::memory_order_release);
 
@@ -355,12 +355,12 @@ private:
    *  has been dealt with
    */
   struct Cursors {
-    PF_CACHE_LINE_ALIGN_VAR std::atomic<SizeType> reserved{0};
-    PF_CACHE_LINE_ALIGN_VAR std::atomic<SizeType> committed{0};
+    PF_CACHE_LINE_ALIGN_VAR std::atomic<size_type> reserved{0};
+    PF_CACHE_LINE_ALIGN_VAR std::atomic<size_type> committed{0};
   };
 
-  [[nodiscard]] constexpr SizeType
-  idx(SizeType num) const PF_NOEXCEPT {
+  [[nodiscard]] constexpr size_type
+  idx(size_type num) const PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(m_data != nullptr && m_mask > 0);
     return num & m_mask;
   }
@@ -370,8 +370,8 @@ private:
     return m_data != nullptr && capacity() > 0 && std::has_single_bit(capacity());
   }
 
-  Pointer m_data{nullptr};
-  SizeType m_mask{0};
+  pointer m_data{nullptr};
+  size_type m_mask{0};
 
   PF_CACHE_LINE_ALIGN_VAR Cursors m_read;
   PF_CACHE_LINE_ALIGN_VAR Cursors m_write;
