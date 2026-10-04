@@ -146,7 +146,7 @@ public:
    *
    */
   [[nodiscard]] Slot
-  alloc() PF_NOEXCEPT {
+  allocate() PF_NOEXCEPT {
     size_type head = m_free_head.load(std::memory_order_acquire);
 
     for (;;) {
@@ -168,8 +168,15 @@ public:
     }
   }
 
+  [[nodiscard]] Buffer
+  allocate(size_type size, size_type alignment = alignof(std::max_align_t)) PF_NOEXCEPT {
+    PF_REQUIRE(size <= block_size());
+    PF_REQUIRE(alignment <= m_alignment);
+    return allocate().buffer;
+  }
+
   void
-  dealloc(size_type block_idx) PF_NOEXCEPT {
+  deallocate(size_type block_idx) PF_NOEXCEPT {
     size_type head = m_free_head.load(std::memory_order_acquire);
     size_type* const ptr = pointer_cast<size_type*>(resolve(block_idx));
     for (;;) {
@@ -184,8 +191,13 @@ public:
     }
   }
 
+  void deallocate(const Buffer& buffer) PF_NOEXCEPT {
+    PF_REQUIRE(buffer.size <= block_size());
+    deallocate(buffer.data);
+  }
+
   void
-  dealloc(std::byte* ptr) PF_NOEXCEPT {
+  deallocate(std::byte* ptr) PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(
         (pointer_cast<std::uintptr_t>(ptr) - pointer_cast<std::uintptr_t>(m_data)) %
             m_stride ==
@@ -194,7 +206,7 @@ public:
         (pointer_cast<std::uintptr_t>(ptr) - pointer_cast<std::uintptr_t>(m_data)) /
         m_stride;
 
-    dealloc(block_idx);
+    deallocate(block_idx);
   }
 
 private:
@@ -340,7 +352,7 @@ public:
    *
    */
   [[nodiscard]] Buffer
-  alloc() PF_NOEXCEPT {
+  allocate() PF_NOEXCEPT {
     if (m_free_head == nullptr) {
       return Buffer{.data = nullptr, .size = 0};
     }
@@ -349,8 +361,20 @@ public:
     return Buffer{.data = pointer_cast<std::byte*>(old_head), .size = m_user_block_size};
   }
 
+  [[nodiscard]] Buffer
+  allocate(std::size_t bytes, std::size_t alignment = alignof(std::max_align_t)) PF_NOEXCEPT {
+    PF_REQUIRE(bytes <= block_size());
+    PF_REQUIRE(alignment <= m_alignment);
+    return allocate();
+  }
+
+  void deallocate(const Buffer& buffer) PF_NOEXCEPT {
+    PF_REQUIRE(buffer.size <= block_size());
+    deallocate(buffer.data);
+  }
+
   void
-  dealloc(std::byte* ptr) PF_NOEXCEPT {
+  deallocate(std::byte* ptr) PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(
         (pointer_cast<std::uintptr_t>(ptr) - pointer_cast<std::uintptr_t>(m_data)) %
             stride() ==

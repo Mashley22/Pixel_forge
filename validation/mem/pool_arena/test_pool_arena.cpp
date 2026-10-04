@@ -92,7 +92,7 @@ isTagged(const ConcurrentPoolArena::Slot& slot) {
 drain(ConcurrentPoolArena& arena) {
   std::vector<ConcurrentPoolArena::Slot> slots;
   for (std::size_t i = 0; i < arena.block_capacity(); i++) {
-    const auto slot = arena.alloc();
+    const auto slot = arena.allocate();
     REQUIRE_FALSE(slot.is_null());
     slots.push_back(slot);
   }
@@ -116,7 +116,7 @@ drainSt(PoolArena& arena, std::size_t count) {
   std::vector<std::byte*> blocks;
   blocks.reserve(count);
   for (std::size_t i = 0; i < count; i++) {
-    const Buffer block = arena.alloc();
+    const Buffer block = arena.allocate();
     REQUIRE_FALSE(block.is_null());
     blocks.push_back(block.data);
   }
@@ -197,7 +197,7 @@ PF_TEST_CASE("alloc hands out distinct, tagged, in range blocks", "[mem][poolAre
   }
 
   for (const auto& slot : slots) {
-    arena.dealloc(slot.block_idx);
+    arena.deallocate(slot.block_idx);
   }
 }
 
@@ -208,7 +208,7 @@ PF_TEST_CASE("alloc yields a null slot once the pool is exhausted", "[mem][poolA
   const auto slots = drain(arena);
   REQUIRE(arena.full());
 
-  const auto exhausted = arena.alloc();
+  const auto exhausted = arena.allocate();
   REQUIRE(exhausted.is_null());
   REQUIRE(exhausted.buffer.is_null());
   REQUIRE(arena.full());
@@ -221,7 +221,7 @@ PF_TEST_CASE("alloc yields a null slot once the pool is exhausted", "[mem][poolA
   REQUIRE(indices == expected);
 
   for (const auto& slot : slots) {
-    arena.dealloc(slot.block_idx);
+    arena.deallocate(slot.block_idx);
   }
 }
 
@@ -234,10 +234,10 @@ PF_TEST_CASE("dealloc returns the block and the pool reports free capacity",
   REQUIRE(arena.full());
 
   constexpr std::size_t freed = 3;
-  arena.dealloc(slots[freed].block_idx);
+  arena.deallocate(slots[freed].block_idx);
   REQUIRE_FALSE(arena.full());
 
-  const auto reused = arena.alloc();
+  const auto reused = arena.allocate();
   REQUIRE_FALSE(reused.is_null());
   REQUIRE(reused.block_idx == slots[freed].block_idx);
   REQUIRE(reused.buffer.data == slots[freed].buffer.data);
@@ -245,7 +245,7 @@ PF_TEST_CASE("dealloc returns the block and the pool reports free capacity",
 
   for (const auto& slot : slots) {
     if (slot.block_idx != freed) {
-      arena.dealloc(slot.block_idx);
+      arena.deallocate(slot.block_idx);
     }
   }
   REQUIRE_FALSE(arena.full());
@@ -259,14 +259,14 @@ PF_TEST_CASE("free blocks are handed back out last in, first out", "[mem][poolAr
 
   std::vector<std::size_t> freed;
   for (std::size_t i = slots.size(); i > 0; i--) {
-    arena.dealloc(slots[i - 1].block_idx);
+    arena.deallocate(slots[i - 1].block_idx);
     freed.push_back(slots[i - 1].block_idx);
   }
   REQUIRE_FALSE(arena.full());
 
   // the free list is a stack, so the block freed last comes out first
   for (auto it = freed.rbegin(); it != freed.rend(); ++it) {
-    const auto slot = arena.alloc();
+    const auto slot = arena.allocate();
     REQUIRE_FALSE(slot.is_null());
     REQUIRE(slot.block_idx == *it);
   }
@@ -279,19 +279,19 @@ PF_TEST_CASE("dealloc by pointer matches dealloc by index", "[mem][poolArena]") 
 
   const auto slots = drain(arena);
 
-  arena.dealloc(arena.resolve(slots[2].block_idx));
-  arena.dealloc(slots[4].buffer.data);
+  arena.deallocate(arena.resolve(slots[2].block_idx));
+  arena.deallocate(slots[4].buffer.data);
   REQUIRE_FALSE(arena.full());
 
-  const auto first = arena.alloc();
-  const auto second = arena.alloc();
+  const auto first = arena.allocate();
+  const auto second = arena.allocate();
   REQUIRE(first.block_idx == slots[4].block_idx);
   REQUIRE(second.block_idx == slots[2].block_idx);
   REQUIRE(arena.full());
 
   for (const auto& slot : slots) {
     if (slot.block_idx != 2 && slot.block_idx != 4) {
-      arena.dealloc(slot.block_idx);
+      arena.deallocate(slot.block_idx);
     }
   }
   REQUIRE_FALSE(arena.full());
@@ -311,7 +311,7 @@ PF_TEST_CASE("churning the pool never loses or duplicates a block", "[mem][poolA
     REQUIRE(indices.back() == blockCount - 1);
 
     for (const auto idx : indices) {
-      arena.dealloc(idx);
+      arena.deallocate(idx);
     }
     REQUIRE_FALSE(arena.full());
   }
@@ -337,14 +337,14 @@ PF_TEST_CASE("blocks smaller than the free list link still work", "[mem][poolAre
   }
   for (const auto& slot : slots) {
     REQUIRE(isTagged(slot));
-    arena.dealloc(slot.block_idx);
+    arena.deallocate(slot.block_idx);
   }
   REQUIRE_FALSE(arena.full());
 
   slots = drain(arena);
   REQUIRE(arena.full());
   for (const auto& slot : slots) {
-    arena.dealloc(slot.block_idx);
+    arena.deallocate(slot.block_idx);
   }
   REQUIRE_FALSE(arena.full());
 }
@@ -372,7 +372,7 @@ PF_TEST_CASE("padded stride keeps every block aligned", "[mem][poolArena]") {
   }
   REQUIRE(arena.full());
   for (const auto& slot : slots) {
-    arena.dealloc(slot.block_idx);
+    arena.deallocate(slot.block_idx);
   }
 }
 
@@ -380,7 +380,7 @@ PF_TEST_CASE("a default constructed arena is null and empty", "[mem][poolArena]"
   ConcurrentPoolArena arena;
   REQUIRE(arena.is_null());
   REQUIRE(arena.full());
-  REQUIRE(arena.alloc().is_null());
+  REQUIRE(arena.allocate().is_null());
 }
 
 PF_TEST_CASE("destruction does not demand a drained pool", "[mem][poolArena]") {
@@ -390,7 +390,7 @@ PF_TEST_CASE("destruction does not demand a drained pool", "[mem][poolArena]") {
     PoolStorage<blockCount * block_size> storage;
     ConcurrentPoolArena arena{storage.params()};
     for (std::size_t i = 0; i < keep; i++) {
-      REQUIRE_FALSE(arena.alloc().is_null());
+      REQUIRE_FALSE(arena.allocate().is_null());
     }
   }
 }
@@ -404,9 +404,9 @@ PF_TEST_CASE("resolve rejects indices outside the pool", "[mem][poolArena]") {
   REQUIRE_PF_REQUIRE_FAIL(arena.resolve(std::numeric_limits<std::size_t>::max()));
 #endif
 
-  const auto slot = arena.alloc();
+  const auto slot = arena.allocate();
   REQUIRE(arena.resolve(slot) == slot.buffer.data);
-  arena.dealloc(slot.block_idx);
+  arena.deallocate(slot.block_idx);
 }
 
 PF_TEST_CASE("create params are validated", "[mem][poolArena]") {
@@ -456,13 +456,13 @@ PF_TEST_CASE("move construction keeps the pool and nulls the source",
   PoolStorage<blockCount * block_size> storage;
   ConcurrentPoolArena arena{storage.params()};
 
-  const auto held = arena.alloc();
+  const auto held = arena.allocate();
   REQUIRE_FALSE(held.is_null());
 
   ConcurrentPoolArena moved{std::move(arena)};
   REQUIRE(arena.is_null());
   REQUIRE(arena.full());
-  REQUIRE(arena.alloc().is_null());
+  REQUIRE(arena.allocate().is_null());
 
   REQUIRE_FALSE(moved.is_null());
   REQUIRE(moved.block_capacity() == blockCount);
@@ -471,12 +471,12 @@ PF_TEST_CASE("move construction keeps the pool and nulls the source",
   // the block held before the move is still owned, not handed out again
   REQUIRE(moved.resolve(held.block_idx) == held.buffer.data);
 
-  const auto next = moved.alloc();
+  const auto next = moved.allocate();
   REQUIRE_FALSE(next.is_null());
   REQUIRE(next.block_idx != held.block_idx);
 
-  moved.dealloc(next.block_idx);
-  moved.dealloc(held.block_idx);
+  moved.deallocate(next.block_idx);
+  moved.deallocate(held.block_idx);
 }
 
 PF_TEST_CASE("move assignment fills a null arena and rejects a live one",
@@ -493,15 +493,15 @@ PF_TEST_CASE("move assignment fills a null arena and rejects a live one",
   REQUIRE(target.block_capacity() == blockCount);
   REQUIRE_FALSE(target.full());
 
-  const auto slot = target.alloc();
+  const auto slot = target.allocate();
   REQUIRE_FALSE(slot.is_null());
-  target.dealloc(slot.block_idx);
+  target.deallocate(slot.block_idx);
 
   ConcurrentPoolArena live{storage.params()};
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
   REQUIRE_PF_REQUIRE_FAIL(live = std::move(target));
 #endif
-  live.dealloc(live.alloc().block_idx);
+  live.deallocate(live.allocate().block_idx);
 }
 
 PF_TEST_CASE("concurrent alloc dealloc churn never double hands a block out",
@@ -519,7 +519,7 @@ PF_TEST_CASE("concurrent alloc dealloc churn never double hands a block out",
 
   const auto worker = [&arena, &claims, &doubleClaims, &nullAllocs, &successfulAllocs]() {
     for (std::size_t i = 0; i < iterations; i++) {
-      const auto slot = arena.alloc();
+      const auto slot = arena.allocate();
       if (slot.is_null()) {
         nullAllocs.fetch_add(1, std::memory_order::relaxed);
         continue;
@@ -529,7 +529,7 @@ PF_TEST_CASE("concurrent alloc dealloc churn never double hands a block out",
         doubleClaims.fetch_add(1, std::memory_order::relaxed);
       }
       claims[slot.block_idx].fetch_sub(1, std::memory_order::acq_rel);
-      arena.dealloc(slot.buffer.data);
+      arena.deallocate(slot.buffer.data);
     }
   };
 
@@ -554,7 +554,7 @@ PF_TEST_CASE("concurrent alloc dealloc churn never double hands a block out",
   const auto indices = sortedIndices(slots);
   REQUIRE(std::adjacent_find(indices.begin(), indices.end()) == indices.end());
   for (const auto idx : indices) {
-    arena.dealloc(idx);
+    arena.deallocate(idx);
   }
 }
 
@@ -575,7 +575,7 @@ PF_TEST_CASE("concurrent hand out gives every block to exactly one thread",
       retries.fetch_add(1, std::memory_order::relaxed);
       std::this_thread::yield();
     }
-    const auto slot = arena.alloc();
+    const auto slot = arena.allocate();
     if (slot.is_null()) {
       return;
     }
@@ -608,7 +608,7 @@ PF_TEST_CASE("concurrent hand out gives every block to exactly one thread",
   REQUIRE(all == expected);
 
   for (const auto idx : all) {
-    arena.dealloc(idx);
+    arena.deallocate(idx);
   }
   REQUIRE_FALSE(arena.full());
 }
@@ -658,7 +658,7 @@ PF_TEST_CASE("single threaded alloc hands out distinct, in range blocks",
   REQUIRE(indices == expected);
 
   for (auto* block : blocks) {
-    arena.dealloc(block);
+    arena.deallocate(block);
   }
 }
 
@@ -671,13 +671,13 @@ PF_TEST_CASE(
   PoolArena arena{storage.params()};
 
   // hold a single block back, tag everything else, then free it
-  const Buffer held = arena.alloc();
+  const Buffer held = arena.allocate();
   REQUIRE_FALSE(held.is_null());
   REQUIRE(held.size == arena.block_size());
 
   std::vector<std::byte*> tagged;
   while (!arena.full()) {
-    const Buffer block = arena.alloc();
+    const Buffer block = arena.allocate();
     REQUIRE_FALSE(block.is_null());
     REQUIRE(block.size == block_size);
     tagBlock(block.data, tagged.size(), block.size);
@@ -685,8 +685,8 @@ PF_TEST_CASE(
   }
   REQUIRE(tagged.size() == blockCount - 1);
 
-  arena.dealloc(held.data);
-  const Buffer reused = arena.alloc();
+  arena.deallocate(held.data);
+  const Buffer reused = arena.allocate();
   REQUIRE(reused.data == held.data);
 
   // a later allocation must never clobber an earlier block
@@ -698,9 +698,9 @@ PF_TEST_CASE(
   }
 
   for (auto* block : tagged) {
-    arena.dealloc(block);
+    arena.deallocate(block);
   }
-  arena.dealloc(reused.data);
+  arena.deallocate(reused.data);
   REQUIRE_FALSE(arena.full());
 }
 
@@ -714,7 +714,7 @@ PF_TEST_CASE("single threaded alloc yields a null buffer once exhausted",
   const auto blocks = drainSt(arena);
   REQUIRE(arena.full());
 
-  const Buffer exhausted = arena.alloc();
+  const Buffer exhausted = arena.allocate();
   REQUIRE(exhausted.is_null());
   REQUIRE(exhausted.data == nullptr);
   REQUIRE(exhausted.size == 0);
@@ -722,12 +722,12 @@ PF_TEST_CASE("single threaded alloc yields a null buffer once exhausted",
 
   // an exhausted pool must stay exhausted and must not lose any block
   for (std::size_t i = 0; i < 3; i++) {
-    REQUIRE(arena.alloc().is_null());
+    REQUIRE(arena.allocate().is_null());
   }
   REQUIRE(arena.full());
 
   for (auto* block : blocks) {
-    arena.dealloc(block);
+    arena.deallocate(block);
   }
   REQUIRE_FALSE(arena.full());
   REQUIRE(drainSt(arena).size() == blockCount);
@@ -745,10 +745,10 @@ PF_TEST_CASE(
   REQUIRE(arena.full());
 
   constexpr std::size_t freed = 3;
-  arena.dealloc(blocks[freed]);
+  arena.deallocate(blocks[freed]);
   REQUIRE_FALSE(arena.full());
 
-  const Buffer reused = arena.alloc();
+  const Buffer reused = arena.allocate();
   REQUIRE_FALSE(reused.is_null());
   REQUIRE(reused.data == blocks[freed]);
   REQUIRE(reused.size == block_size);
@@ -756,11 +756,11 @@ PF_TEST_CASE(
 
   for (std::size_t i = 0; i < blocks.size(); i++) {
     if (i != freed) {
-      arena.dealloc(blocks[i]);
+      arena.deallocate(blocks[i]);
     }
   }
   // the block handed back out above is still held
-  arena.dealloc(reused.data);
+  arena.deallocate(reused.data);
   REQUIRE_FALSE(arena.full());
   REQUIRE(drainSt(arena).size() == blockCount);
 }
@@ -776,19 +776,19 @@ PF_TEST_CASE("single threaded free blocks are handed back out last in, first out
 
   std::vector<std::byte*> freed;
   for (std::size_t i = blocks.size(); i > 0; i--) {
-    arena.dealloc(blocks[i - 1]);
+    arena.deallocate(blocks[i - 1]);
     freed.push_back(blocks[i - 1]);
   }
   REQUIRE_FALSE(arena.full());
 
   // the free list is a stack, so the block freed last comes out first
   for (auto it = freed.rbegin(); it != freed.rend(); ++it) {
-    const Buffer block = arena.alloc();
+    const Buffer block = arena.allocate();
     REQUIRE_FALSE(block.is_null());
     REQUIRE(block.data == *it);
   }
   REQUIRE(arena.full());
-  REQUIRE(arena.alloc().is_null());
+  REQUIRE(arena.allocate().is_null());
 }
 
 PF_TEST_CASE("single threaded churn never loses or duplicates a block",
@@ -809,7 +809,7 @@ PF_TEST_CASE("single threaded churn never loses or duplicates a block",
     REQUIRE(indices.back() == blockCount - 1);
 
     for (auto* block : blocks) {
-      arena.dealloc(block);
+      arena.deallocate(block);
     }
     REQUIRE_FALSE(arena.full());
   }
@@ -832,7 +832,7 @@ PF_TEST_CASE("single threaded interleaved alloc and dealloc keeps the pool leak 
   for (std::size_t round = 0; round < 512; round++) {
     const bool grow = live.empty() || (nextRandom() % 3U) != 0U;
     if (grow) {
-      const Buffer block = arena.alloc();
+      const Buffer block = arena.allocate();
       if (block.is_null()) {
         REQUIRE(live.size() == blockCount);
         REQUIRE(arena.full());
@@ -843,7 +843,7 @@ PF_TEST_CASE("single threaded interleaved alloc and dealloc keeps the pool leak 
       }
     } else {
       const auto victim = nextRandom() % live.size();
-      arena.dealloc(live[victim]);
+      arena.deallocate(live[victim]);
       live.erase(live.begin() + static_cast<std::ptrdiff_t>(victim));
       REQUIRE_FALSE(arena.full());
     }
@@ -853,7 +853,7 @@ PF_TEST_CASE("single threaded interleaved alloc and dealloc keeps the pool leak 
   }
 
   for (auto* block : live) {
-    arena.dealloc(block);
+    arena.deallocate(block);
   }
   REQUIRE_FALSE(arena.full());
   REQUIRE(drainSt(arena).size() == blockCount);
@@ -891,7 +891,7 @@ PF_TEST_CASE("single threaded blocks smaller than the free list link still work"
     REQUIRE(block + tinyAlignment <= storage.data() + arena.capacity());
   }
   for (auto* block : blocks) {
-    arena.dealloc(block);
+    arena.deallocate(block);
   }
   REQUIRE_FALSE(arena.full());
 
@@ -899,7 +899,7 @@ PF_TEST_CASE("single threaded blocks smaller than the free list link still work"
   REQUIRE(arena.full());
   REQUIRE(allDistinct(blocks));
   for (auto* block : blocks) {
-    arena.dealloc(block);
+    arena.deallocate(block);
   }
 }
 
@@ -929,7 +929,7 @@ PF_TEST_CASE("single threaded padded stride keeps every block aligned",
   }
   REQUIRE(arena.full());
   for (auto* block : blocks) {
-    arena.dealloc(block);
+    arena.deallocate(block);
   }
   REQUIRE_FALSE(arena.full());
 }
@@ -940,7 +940,7 @@ PF_TEST_CASE("single threaded default constructed arena is null and empty",
   REQUIRE(arena.is_null());
   REQUIRE(arena.full());
   REQUIRE(arena.block_capacity() == 0);
-  REQUIRE(arena.alloc().is_null());
+  REQUIRE(arena.allocate().is_null());
 }
 
 PF_TEST_CASE("single threaded dealloc rejects pointers that are not block starts",
@@ -956,17 +956,17 @@ PF_TEST_CASE("single threaded dealloc rejects pointers that are not block starts
 
 #ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
   // a pointer into the middle of a block is not a free list link slot
-  REQUIRE_PF_REQUIRE_FAIL(arena.dealloc(blocks[0] + 1));
+  REQUIRE_PF_REQUIRE_FAIL(arena.deallocate(blocks[0] + 1));
   // nor is one past the end of the pool
-  REQUIRE_PF_REQUIRE_FAIL(arena.dealloc(storage.data() + arena.capacity()));
+  REQUIRE_PF_REQUIRE_FAIL(arena.deallocate(storage.data() + arena.capacity()));
   // the rejected calls must neither consume nor corrupt a block
   REQUIRE(arena.full());
-  REQUIRE(arena.alloc().is_null());
+  REQUIRE(arena.allocate().is_null());
 #endif
 
-  arena.dealloc(blocks[0]);
+  arena.deallocate(blocks[0]);
   REQUIRE_FALSE(arena.full());
-  REQUIRE(arena.alloc().data == blocks[0]);
+  REQUIRE(arena.allocate().data == blocks[0]);
 }
 
 PF_TEST_CASE("single threaded create params are validated", "[mem][poolArena][st]") {
@@ -1030,13 +1030,13 @@ PF_TEST_CASE("single threaded move construction keeps the pool and nulls the sou
   Storage storage;
   PoolArena arena{storage.params()};
 
-  const Buffer held = arena.alloc();
+  const Buffer held = arena.allocate();
   REQUIRE_FALSE(held.is_null());
 
   PoolArena moved{std::move(arena)};
   REQUIRE(arena.is_null());
   REQUIRE(arena.full());
-  REQUIRE(arena.alloc().is_null());
+  REQUIRE(arena.allocate().is_null());
 
   REQUIRE_FALSE(moved.is_null());
   REQUIRE_FALSE(moved.full());
@@ -1051,10 +1051,10 @@ PF_TEST_CASE("single threaded move construction keeps the pool and nulls the sou
   REQUIRE(rest.size() == blockCount - 1);
   REQUIRE(std::find(rest.begin(), rest.end(), held.data) == rest.end());
   REQUIRE(moved.full());
-  REQUIRE(moved.alloc().is_null());
+  REQUIRE(moved.allocate().is_null());
 
   for (auto* block : rest) {
-    moved.dealloc(block);
+    moved.deallocate(block);
   }
 }
 
@@ -1077,7 +1077,7 @@ PF_TEST_CASE("single threaded move assignment fills a null arena and rejects a l
   const auto blocks = drainSt(target);
   REQUIRE(blocks.size() == blockCount);
   for (auto* block : blocks) {
-    target.dealloc(block);
+    target.deallocate(block);
   }
 
   PoolArena live{storage.params()};
@@ -1087,7 +1087,7 @@ PF_TEST_CASE("single threaded move assignment fills a null arena and rejects a l
   REQUIRE_FALSE(target.is_null());
   REQUIRE_FALSE(target.full());
 #endif
-  live.dealloc(live.alloc().data);
+  live.deallocate(live.allocate().data);
   REQUIRE_FALSE(live.full());
 }
 
@@ -1104,7 +1104,7 @@ PF_TEST_CASE("single threaded destruction does not demand a drained pool",
     Storage storage;
     PoolArena arena{storage.params()};
     for (std::size_t i = 0; i < keep; i++) {
-      REQUIRE_FALSE(arena.alloc().is_null());
+      REQUIRE_FALSE(arena.allocate().is_null());
     }
   }
 }
