@@ -55,9 +55,9 @@ public:
              requires(std::size_t requested, std::size_t needed, std::size_t remaining) {
                {
                  ErrPolicy::fail(requested, needed, remaining)
-               } -> std::same_as<typename ErrPolicy::ReturnType>;
+               } -> std::same_as<typename ErrPolicy::return_type>;
              }
-  [[nodiscard]] constexpr ErrPolicy::ReturnType
+  [[nodiscard]] constexpr ErrPolicy::return_type
   alloc(size_type amount) PF_NOEXCEPT_COND(ErrPolicy::is_noexcept) {
     PF_CHECK_ERR_POLICY(ErrPolicy, remaining() < amount, amount, amount, remaining());
     const auto ret_val = m_stack.data() + m_stack.size();
@@ -83,9 +83,9 @@ public:
              requires(std::size_t requested, std::size_t needed, std::size_t remaining) {
                {
                  ErrPolicy::fail(requested, needed, remaining)
-               } -> std::same_as<typename ErrPolicy::ReturnType>;
+               } -> std::same_as<typename ErrPolicy::return_type>;
              }
-  [[nodiscard]] constexpr ErrPolicy::ReturnType
+  [[nodiscard]] constexpr ErrPolicy::return_type
   alloc(size_type amount, size_type alignment) PF_NOEXCEPT_COND(ErrPolicy::is_noexcept) {
     PF_REQUIRE_ASSUME(std::has_single_bit(alignment));
     const std::size_t padding = alignment_padding(
