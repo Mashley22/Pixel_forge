@@ -4,7 +4,7 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.logging:backends.fast_backend;
+export module PixelForge.logging:backend.fast;
 
 import PixelForge.core;
 import PixelForge.containers;
@@ -22,6 +22,7 @@ export namespace pf::log {
 class FastBackend {
 
   using clock = std::chrono::system_clock;
+  using size_type = std::size_t;
 
   using time_point_t = clock::time_point;
 
@@ -32,7 +33,7 @@ class FastBackend {
     std::uint32_t id{};
     std::uint16_t size{0};
     Level level{Level::DEBUG};
-    bool is_last{};
+    bool is_last{false};
   };
 
   static_assert(sizeof(Header) == 2 * sizeof(time_point_t));
@@ -51,6 +52,18 @@ class FastBackend {
       return std::span<char>(pointer_cast<char*>(this + 1), header.size);
     }
   };
+
+  class Collector {
+    public:
+      static constexpr size_type block_size = 
+#ifdef PIXELFORGE_FAST_LOG_BACKEND_COLLECTOR_POOL_BLOCK_SIZE
+        PIXELFORGE_FAST_LOG_BACKEND_COLLECTOR_POOL_BLOCK_SIZE;
+#else
+        2048;
+#endif
+  };
+
+
 };
 
 }

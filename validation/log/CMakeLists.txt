@@ -3,6 +3,8 @@ add_library(PixelForge_log_lib)
 target_link_libraries(PixelForge_log_lib
   PUBLIC
     PixelForge_logging
+    PixelForge_containers
+    PixelForge_mem
     PixelForge_core
 )
 

@@ -2,9 +2,9 @@ add_library(PixelForge_logging OBJECT)
 
 target_link_libraries(PixelForge_logging
   PRIVATE
-    PixelForge_core
-    PixelForge_containers
     PixelForge_mem
+    PixelForge_containers
+    PixelForge_core
 )
 
 if(PIXELFORGE_TEST)
@@ -25,9 +25,14 @@ if(PIXELFORGE_TEST)
   endif()
 endif()
 
+if(PIXELFORGE_ENABLE_FAST_LOG_BACKEND)
+  target_cxx_modules_public(PixelForge_logging
+    modules/backends/fast_backend.cppm
+  )
+endif()
+
 target_cxx_modules_public(PixelForge_logging
   modules/record.cppm
   modules/backends/console.cppm
-  modules/backends/fast_backend.cppm
   logging.cppm
 )

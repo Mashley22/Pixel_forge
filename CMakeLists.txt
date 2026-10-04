@@ -30,10 +30,12 @@ if(NOT TARGET doxygen)
   endif()
 endif()
 
-include(options.cmake)
 include(cmake/utils.cmake)
 
 add_subdirectory(libs)
+
+include(options/build.cmake)
+include(options/log.cmake)
 
 if(PIXELFORGE_TEST)
   enable_testing()
