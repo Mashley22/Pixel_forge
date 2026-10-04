@@ -134,7 +134,7 @@ public:
   template <typename Other>
     requires std::derived_from<Other, std::pmr::memory_resource>
   [[nodiscard]] bool
-  is_interoperable(const std_memory_resource_adapter<Other>& other) {
+  is_interoperable(const std_memory_resource_adapter<Other>& other) const {
     return m_resource->is_equal(*other.m_resource);
   }
 

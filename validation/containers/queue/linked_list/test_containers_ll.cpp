@@ -96,6 +96,43 @@ private:
   AllocStats* m_stats;
 };
 
+/**
+ *@brief a resource owning its own stats, so that it is default constructible
+ *  and a queue built without a resource can still be exercised
+ */
+class DefaultResource {
+public:
+  static constexpr bool is_noexcept = true;
+
+  DefaultResource() noexcept = default;
+
+  [[nodiscard]] Buffer
+  allocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t)) {
+    m_stats.allocations++;
+    void* const ptr = std::aligned_alloc(alignment, size);
+    if (ptr == nullptr) {
+      return Buffer::null();
+    }
+    m_stats.live_blocks++;
+    return Buffer::from(pointer_cast<std::byte*>(ptr), size);
+  }
+
+  void
+  deallocate(const Buffer& buffer) {
+    m_stats.deallocations++;
+    m_stats.live_blocks--;
+    std::free(buffer.data);
+  }
+
+  [[nodiscard]] AllocStats&
+  stats() noexcept {
+    return m_stats;
+  }
+
+private:
+  AllocStats m_stats;
+};
+
 struct MoveOnlyValue {
   std::uint32_t value{0};
 
@@ -110,8 +147,68 @@ struct MoveOnlyValue {
   operator=(MoveOnlyValue&&) noexcept = default;
 };
 
+/**
+ *@brief a resource that reports itself interoperable with every resource
+ *  sharing its token, so that a move between two of them can be trivial
+ *
+ *@note the tag is what makes two of these distinct types, which is what the
+ *  cross resource operations are for
+ */
+template <typename Tag>
+class TaggedResource {
+public:
+  static constexpr bool is_noexcept = true;
+
+  TaggedResource(AllocStats& stats, std::size_t token) noexcept
+    : m_stats(&stats), m_token(token) {}
+
+  [[nodiscard]] Buffer
+  allocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t)) {
+    m_stats->allocations++;
+    void* const ptr = std::aligned_alloc(alignment, size);
+    if (ptr == nullptr) {
+      return Buffer::null();
+    }
+    m_stats->live_blocks++;
+    return Buffer::from(pointer_cast<std::byte*>(ptr), size);
+  }
+
+  void
+  deallocate(const Buffer& buffer) {
+    m_stats->deallocations++;
+    m_stats->live_blocks--;
+    std::free(buffer.data);
+  }
+
+  [[nodiscard]] std::size_t
+  token() const noexcept {
+    return m_token;
+  }
+
+  /** resources of different tags interoperate when they share a token */
+  template <typename OtherTag>
+  [[nodiscard]] bool
+  is_interoperable(const TaggedResource<OtherTag>& other) const noexcept {
+    return m_token == other.token();
+  }
+
+private:
+  AllocStats* m_stats;
+  std::size_t m_token;
+};
+
+struct FirstTag {};
+struct SecondTag {};
+
+using FirstResource = TaggedResource<FirstTag>;
+using SecondResource = TaggedResource<SecondTag>;
+
 using IntQueue = LLQueue<std::uint32_t, CountingResource>;
 using MoveOnlyQueue = LLQueue<MoveOnlyValue, CountingResource>;
+using RefQueue = LLQueue<std::uint32_t, mem::ResourceRef<CountingResource>>;
+using MoveOnlyRefQueue = LLQueue<MoveOnlyValue, mem::ResourceRef<CountingResource>>;
+using FirstQueue = LLQueue<std::uint32_t, FirstResource>;
+using SecondQueue = LLQueue<std::uint32_t, SecondResource>;
 
 } // namespace
 
@@ -119,6 +216,9 @@ static_assert(mem::Resource_c<CountingResource>);
 static_assert(mem::Resource_c<ExhaustedResource>);
 static_assert(!mem::is_noexcept_resource<ExhaustedResource>::value);
 static_assert(mem::is_noexcept_resource<CountingResource>::value);
+static_assert(mem::is_noexcept_resource<FirstResource>::value);
+static_assert(mem::is_noexcept_resource<DefaultResource>::value);
+static_assert(!std::is_same_v<FirstResource, SecondResource>);
 
 PF_TEST_CASE("construction and type traits", "[containers][containers::LLQueue]") {
   SECTION("Traits") {
@@ -138,11 +238,11 @@ PF_TEST_CASE("construction and type traits", "[containers][containers::LLQueue]"
     static_assert(Queue::Traits::is_nothrow_allocate_v);
     static_assert(
         std::is_same_v<pf::containers::LLQueue<std::uint32_t, CountingResource>, Queue>);
-    static_assert(!std::is_default_constructible_v<Queue>);
-    static_assert(!std::is_copy_constructible_v<Queue>);
-    static_assert(!std::is_copy_assignable_v<Queue>);
-    static_assert(!std::is_move_constructible_v<Queue>);
-    static_assert(!std::is_move_assignable_v<Queue>);
+    static_assert(std::is_default_constructible_v<Queue>);
+    static_assert(std::is_copy_constructible_v<Queue>);
+    static_assert(std::is_copy_assignable_v<Queue>);
+    static_assert(std::is_move_constructible_v<Queue>);
+    static_assert(std::is_move_assignable_v<Queue>);
   }
 
   SECTION("a fresh queue is empty and has allocated nothing") {
@@ -153,6 +253,41 @@ PF_TEST_CASE("construction and type traits", "[containers][containers::LLQueue]"
     REQUIRE(queue.size() == 0);
     REQUIRE(stats.live_blocks == 0);
     REQUIRE(!queue.try_pop().has_value());
+  }
+
+  SECTION("a default constructed queue is empty, but has no resource to use") {
+    IntQueue queue;
+
+    REQUIRE(queue.empty());
+    REQUIRE(queue.size() == 0);
+
+    auto useIt = [&] { queue.emplace(1); };
+
+#ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
+    REQUIRE_PF_REQUIRE_FAIL(useIt());
+#else
+    static_cast<void>(useIt);
+#endif
+  }
+
+  SECTION("a default constructed queue can be given a resource by move assignment") {
+    AllocStats stats;
+
+    IntQueue queue;
+    {
+      IntQueue owned{CountingResource(stats)};
+      owned.emplace(7);
+
+      queue = std::move(owned);
+    }
+
+    REQUIRE(queue.resource().id() == 0);
+    queue.emplace(8);
+
+    REQUIRE(stats.live_blocks == 2);
+    REQUIRE(queue.pop() == 7);
+    REQUIRE(queue.pop() == 8);
+    REQUIRE(stats.live_blocks == 0);
   }
 
   SECTION("the resource is held by value") {
@@ -352,8 +487,6 @@ PF_TEST_CASE("works with a std memory resource adapter",
 }
 
 PF_TEST_CASE("works with a resource reference", "[containers][containers::LLQueue]") {
-  using RefQueue = LLQueue<std::uint32_t, mem::ResourceRef<CountingResource>>;
-
   static_assert(mem::Resource_c<mem::ResourceRef<CountingResource>>);
   // a reference mirrors the noexcept-ness of the resource it refers to
   static_assert(mem::is_noexcept_resource<mem::ResourceRef<CountingResource>>::value);
@@ -402,6 +535,431 @@ PF_TEST_CASE("works with a resource reference", "[containers][containers::LLQueu
 
     REQUIRE(!queue.try_push(1));
     REQUIRE(stats.allocations == 1);
+  }
+}
+
+PF_TEST_CASE("move semantics", "[containers][containers::LLQueue]") {
+  SECTION("move construction hands the nodes over untouched") {
+    AllocStats stats;
+
+    {
+      IntQueue source{CountingResource(stats)};
+      source.emplace(1);
+      source.emplace(2);
+
+      IntQueue destination{std::move(source)};
+      REQUIRE(destination.size() == 2);
+      REQUIRE(stats.live_blocks == 2);
+      REQUIRE(source.empty());
+      REQUIRE(source.size() == 0);
+
+      REQUIRE(destination.pop() == 1);
+      REQUIRE(destination.pop() == 2);
+    }
+
+    REQUIRE(stats.live_blocks == 0);
+  }
+
+  SECTION("move assignment frees the destination's nodes to its own resource first") {
+    AllocStats destination_stats;
+    AllocStats source_stats;
+    IntQueue destination{CountingResource(destination_stats, 1)};
+    IntQueue source{CountingResource(source_stats, 2)};
+
+    destination.emplace(10);
+    destination.emplace(20);
+    source.emplace(30);
+    REQUIRE(destination_stats.live_blocks == 2);
+    REQUIRE(source_stats.live_blocks == 1);
+
+    destination = std::move(source);
+
+    // the destination's own nodes went back to the resource that made them
+    REQUIRE(destination_stats.live_blocks == 0);
+    REQUIRE(destination_stats.deallocations == 2);
+    // and the stolen node now travels with the source's resource
+    REQUIRE(destination.resource().id() == 2);
+    REQUIRE(source_stats.live_blocks == 1);
+    REQUIRE(source.empty());
+
+    REQUIRE(destination.pop() == 30);
+    REQUIRE(source_stats.live_blocks == 0);
+  }
+
+  SECTION("moving an empty queue over a full one") {
+    AllocStats stats;
+    IntQueue source{CountingResource(stats)};
+    IntQueue destination{CountingResource(stats)};
+
+    source.emplace(1);
+    destination.emplace(2);
+    destination.emplace(3);
+
+    destination = std::move(source);
+
+    REQUIRE(destination.size() == 1);
+    REQUIRE(destination.pop() == 1);
+    REQUIRE(stats.live_blocks == 0);
+  }
+
+  SECTION("self move assignment is a no-op") {
+    AllocStats stats;
+    IntQueue queue{CountingResource(stats, 5)};
+    queue.emplace(1);
+
+    auto& alias = queue;
+    queue = std::move(alias);
+
+    REQUIRE(queue.size() == 1);
+    REQUIRE(queue.resource().id() == 5);
+    REQUIRE(queue.pop() == 1);
+    REQUIRE(stats.live_blocks == 0);
+  }
+}
+
+PF_TEST_CASE("copying across resource types", "[containers][containers::LLQueue]") {
+  // copyable from a queue with another resource type as well as from its own
+  static_assert(std::is_constructible_v<IntQueue, RefQueue>);
+  static_assert(std::is_constructible_v<IntQueue, RefQueue, CountingResource>);
+  static_assert(std::is_constructible_v<IntQueue, IntQueue>);
+  static_assert(std::is_assignable_v<IntQueue&, RefQueue>);
+  static_assert(std::is_assignable_v<IntQueue&, IntQueue>);
+
+  SECTION("a copy is independent, each side frees through its own resource") {
+    AllocStats source_stats;
+    AllocStats copy_stats;
+    CountingResource source_resource(source_stats);
+    CountingResource copy_resource(copy_stats, 9);
+
+    {
+      RefQueue source{mem::ResourceRef<CountingResource>(source_resource)};
+      source.emplace(1);
+      source.emplace(2);
+
+      IntQueue copy{source, copy_resource};
+
+      REQUIRE(copy.size() == 2);
+      REQUIRE(copy.resource().id() == 9);
+      REQUIRE(copy_stats.live_blocks == 2);
+      REQUIRE(source_stats.live_blocks == 2);
+
+      // popping from the copy leaves the source alone
+      REQUIRE(copy.pop() == 1);
+      REQUIRE(copy_stats.live_blocks == 1);
+      REQUIRE(source.size() == 2);
+
+      REQUIRE(copy.pop_unchecked() == 2);
+      REQUIRE(source.pop() == 1);
+      REQUIRE(source.pop() == 2);
+    }
+
+    REQUIRE(copy_stats.live_blocks == 0);
+    REQUIRE(source_stats.live_blocks == 0);
+  }
+
+  SECTION("a move across resource types moves values and leaves the source's nodes") {
+    AllocStats source_stats;
+    AllocStats moved_stats;
+    CountingResource source_resource(source_stats);
+    CountingResource moved_resource(moved_stats, 4);
+
+    {
+      MoveOnlyRefQueue source{mem::ResourceRef<CountingResource>(source_resource)};
+      source.emplace(MoveOnlyValue{7});
+
+      // move only values prove nothing is copied
+      MoveOnlyQueue moved{std::move(source), moved_resource};
+
+      REQUIRE(source.size() == 1); // the source keeps its nodes
+      REQUIRE(moved.pop().value == 7);
+      REQUIRE(moved_stats.live_blocks == 0);
+    }
+
+    REQUIRE(source_stats.live_blocks == 0);
+    REQUIRE(moved_stats.live_blocks == 0);
+  }
+
+  SECTION("copy assignment frees the destination through its own resource") {
+    AllocStats source_stats;
+    AllocStats destination_stats;
+    CountingResource source_resource(source_stats);
+    CountingResource destination_resource(destination_stats, 1);
+
+    RefQueue source{mem::ResourceRef<CountingResource>(source_resource)};
+    source.emplace(5);
+
+    IntQueue destination{destination_resource};
+    destination.emplace(99);
+    REQUIRE(destination_stats.live_blocks == 1);
+
+    destination = source;
+
+    // 99 went back to the destination's resource, 5 was taken from it too
+    REQUIRE(destination_stats.deallocations == 1);
+    REQUIRE(destination_stats.live_blocks == 1);
+    REQUIRE(destination_stats.allocations == 2);
+    REQUIRE(destination.size() == 1);
+    REQUIRE(destination.resource().id() == 1);
+    REQUIRE(destination.pop() == 5);
+    REQUIRE(destination_stats.live_blocks == 0);
+    REQUIRE(source.size() == 1);
+  }
+
+  SECTION("move assignment across resource types") {
+    AllocStats source_stats;
+    AllocStats destination_stats;
+    CountingResource source_resource(source_stats);
+    CountingResource destination_resource(destination_stats, 1);
+
+    MoveOnlyRefQueue source{mem::ResourceRef<CountingResource>(source_resource)};
+    source.emplace(MoveOnlyValue{11});
+
+    MoveOnlyQueue destination{destination_resource};
+    destination = std::move(source);
+
+    REQUIRE(destination.size() == 1);
+    REQUIRE(destination.pop().value == 11);
+    REQUIRE(destination_stats.live_blocks == 0);
+    REQUIRE(source.size() == 1);
+    REQUIRE(source.pop().value == 11);
+    REQUIRE(source_stats.live_blocks == 0);
+  }
+
+  SECTION("a destination without a resource is rejected") {
+    AllocStats source_stats;
+    CountingResource source_resource(source_stats);
+    RefQueue source{mem::ResourceRef<CountingResource>(source_resource)};
+    source.emplace(1);
+
+    IntQueue destination;
+    auto assignToIt = [&] { destination = source; };
+
+#ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
+    REQUIRE_PF_REQUIRE_FAIL(assignToIt());
+#else
+    static_cast<void>(assignToIt);
+#endif
+  }
+}
+
+PF_TEST_CASE("moving across resource types", "[containers][containers::LLQueue]") {
+  // the two tagged resources are distinct types reporting interoperability
+  static_assert(!std::is_same_v<FirstResource, SecondResource>);
+  static_assert(std::is_constructible_v<SecondQueue, FirstQueue&&, SecondResource>);
+  static_assert(std::is_assignable_v<SecondQueue&, FirstQueue&&>);
+
+  SECTION("interoperable resources take the node chain over as is") {
+    AllocStats source_stats;
+    AllocStats destination_stats;
+    FirstResource source_resource(source_stats, 1);
+    SecondResource destination_resource(destination_stats, 1);
+
+    FirstQueue source{source_resource};
+    source.emplace(1);
+    REQUIRE(source_stats.allocations == 1);
+
+    SecondQueue destination{std::move(source), destination_resource};
+
+    // nothing was allocated for the destination, the chain was taken over
+    REQUIRE(destination_stats.allocations == 0);
+    REQUIRE(destination.size() == 1);
+    REQUIRE(source.empty());
+
+    // and the stolen node is freed through the destination's resource
+    REQUIRE(destination.pop() == 1);
+    REQUIRE(destination_stats.deallocations == 1);
+    REQUIRE(source_stats.live_blocks == 1);
+  }
+
+  SECTION("resources that are not interoperable rebuild the nodes") {
+    AllocStats source_stats;
+    AllocStats destination_stats;
+    FirstResource source_resource(source_stats, 1);
+    SecondResource destination_resource(destination_stats, 2);
+
+    FirstQueue source{source_resource};
+    source.emplace(1);
+
+    SecondQueue destination{std::move(source), destination_resource};
+
+    // the value was moved into a node of the destination's resource
+    REQUIRE(destination_stats.allocations == 1);
+    REQUIRE(destination_stats.live_blocks == 1);
+    REQUIRE(destination.size() == 1);
+    // and the source keeps its own nodes
+    REQUIRE(source.size() == 1);
+    REQUIRE(source_stats.live_blocks == 1);
+
+    REQUIRE(destination.pop() == 1);
+    REQUIRE(destination_stats.deallocations == 1);
+    REQUIRE(source.pop() == 1);
+    REQUIRE(source_stats.deallocations == 1);
+  }
+
+  SECTION("interoperable move assignment also steals the chain") {
+    AllocStats source_stats;
+    AllocStats destination_stats;
+    FirstResource source_resource(source_stats, 1);
+    SecondResource destination_resource(destination_stats, 1);
+
+    SecondQueue destination{destination_resource};
+    destination.emplace(99);
+    REQUIRE(destination_stats.live_blocks == 1);
+
+    FirstQueue source{source_resource};
+    source.emplace(1);
+    source.emplace(2);
+
+    destination = std::move(source);
+
+    // 99 went back to the destination's resource, then no allocation happened
+    REQUIRE(destination_stats.deallocations == 1);
+    REQUIRE(destination_stats.allocations == 1);
+    REQUIRE(destination.size() == 2);
+
+    REQUIRE(destination.pop() == 1);
+    REQUIRE(destination.pop_unchecked() == 2);
+    // the two stolen nodes go back through the destination's resource
+    REQUIRE(destination_stats.deallocations == 3);
+    REQUIRE(source.empty());
+    REQUIRE(source_stats.live_blocks == 2);
+  }
+
+  SECTION("move assignment between resources that are not interoperable rebuilds") {
+    AllocStats source_stats;
+    AllocStats destination_stats;
+    FirstResource source_resource(source_stats, 1);
+    SecondResource destination_resource(destination_stats, 2);
+
+    SecondQueue destination{destination_resource};
+    FirstQueue source{source_resource};
+    source.emplace(1);
+
+    destination = std::move(source);
+
+    REQUIRE(destination_stats.allocations == 1);
+    REQUIRE(destination_stats.live_blocks == 1);
+    REQUIRE(destination.pop() == 1);
+    REQUIRE(destination_stats.deallocations == 1);
+    // the source still owns its node
+    REQUIRE(source.size() == 1);
+    REQUIRE(source.pop() == 1);
+    REQUIRE(source_stats.deallocations == 1);
+  }
+
+  SECTION("a resource that cannot report interoperability takes the slow path") {
+    AllocStats source_stats;
+    AllocStats destination_stats;
+    CountingResource source_resource(source_stats);
+    CountingResource destination_resource(destination_stats, 3);
+
+    IntQueue source{source_resource};
+    source.emplace(1);
+
+    IntQueue destination{std::move(source), destination_resource};
+
+    REQUIRE(destination_stats.allocations == 1);
+    REQUIRE(destination.size() == 1);
+    REQUIRE(destination.pop() == 1);
+    REQUIRE(source.size() == 1);
+  }
+}
+
+PF_TEST_CASE("copying with a default constructed resource",
+             "[containers][containers::LLQueue]") {
+  using DefaultQueue = LLQueue<std::uint32_t, DefaultResource>;
+
+  SECTION("copy construction from a queue of the same type") {
+    DefaultQueue source;
+    source.emplace(1);
+    source.emplace(2);
+    REQUIRE(source.resource().stats().live_blocks == 2);
+
+    DefaultQueue copy{source};
+
+    // the copy got a default constructed resource of its own
+    REQUIRE(copy.size() == 2);
+    REQUIRE(copy.resource().stats().live_blocks == 2);
+    REQUIRE(source.resource().stats().live_blocks == 2);
+
+    REQUIRE(copy.pop() == 1);
+    REQUIRE(copy.resource().stats().live_blocks == 1);
+    REQUIRE(copy.pop_unchecked() == 2);
+    REQUIRE(copy.resource().stats().live_blocks == 0);
+    REQUIRE(source.resource().stats().live_blocks == 2);
+  }
+
+  SECTION("copy assignment between queues of the same type") {
+    DefaultQueue source;
+    source.emplace(1);
+    source.emplace(2);
+
+    DefaultQueue destination;
+    destination.emplace(99);
+    REQUIRE(destination.resource().stats().live_blocks == 1);
+
+    destination = source;
+
+    REQUIRE(destination.size() == 2);
+    REQUIRE(destination.resource().stats().live_blocks == 2);
+    REQUIRE(destination.resource().stats().deallocations == 1);
+    REQUIRE(destination.pop() == 1);
+    REQUIRE(source.size() == 2);
+  }
+
+  SECTION("self copy assignment is a no-op") {
+    DefaultQueue queue;
+    queue.emplace(1);
+
+    auto& alias = queue;
+    queue = alias;
+
+    REQUIRE(queue.size() == 1);
+    REQUIRE(queue.pop() == 1);
+  }
+
+  SECTION("cross resource copy and move with a default constructed resource") {
+    AllocStats stats;
+    CountingResource resource(stats);
+
+    RefQueue to_copy{mem::ResourceRef<CountingResource>(resource)};
+    to_copy.emplace(1);
+
+    DefaultQueue copied{to_copy};
+    REQUIRE(copied.size() == 1);
+    REQUIRE(copied.resource().stats().live_blocks == 1);
+    REQUIRE(copied.pop() == 1);
+    REQUIRE(to_copy.size() == 1);
+
+    RefQueue to_move{mem::ResourceRef<CountingResource>(resource)};
+    to_move.emplace(2);
+
+    DefaultQueue moved{std::move(to_move)};
+    REQUIRE(moved.size() == 1);
+    REQUIRE(moved.pop_unchecked() == 2);
+    // a default constructed resource cannot report interoperability, so the
+    // values were rebuilt rather than the chain taken over
+    REQUIRE(to_move.size() == 1);
+  }
+
+  SECTION("cross resource copy and move assignment with a default resource") {
+    AllocStats stats;
+    CountingResource resource(stats);
+    DefaultQueue destination;
+
+    RefQueue source{mem::ResourceRef<CountingResource>(resource)};
+    source.emplace(5);
+
+    destination = source;
+    REQUIRE(destination.size() == 1);
+    REQUIRE(destination.pop() == 5);
+    REQUIRE(source.size() == 1);
+
+    destination = std::move(source);
+    REQUIRE(destination.size() == 1);
+    REQUIRE(destination.pop_unchecked() == 5);
+    REQUIRE(source.size() == 1);
+    REQUIRE(destination.resource().stats().live_blocks == 0);
   }
 }
 

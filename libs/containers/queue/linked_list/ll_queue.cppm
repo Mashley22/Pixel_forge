@@ -179,6 +179,19 @@ private:
 export namespace pf::containers {
 
 /**
+ *@brief the node LLQueue is built from
+ *
+ *@note it is deliberately *not* a member of LLQueue: it is shared by every
+ *  resource type, so that a queue can take over the node chain of a queue
+ *  backed by another resource when the two are interoperable
+ */
+template <typename T>
+struct LLQueueNode {
+  LLQueueNode* next{nullptr};
+  T val;
+};
+
+/**
  *@brief a queue represented by a linked list that owns its nodes, every node
  *  is allocated from, and returned to, a memory resource that the queue holds
  *  by value
@@ -190,9 +203,22 @@ export namespace pf::containers {
  *@note the resource is held by value, what it allocates from (e.g. a pmr
  *  pool) must outlive the queue
  *
- *@note swap and move semantics are not implemented yet: a queue is neither
- *  copyable, movable nor swappable, it only ever gives memory back on pop,
- *  on clear and on destruction
+ *@note the queue is copyable and movable but not swappable
+ *
+ *@note copying is deep, values are copied into nodes taken from the copy's
+ *  own resource, which is default constructed unless another one is handed
+ *  over, i.e. LLQueue{some_other_queue} uses a default constructed resource
+ *  while LLQueue{some_other_queue, resource} uses the given one
+ *
+ *@note a move between queues backed by *different* resources takes over the
+ *  node chain as is when the two resources are interoperable, i.e. memory
+ *  from one can be freed by the other, and rebuilds it value by value
+ *  otherwise, see move_other_into_
+ *
+ *@note a default constructed queue holds a default constructed resource,
+ *  which is usually null, it must be given a resource before use, by move
+ *  assignment from a queue that has one, otherwise the require system rejects
+ *  it
  *
  *@tparam T the queued value type
  *@tparam Resource a pf::mem::Resource_c, e.g.
@@ -201,10 +227,8 @@ export namespace pf::containers {
 template <typename T, mem::Resource_c Resource>
 class LLQueue {
 public:
-  struct Node {
-    Node* next{nullptr};
-    T val;
-  };
+  // NOLINTNEXTLINE
+  using Node = LLQueueNode<T>;
 
   struct Error : public Exception {
     explicit Error(const std::string_view& msg) : Exception(msg) {}
@@ -237,9 +261,15 @@ public:
     /** whether allocate and deallocate of the resource are themselves noexcept */
     static constexpr bool is_nothrow_allocate_v =
         mem::is_noexcept_resource<Resource>::value;
+    /** whether the resource can be default constructed without throwing */
+    static constexpr bool is_nothrow_resource_default_v =
+        std::is_nothrow_default_constructible_v<Resource>;
     /** whether the resource can be moved into the queue without throwing */
     static constexpr bool is_nothrow_resource_move_v =
         std::is_nothrow_move_constructible_v<Resource>;
+    /** whether the resource can be moved assigned without throwing */
+    static constexpr bool is_nothrow_resource_move_assign_v =
+        std::is_nothrow_move_assignable_v<Resource>;
     template <typename... VArgs>
     static constexpr bool is_nothrow_construct_v =
         std::is_nothrow_constructible_v<T, VArgs...>;
@@ -248,6 +278,14 @@ public:
   PF_CONTAINERS_INHERIT_TRAITS(Traits);
 
   using resource_type = Traits::resource_type;
+
+  /**
+   *@brief default constructs the resource, giving an empty queue
+   *
+   *@note only available when the resource is nothrow default constructible,
+   *  it usually leaves the queue with a null resource, see the class note
+   */
+  LLQueue() PF_NOEXCEPT_COND(Traits::is_nothrow_resource_default_v) = default;
 
   /**
    *@brief constructs a queue holding a copy of @p resource, an rvalue is
@@ -265,13 +303,175 @@ public:
     }
   }
 
-  LLQueue(const LLQueue&) = delete;
-  LLQueue&
-  operator=(const LLQueue&) = delete;
+  /**
+   *@brief copies a queue, every value copied into nodes taken from a default
+   *  constructed resource
+   *
+   *@note the copy is deep and independent of @p other, whose own nodes stay
+   *  with it
+   */
+  LLQueue(const LLQueue& other)
+    requires Traits::is_nothrow_resource_default_v
+  PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v&& Traits::is_nothrow_allocate_v&&
+                       Traits::is_nothrow_resource_default_v)
+    : LLQueue(other, Resource{}) {}
 
-  LLQueue(LLQueue&&) = delete;
+  /**
+   *@brief copies a queue backed by any resource type, every value copied into
+   *  nodes taken from a default constructed resource
+   */
+  template <mem::Resource_c OtherResource>
+    requires std::is_copy_constructible_v<T> && Traits::is_nothrow_resource_default_v
+  PF_NOEXCEPT_COND(Traits::is_nothrow_copy_construct_v&& Traits::is_nothrow_allocate_v&&
+                       Traits::is_nothrow_resource_default_v)
+  LLQueue(const LLQueue<T, OtherResource>& other)
+    : LLQueue(other, Resource{}) {}
+
+  /**
+   *@brief moves everything a queue backed by any resource type holds into one
+   *  using a default constructed resource
+   *
+   *@note see the two argument overload for what an interoperable resource pair
+   *  buys you, this one has a default constructed, usually null, resource
+   */
+  template <mem::Resource_c OtherResource>
+    requires std::is_move_constructible_v<T> && Traits::is_nothrow_resource_default_v
+  // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
+  PF_NOEXCEPT_COND(Traits::is_nothrow_move_construct_v&& Traits::is_nothrow_allocate_v&&
+                       Traits::is_nothrow_resource_default_v)
+      LLQueue(LLQueue<T, OtherResource>&& other)
+    : LLQueue(std::move(other), Resource{}) {}
+
+  /**
+   *@brief copies a queue backed by any resource type, every value is copied
+   *  and every node allocated from @p resource
+   *
+   *@note nodes and resource stay paired on both sides, @p other is untouched
+   */
+  template <mem::Resource_c OtherResource>
+    requires std::is_copy_constructible_v<T>
+  LLQueue(const LLQueue<T, OtherResource>& other, Resource resource) PF_NOEXCEPT_COND(
+      Traits::is_nothrow_copy_construct_v&& Traits::is_nothrow_allocate_v&&
+          Traits::is_nothrow_resource_move_v &&
+      !mem::NullableResource_c<Resource>)
+    : m_resource(std::move(resource)) {
+    if constexpr (mem::NullableResource_c<Resource>) {
+      PF_REQUIRE(!m_resource.is_null(), "LLQueue: null memory resource");
+    }
+    copy_from_(other);
+  }
+
+  /**
+   *@brief moves everything a queue backed by any resource type holds, the
+   *  nodes coming from @p resource
+   *
+   *@note when the two resources are interoperable the node chain is taken over
+   *  as is and nothing is allocated, otherwise the values are moved into nodes
+   *  of @p resource and @p other keeps its own nodes, see move_other_into_
+   */
+  template <mem::Resource_c OtherResource>
+    requires std::is_move_constructible_v<T>
+  // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
+  LLQueue(LLQueue<T, OtherResource>&& other, Resource resource) PF_NOEXCEPT_COND(
+      Traits::is_nothrow_move_construct_v&& Traits::is_nothrow_allocate_v&&
+          Traits::is_nothrow_resource_move_v &&
+      !mem::NullableResource_c<Resource>)
+    : m_resource(std::move(resource)) {
+    if constexpr (mem::NullableResource_c<Resource>) {
+      PF_REQUIRE(!m_resource.is_null(), "LLQueue: null memory resource");
+    }
+    move_other_into_(other);
+  }
+
+  /**
+   *@brief replaces the contents with a copy of @p other, using this queue's
+   *  own resource
+   *
+   *@note this queue's nodes go back to its own resource, then the values are
+   *  copied into nodes taken from that same resource, @p other is untouched
+   */
   LLQueue&
-  operator=(LLQueue&&) = delete;
+  operator=(const LLQueue& other) PF_NOEXCEPT_COND(
+      Traits::is_nothrow_copy_construct_v&& Traits::is_nothrow_allocate_v) {
+    if (this == &other) {
+      return *this;
+    }
+    copy_assign_(other);
+    return *this;
+  }
+
+  /**
+   *@brief replaces the contents with a copy of a queue backed by any resource
+   *  type
+   *
+   *@note this queue's own nodes go back to its own resource, the values are
+   *  then copied into nodes taken from that same resource, @p other is
+   *  untouched
+   */
+  template <mem::Resource_c OtherResource>
+    requires std::is_copy_constructible_v<T>
+  LLQueue&
+  operator=(const LLQueue<T, OtherResource>& other) PF_NOEXCEPT_COND(
+      Traits::is_nothrow_copy_construct_v&& Traits::is_nothrow_allocate_v) {
+    copy_assign_(other);
+    return *this;
+  }
+
+  /**
+   *@brief replaces the contents with everything a queue backed by any resource
+   *  type holds
+   *
+   *@note this queue's own nodes go back to its own resource first, then the
+   *      other's node chain is taken over when the two resources are
+   *      interoperable, and rebuilt value by value out of this queue's resource
+   *      otherwise, see move_other_into_
+   */
+  template <mem::Resource_c OtherResource>
+    requires std::is_move_constructible_v<T>
+  LLQueue&
+  // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
+  operator=(LLQueue<T, OtherResource>&& other) PF_NOEXCEPT_COND(
+      Traits::is_nothrow_move_construct_v&& Traits::is_nothrow_allocate_v) {
+    move_assign_(other);
+    return *this;
+  }
+
+  /**
+   *@brief takes over the source's nodes and its resource, the source is left
+   *  empty, its resource moved from
+   */
+  LLQueue(LLQueue&& other) PF_NOEXCEPT_COND(Traits::is_nothrow_resource_move_v)
+    : m_front(other.m_front), m_back(other.m_back), m_size(other.m_size),
+      m_resource(std::move(other.m_resource)) {
+    other.m_front = nullptr;
+    other.m_back = nullptr;
+    other.m_size = 0;
+  }
+
+  /**
+   *@brief returns every node this queue holds to its *own* resource, then
+   *  takes over the source's nodes and its resource
+   *
+   *@note nodes and resource always travel together, so nodes always go back
+   *  to the resource that allocated them
+   */
+  LLQueue&
+  operator=(LLQueue&& other) PF_NOEXCEPT_COND(
+      Traits::is_nothrow_allocate_v&& Traits::is_nothrow_resource_move_assign_v) {
+    if (this != &other) {
+      clear();
+
+      m_resource = std::move(other.m_resource);
+      m_front = other.m_front;
+      m_back = other.m_back;
+      m_size = other.m_size;
+
+      other.m_front = nullptr;
+      other.m_back = nullptr;
+      other.m_size = 0;
+    }
+    return *this;
+  }
 
   ~LLQueue() PF_NOEXCEPT_COND(Traits::is_nothrow_allocate_v) { clear(); }
 
@@ -337,7 +537,7 @@ public:
   emplace(VArgs&&... args) PF_NOEXCEPT_COND(
       Traits::is_nothrow_allocate_v&& Traits::template is_nothrow_construct_v<VArgs...>&&
           ErrPolicy::is_noexcept) {
-    PF_REQUIRE_ASSUME(valid_());
+    PF_REQUIRE_ASSUME(valid_(), "LLQueue: the queue has no memory resource");
 
     Buffer buffer = m_resource.allocate(sizeof(Node), alignof(Node));
     PF_CHECK_ERR_POLICY(ErrPolicy, buffer.is_null());
@@ -456,6 +656,110 @@ public:
   }
 
 private:
+  /** so that a queue can copy or move the values of one backed by a different
+   *  resource type, it reads that one's node chain */
+  template <typename, mem::Resource_c>
+  friend class LLQueue;
+
+  /**
+   *@brief copies every value of @p other, in order, into nodes taken from this
+   *  queue's resource
+   *
+   *@note releases whatever it managed to build before letting an exception
+   *  through, so that it is safe to call from a constructor body, where the
+   *  destructor will not run
+   */
+  template <typename OtherQueue>
+  void
+  copy_from_(const OtherQueue& other) {
+    try {
+      for (const auto* node = other.m_front; node != nullptr; node = node->next) {
+        emplace_unchecked(node->val);
+      }
+    } catch (...) {
+      clear();
+      throw;
+    }
+  }
+
+  /**
+   *@brief as copy_from_, but the values are moved out of @p other, its nodes
+   *  and its resource are left alone
+   */
+  template <typename OtherQueue>
+  void
+  move_from_(OtherQueue& other) {
+    try {
+      for (auto* node = other.m_front; node != nullptr; node = node->next) {
+        emplace_unchecked(std::move(node->val));
+      }
+    } catch (...) {
+      clear();
+      throw;
+    }
+  }
+
+  /**
+   *@brief releases what this queue holds and replaces it with a copy of
+   *  @p other, taken from this queue's own resource
+   *
+   *@note @p other must not be this queue, self assignment is handled by the
+   *  callers that can be handed one
+   */
+  template <typename OtherQueue>
+  void
+  copy_assign_(const OtherQueue& other) {
+    PF_REQUIRE_ASSUME(valid_(), "LLQueue: the queue has no memory resource");
+
+    clear();
+    copy_from_(other);
+  }
+
+  /**
+   *@brief releases what this queue holds and replaces it with everything
+   *  @p other holds, see move_other_into_
+   */
+  template <typename OtherQueue>
+  void
+  move_assign_(OtherQueue& other) {
+    PF_REQUIRE_ASSUME(valid_(), "LLQueue: the queue has no memory resource");
+
+    clear();
+    move_other_into_(other);
+  }
+
+  /**
+   *@brief moves everything @p other holds into this queue
+   *
+   * When this queue's resource can free what @p other's resource allocated,
+   * i.e. the two are interoperable, the whole node chain is taken over as is
+   * and nothing is allocated, @p other is left empty. Otherwise the values are
+   * moved one by one into nodes taken from this queue's own resource, which
+   * leaves @p other holding its nodes and its resource.
+   *
+   *@note safe to call from a constructor body, whatever was built is released
+   *  before any exception is let through
+   */
+  template <typename OtherQueue>
+  void
+  move_other_into_(OtherQueue& other) {
+    if (!other.empty() && mem::is_interoperable_resource(m_resource, other.resource())) {
+      PF_REQUIRE_ASSUME(valid_(), "LLQueue: the queue has no memory resource");
+      PF_REQUIRE_ASSUME(other.m_front != nullptr && other.m_back != nullptr);
+
+      m_front = other.m_front;
+      m_back = other.m_back;
+      m_size = other.m_size;
+
+      other.m_front = nullptr;
+      other.m_back = nullptr;
+      other.m_size = 0;
+      return;
+    }
+
+    move_from_(other);
+  }
+
   /**
    *@brief takes the front value, then destroys the node and returns it to the
    *  resource
