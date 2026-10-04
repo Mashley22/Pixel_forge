@@ -18,14 +18,18 @@ import PixelForge.core;
 export namespace pf::adapters {
 
 /**
- *@brief a queue data class, represented via a linked list
- *  under the hood, intended for single threaded use
+ *@brief a queue represented by a linked list, the structure only
  *
- *@note A moved from, or default constructed object must be
- *  initialized by one of the move operations before use.
+ *@note this is the shape of the queue, not its memory: every node lives in
+ *  storage the caller hands over, see pf::containers::LLQueue for the same
+ *  queue taking its memory from a resource it owns
  *
- *@note The spare must be popped with \ref pop_spare before destruction.
+ *@note there is no dummy node, the node at the front holds a value like every
+ *  other and an empty queue is simply a queue without one, so there is no
+ *  spare to hand back
  *
+ *@note a node handed out by pop is a valid choice of storage to emplace into
+ *  again
  */
 template <typename T>
 class LLQueue {
@@ -33,12 +37,6 @@ public:
   struct Node {
     Node* next{nullptr};
     T val;
-  };
-
-  struct Error : public Exception {};
-  struct EmptyError : public Exception {
-    static constexpr std::string_view what_arg = "LLQueue: Attempted pop while empty";
-    EmptyError() : Exception(what_arg) {}
   };
 
   struct Traits {
@@ -62,52 +60,104 @@ public:
 
   PF_CONTAINERS_INHERIT_TRAITS(Traits);
 
-  LLQueue(const ObjectStorage<storage_type>& spare_storage)
-    : m_front(NonNull<Node*>(pointer_cast<Node*>(spare_storage.data))),
-      m_back(NonNull<Node*>(pointer_cast<Node*>(spare_storage.data))) {
-    PF_REQUIRE(spare_storage.size == 1);
+  struct Error : public Exception {};
+  struct EmptyError : public Exception {
+    static constexpr std::string_view what_arg = "LLQueue: Attempted pop while empty";
+    EmptyError() : Exception(what_arg) {}
+  };
+
+  /** an empty queue is ready to be used, it needs no storage of its own */
+  LLQueue() PF_NOEXCEPT = default;
+
+  /**
+   *@note the queue does not own its nodes, whoever gave it their storage has
+   *  to pop every one of them out before it goes
+   */
+  ~LLQueue() PF_NOEXCEPT {
+    PF_REQUIRE(empty(), "linked list queue adapter must be drained before destruction");
   }
 
-  // A moved-from or otherwise null queue may only be destroyed or assigned a
-  // non-null queue. Move assignment is required before any other operation.
-  LLQueue() PF_NOEXCEPT = default;
-  LLQueue(const LLQueue<T>&) = delete;
-  LLQueue(LLQueue<T>&& other) PF_NOEXCEPT : m_front(other.m_front), m_back(other.m_back) {
+  LLQueue(const LLQueue&) = delete;
+  LLQueue&
+  operator=(const LLQueue&) = delete;
+
+  LLQueue(LLQueue&& other) PF_NOEXCEPT : m_front(other.m_front), m_back(other.m_back) {
     other.m_front = nullptr;
     other.m_back = nullptr;
-    PF_REQUIRE(other.is_null());
   }
 
-  LLQueue<T>&
-  operator=(const LLQueue<T>&) = delete;
-  LLQueue<T>&
-  operator=(LLQueue<T>&& other) PF_NOEXCEPT {
+  LLQueue&
+  operator=(LLQueue&& other) PF_NOEXCEPT {
     if (this != &other) {
-      clear_();
-      std::swap(m_front, other.m_front);
-      std::swap(m_back, other.m_back);
+      PF_REQUIRE(empty());
+      m_front = other.m_front;
+      m_back = other.m_back;
+
+      other.m_front = nullptr;
+      other.m_back = nullptr;
     }
     return *this;
   }
 
-  ~LLQueue() PF_NOEXCEPT { clear_(); }
-
-  bool
-  empty() PF_NOEXCEPT {
-    return m_front->next == nullptr;
+  [[nodiscard]] bool
+  empty() const PF_NOEXCEPT {
+    return m_front == nullptr;
   }
 
+  [[nodiscard]] bool
+  empty() PF_NOEXCEPT {
+    return m_front == nullptr;
+  }
+
+  /**
+   *@brief the node at the head of the chain, walk Node::next from there
+   *
+   *@returns nullptr when the queue is empty
+   */
+  [[nodiscard]] Node*
+  front_node() const PF_NOEXCEPT {
+    return m_front;
+  }
+
+  [[nodiscard]] reference
+  front() PF_NOEXCEPT {
+    PF_REQUIRE_ASSUME(!empty());
+    return m_front->val;
+  }
+
+  [[nodiscard]] const_reference
+  front() const PF_NOEXCEPT {
+    PF_REQUIRE_ASSUME(!empty());
+    return m_front->val;
+  }
+
+  [[nodiscard]] reference
+  back() PF_NOEXCEPT {
+    PF_REQUIRE_ASSUME(!empty());
+    return m_back->val;
+  }
+
+  [[nodiscard]] const_reference
+  back() const PF_NOEXCEPT {
+    PF_REQUIRE_ASSUME(!empty());
+    return m_back->val;
+  }
+
+  /**
+   *@brief constructs a value in the given storage and links it at the back,
+   *  the storage must not be owned by the queue, a node handed out by pop is
+   *  a valid choice
+   */
   template <class... VArgs>
   void
   emplace(const ObjectStorage<storage_type>& storage, VArgs&&... args)
       PF_NOEXCEPT_COND(template Traits::is_nothrow_construct_v) {
     PF_REQUIRE_ASSUME(storage.size == 1);
 
-    Node* new_node = std::construct_at(
+    Node* const node = std::construct_at(
         pointer_cast<Node*>(storage.data), nullptr, std::forward<VArgs>(args)...);
 
-    m_back->next = new_node;
-    m_back = NonNull<Node*>::from(new_node);
+    link_(node);
   }
 
   void
@@ -122,21 +172,27 @@ public:
     emplace(storage, val);
   }
 
+  /**
+   *@brief unlinks the node at the front of the queue, the value it holds is
+   *  left in it for the caller to take or destroy
+   *
+   *@returns the node that was at the front
+   */
   template <typename ErrPolicy = ErrPolicyThrows<NonNull<Node*>, EmptyError>>
     requires ErrPolicy_c<ErrPolicy, NonNull<Node*>> && requires {
       { ErrPolicy::fail() } -> std::same_as<typename ErrPolicy::return_type>;
     }
   [[nodiscard]] typename ErrPolicy::return_type
   pop() PF_NOEXCEPT_COND(ErrPolicy::is_noexcept) {
-    PF_REQUIRE_ASSUME(!is_null());
-    NonNull<Node*> dummy_node{m_front};
-    Node* next = dummy_node->next;
-    PF_CHECK_ERR_POLICY(ErrPolicy, next == nullptr);
+    PF_CHECK_ERR_POLICY(ErrPolicy, empty());
 
-    dummy_node->val = std::move(next->val);
-    m_front = NonNull<Node*>::from(next);
+    Node* const node = m_front;
+    m_front = node->next;
+    if (m_front == nullptr) {
+      m_back = nullptr;
+    }
 
-    return ErrPolicy::success(dummy_node);
+    return ErrPolicy::success(NonNull<Node*>::from(node));
   }
 
   [[nodiscard]] std::optional<NonNull<Node*>>
@@ -149,25 +205,17 @@ public:
     return pop<ErrPolicyNothing<NonNull<Node*>, EmptyError::what_arg>>();
   }
 
-  [[nodiscard]] NonNull<Node*>
-  pop_spare() PF_NOEXCEPT {
-    PF_REQUIRE_ASSUME(m_front != nullptr && empty());
-    const auto ret_val = NonNull<Node*>(m_front);
-    m_front = nullptr;
-    m_back = nullptr;
-
-    return ret_val;
-  }
-
-  [[nodiscard]] constexpr bool
-  is_null() PF_NOEXCEPT {
-    return m_front == nullptr || m_back == nullptr;
-  }
-
 private:
   void
-  clear_() PF_NOEXCEPT {
-    PF_REQUIRE(is_null(), "The spare should be popped before destruction");
+  link_(Node* node) PF_NOEXCEPT {
+    PF_REQUIRE_ASSUME(node != nullptr);
+
+    if (m_back == nullptr) {
+      m_front = node;
+    } else {
+      m_back->next = node;
+    }
+    m_back = node;
   }
 
   Node* m_front{nullptr};
@@ -179,26 +227,16 @@ private:
 export namespace pf::containers {
 
 /**
- *@brief the node LLQueue is built from
- *
- *@note it is deliberately *not* a member of LLQueue: it is shared by every
- *  resource type, so that a queue can take over the node chain of a queue
- *  backed by another resource when the two are interoperable
- */
-template <typename T>
-struct LLQueueNode {
-  LLQueueNode* next{nullptr};
-  T val;
-};
-
-/**
  *@brief a queue represented by a linked list that owns its nodes, every node
  *  is allocated from, and returned to, a memory resource that the queue holds
  *  by value
  *
+ *@note the list itself is a pf::adapters::LLQueue, this only takes care of
+ *  giving it memory and handing that memory back, no node is ever recycled
+ *
  *@note memory management is completely automatic: nodes go back to the
- *  resource on pop, on clear and on destruction, there is no spare to hand
- *  back as with @ref pf::adapters::LLQueue
+ *  resource on pop, on clear and on destruction, nothing has to be handed back
+ *  by hand
  *
  *@note the resource is held by value, what it allocates from (e.g. a pmr
  *  pool) must outlive the queue
@@ -215,6 +253,9 @@ struct LLQueueNode {
  *  from one can be freed by the other, and rebuilds it value by value
  *  otherwise, see move_other_into_
  *
+ *@note the queue does not track how many values it holds, use empty or the
+ *  resource to work that out
+ *
  *@note a default constructed queue holds a default constructed resource,
  *  which is usually null, it must be given a resource before use, by move
  *  assignment from a queue that has one, otherwise the require system rejects
@@ -227,8 +268,9 @@ struct LLQueueNode {
 template <typename T, mem::Resource_c Resource>
 class LLQueue {
 public:
+  using adapter_type = adapters::LLQueue<T>;
   // NOLINTNEXTLINE
-  using Node = LLQueueNode<T>;
+  using Node = typename adapter_type::storage_type;
 
   struct Error : public Exception {
     explicit Error(const std::string_view& msg) : Exception(msg) {}
@@ -298,9 +340,7 @@ public:
       PF_NOEXCEPT_COND(Traits::is_nothrow_resource_move_v &&
                        !mem::NullableResource_c<Resource>)
     : m_resource(std::move(resource)) {
-    if constexpr (mem::NullableResource_c<Resource>) {
-      PF_REQUIRE(!m_resource.is_null(), "LLQueue: null memory resource");
-    }
+    check_resource_();
   }
 
   /**
@@ -355,9 +395,7 @@ public:
           Traits::is_nothrow_resource_move_v &&
       !mem::NullableResource_c<Resource>)
     : m_resource(std::move(resource)) {
-    if constexpr (mem::NullableResource_c<Resource>) {
-      PF_REQUIRE(!m_resource.is_null(), "LLQueue: null memory resource");
-    }
+    check_resource_();
     copy_from_(other);
   }
 
@@ -377,19 +415,17 @@ public:
           Traits::is_nothrow_resource_move_v &&
       !mem::NullableResource_c<Resource>)
     : m_resource(std::move(resource)) {
-    if constexpr (mem::NullableResource_c<Resource>) {
-      PF_REQUIRE(!m_resource.is_null(), "LLQueue: null memory resource");
-    }
+    check_resource_();
     move_other_into_(other);
   }
 
   /**
-   *@brief replaces the contents with a copy of @p other, using this queue's
-   *  own resource
-   *
-   *@note this queue's nodes go back to its own resource, then the values are
-   *  copied into nodes taken from that same resource, @p other is untouched
+   *@brief takes over the source's nodes and its resource, the source is left
+   *  empty, its resource moved from
    */
+  LLQueue(LLQueue&& other) PF_NOEXCEPT_COND(Traits::is_nothrow_resource_move_v)
+    : m_queue(std::move(other.m_queue)), m_resource(std::move(other.m_resource)) {}
+
   LLQueue&
   operator=(const LLQueue& other) PF_NOEXCEPT_COND(
       Traits::is_nothrow_copy_construct_v&& Traits::is_nothrow_allocate_v) {
@@ -397,6 +433,24 @@ public:
       return *this;
     }
     copy_assign_(other);
+    return *this;
+  }
+
+  /**
+   *@brief returns every node this queue holds to its *own* resource, then
+   *  takes over the source's nodes and its resource
+   *
+   *@note nodes and resource always travel together, so nodes always go back
+   *  to the resource that allocated them
+   */
+  LLQueue&
+  operator=(LLQueue&& other) PF_NOEXCEPT_COND(
+      Traits::is_nothrow_allocate_v&& Traits::is_nothrow_resource_move_assign_v) {
+    if (this != &other) {
+      clear();
+      m_resource = std::move(other.m_resource);
+      m_queue = std::move(other.m_queue);
+    }
     return *this;
   }
 
@@ -436,53 +490,11 @@ public:
     return *this;
   }
 
-  /**
-   *@brief takes over the source's nodes and its resource, the source is left
-   *  empty, its resource moved from
-   */
-  LLQueue(LLQueue&& other) PF_NOEXCEPT_COND(Traits::is_nothrow_resource_move_v)
-    : m_front(other.m_front), m_back(other.m_back), m_size(other.m_size),
-      m_resource(std::move(other.m_resource)) {
-    other.m_front = nullptr;
-    other.m_back = nullptr;
-    other.m_size = 0;
-  }
-
-  /**
-   *@brief returns every node this queue holds to its *own* resource, then
-   *  takes over the source's nodes and its resource
-   *
-   *@note nodes and resource always travel together, so nodes always go back
-   *  to the resource that allocated them
-   */
-  LLQueue&
-  operator=(LLQueue&& other) PF_NOEXCEPT_COND(
-      Traits::is_nothrow_allocate_v&& Traits::is_nothrow_resource_move_assign_v) {
-    if (this != &other) {
-      clear();
-
-      m_resource = std::move(other.m_resource);
-      m_front = other.m_front;
-      m_back = other.m_back;
-      m_size = other.m_size;
-
-      other.m_front = nullptr;
-      other.m_back = nullptr;
-      other.m_size = 0;
-    }
-    return *this;
-  }
-
   ~LLQueue() PF_NOEXCEPT_COND(Traits::is_nothrow_allocate_v) { clear(); }
 
   [[nodiscard]] bool
   empty() const PF_NOEXCEPT {
-    return m_front == nullptr;
-  }
-
-  [[nodiscard]] size_type
-  size() const PF_NOEXCEPT {
-    return m_size;
+    return m_queue.empty();
   }
 
   /**
@@ -501,25 +513,25 @@ public:
   [[nodiscard]] reference
   front() PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(!empty());
-    return m_front->val;
+    return m_queue.front();
   }
 
   [[nodiscard]] const_reference
   front() const PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(!empty());
-    return m_front->val;
+    return m_queue.front();
   }
 
   [[nodiscard]] reference
   back() PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(!empty());
-    return m_back->val;
+    return m_queue.back();
   }
 
   [[nodiscard]] const_reference
   back() const PF_NOEXCEPT {
     PF_REQUIRE_ASSUME(!empty());
-    return m_back->val;
+    return m_queue.back();
   }
 
   /**
@@ -543,8 +555,7 @@ public:
     PF_CHECK_ERR_POLICY(ErrPolicy, buffer.is_null());
     PF_REQUIRE_ASSUME(!buffer.is_null());
 
-    link_(std::construct_at(
-        pointer_cast<Node*>(buffer.data), nullptr, std::forward<VArgs>(args)...));
+    m_queue.emplace(buffer.as_objects<Node>(1), std::forward<VArgs>(args)...);
 
     return ErrPolicy::success();
   }
@@ -656,10 +667,28 @@ public:
   }
 
 private:
-  /** so that a queue can copy or move the values of one backed by a different
-   *  resource type, it reads that one's node chain */
+  /** so that a queue can take over the chain of a queue backed by a different
+   *  resource type, see move_other_into_ */
   template <typename, mem::Resource_c>
   friend class LLQueue;
+
+  /**
+   *@brief takes the front value, the list hands back the node it was at, that
+   *  node goes back to the resource
+   */
+  [[nodiscard]] T
+  pop_() PF_NOEXCEPT_COND(
+      Traits::is_nothrow_move_construct_v&& Traits::is_nothrow_allocate_v) {
+    PF_REQUIRE_ASSUME(!empty() && valid_());
+
+    Node* const node = m_queue.pop().get();
+    T val = std::move(node->val);
+
+    std::destroy_at(&node->val);
+    m_resource.deallocate(node_buffer_(node));
+
+    return val;
+  }
 
   /**
    *@brief copies every value of @p other, in order, into nodes taken from this
@@ -673,7 +702,8 @@ private:
   void
   copy_from_(const OtherQueue& other) {
     try {
-      for (const auto* node = other.m_front; node != nullptr; node = node->next) {
+      for (const auto* node = other.m_queue.front_node(); node != nullptr;
+           node = node->next) {
         emplace_unchecked(node->val);
       }
     } catch (...) {
@@ -690,7 +720,7 @@ private:
   void
   move_from_(OtherQueue& other) {
     try {
-      for (auto* node = other.m_front; node != nullptr; node = node->next) {
+      for (auto* node = other.m_queue.front_node(); node != nullptr; node = node->next) {
         emplace_unchecked(std::move(node->val));
       }
     } catch (...) {
@@ -745,56 +775,22 @@ private:
   move_other_into_(OtherQueue& other) {
     if (!other.empty() && mem::is_interoperable_resource(m_resource, other.resource())) {
       PF_REQUIRE_ASSUME(valid_(), "LLQueue: the queue has no memory resource");
-      PF_REQUIRE_ASSUME(other.m_front != nullptr && other.m_back != nullptr);
 
-      m_front = other.m_front;
-      m_back = other.m_back;
-      m_size = other.m_size;
-
-      other.m_front = nullptr;
-      other.m_back = nullptr;
-      other.m_size = 0;
+      // hand what we hold back to our own resource first, the chain and the
+      // resource then travel together as they were
+      clear();
+      m_queue = std::move(other.m_queue);
       return;
     }
 
     move_from_(other);
   }
 
-  /**
-   *@brief takes the front value, then destroys the node and returns it to the
-   *  resource
-   */
-  [[nodiscard]] T
-  pop_() PF_NOEXCEPT_COND(
-      Traits::is_nothrow_move_construct_v&& Traits::is_nothrow_allocate_v) {
-    PF_REQUIRE_ASSUME(!empty() && valid_());
-
-    Node* const node = m_front;
-    T val = std::move(node->val);
-
-    m_front = node->next;
-    if (m_front == nullptr) {
-      m_back = nullptr;
-    }
-    m_size--;
-
-    std::destroy_at(node);
-    m_resource.deallocate(node_buffer_(node));
-
-    return val;
-  }
-
   void
-  link_(Node* node) PF_NOEXCEPT {
-    PF_REQUIRE_ASSUME(node != nullptr);
-
-    if (m_back == nullptr) {
-      m_front = node;
-    } else {
-      m_back->next = node;
+  check_resource_() PF_NOEXCEPT {
+    if constexpr (mem::NullableResource_c<Resource>) {
+      PF_REQUIRE(!m_resource.is_null(), "LLQueue: null memory resource");
     }
-    m_back = node;
-    m_size++;
   }
 
   [[nodiscard]] static Buffer
@@ -811,9 +807,8 @@ private:
     return true;
   }
 
-  Node* m_front{nullptr};
-  Node* m_back{nullptr};
-  size_type m_size{0};
+  /** the structure, it owns no memory, every node in it came from m_resource */
+  adapter_type m_queue;
   /**
    * owned by value, what it allocates from must outlive the queue
    *
