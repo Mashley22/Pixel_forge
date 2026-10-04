@@ -1,5 +1,3 @@
-add_library(PixelForge_containers OBJECT)
-
 target_link_libraries(PixelForge_containers
   PRIVATE
     PixelForge_core

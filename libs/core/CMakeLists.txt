@@ -1,5 +1,3 @@
-add_library(PixelForge_core OBJECT)
-
 if(PIXELFORGE_TEST)
   target_compile_options(PixelForge_core
     PRIVATE

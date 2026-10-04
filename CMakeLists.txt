@@ -32,10 +32,15 @@ endif()
 
 include(cmake/utils.cmake)
 
-add_subdirectory(libs)
+add_library(PixelForge_core OBJECT)
+add_library(PixelForge_containers OBJECT)
+add_library(PixelForge_logging OBJECT)
+add_library(PixelForge_mem OBJECT)
 
 include(options/build.cmake)
 include(options/log.cmake)
+
+add_subdirectory(libs)
 
 if(PIXELFORGE_TEST)
   enable_testing()

@@ -1,5 +1,3 @@
-add_library(PixelForge_logging OBJECT)
-
 target_link_libraries(PixelForge_logging
   PRIVATE
     PixelForge_mem
