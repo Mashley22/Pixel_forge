@@ -19,6 +19,99 @@ concept Resource_c = requires(
   { resource.deallocate(buffer) } -> std::convertible_to<void>;
 };
 
+/**
+ * @brief a resource that can report that it is null, e.g. one default
+ * constructed over a null underlying resource
+ */
+template <typename Resource>
+concept NullableResource_c = requires(Resource& resource) {
+  { resource.is_null() } -> std::convertible_to<bool>;
+};
+
+/**
+ * @brief a reference to a memory resource living elsewhere, it forwards the
+ * resource interface to the resource it refers to
+ *
+ * Useful for handing a resource to something that takes ownership of a
+ * resource without actually taking ownership of it, e.g. a container
+ * parameterised on ResourceRef<SomeResource>.
+ *
+ * @important the referenced resource must outlive the reference
+ */
+template <Resource_c Resource>
+class ResourceRef {
+public:
+  explicit ResourceRef(Resource& resource) PF_NOEXCEPT : m_resource(&resource) {
+    if constexpr (NullableResource_c<Resource>) {
+      PF_REQUIRE(!resource.is_null(),
+                 "ResourceRef: cannot reference a null memory resource");
+    }
+  }
+
+  ResourceRef(const ResourceRef&) = default;
+  ResourceRef(ResourceRef&&) PF_NOEXCEPT = default;
+  ResourceRef&
+  operator=(const ResourceRef&) = default;
+  ResourceRef&
+  operator=(ResourceRef&&) PF_NOEXCEPT = default;
+  ~ResourceRef() = default;
+
+  [[nodiscard]] Buffer
+  allocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t)) {
+    return m_resource->allocate(size, alignment);
+  }
+
+  void
+  deallocate(const Buffer& buffer) {
+    m_resource->deallocate(buffer);
+  }
+
+  /**
+   * @brief whether the referenced resource can be called at all, present only
+   * when the referenced resource reports its own nullness
+   */
+  [[nodiscard]] bool
+  is_null() const PF_NOEXCEPT
+    requires NullableResource_c<Resource>
+  {
+    return m_resource->is_null();
+  }
+
+  template <Resource_c Other>
+    requires requires(const Resource& resource, const Other& other_resource) {
+      { resource.is_interoperable(other_resource) } -> std::convertible_to<bool>;
+    }
+  [[nodiscard]] bool
+  is_interoperable(const ResourceRef<Other>& other) const {
+    return m_resource->is_interoperable(other.get());
+  }
+
+  /** mirrors the noexcept-ness of the referenced resource */
+  static constexpr bool is_noexcept = []() {
+    if constexpr (requires {
+                    { Resource::is_noexcept } -> std::convertible_to<bool>;
+                  }) {
+      return Resource::is_noexcept;
+    }
+    return false;
+  }();
+
+  /** the referenced resource itself */
+  [[nodiscard]] Resource&
+  get() PF_NOEXCEPT {
+    return *m_resource;
+  }
+
+  [[nodiscard]] const Resource&
+  get() const PF_NOEXCEPT {
+    return *m_resource;
+  }
+
+private:
+  /** not owned, the referenced resource must outlive this reference */
+  [[no_unique_address]] Resource* m_resource;
+};
+
 template <typename T>
   requires std::derived_from<T, std::pmr::memory_resource>
 // NOLINTNEXTLINE

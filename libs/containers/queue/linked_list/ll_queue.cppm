@@ -254,12 +254,13 @@ public:
    *  moved into the queue
    *
    *@note the ctor is only noexcept when there is no null check to make, see
-   *  @ref resources_nullable_c
+   *      pf::mem::NullableResource_c
    */
   explicit LLQueue(Resource resource)
-      PF_NOEXCEPT_COND(Traits::is_nothrow_resource_move_v && !resources_nullable_c)
+      PF_NOEXCEPT_COND(Traits::is_nothrow_resource_move_v &&
+                       !mem::NullableResource_c<Resource>)
     : m_resource(std::move(resource)) {
-    if constexpr (resources_nullable_c) {
+    if constexpr (mem::NullableResource_c<Resource>) {
       PF_REQUIRE(!m_resource.is_null(), "LLQueue: null memory resource");
     }
   }
@@ -455,11 +456,6 @@ public:
   }
 
 private:
-  /** whether the resource can report that it is null */
-  static constexpr bool resources_nullable_c = requires(Resource& resource) {
-    { resource.is_null() } -> std::convertible_to<bool>;
-  };
-
   /**
    *@brief takes the front value, then destroys the node and returns it to the
    *  resource
@@ -502,10 +498,10 @@ private:
     return Buffer::from(pointer_cast<std::byte*>(node), sizeof(Node));
   }
 
-  /** a moved from queue holds a moved from resource and must not be used */
+  /** a resource that reports itself null cannot be used, nor can the queue be */
   [[nodiscard]] bool
   valid_() const PF_NOEXCEPT {
-    if constexpr (resources_nullable_c) {
+    if constexpr (mem::NullableResource_c<Resource>) {
       return !m_resource.is_null();
     }
     return true;
@@ -514,8 +510,14 @@ private:
   Node* m_front{nullptr};
   Node* m_back{nullptr};
   size_type m_size{0};
-  /** owned by value, what it allocates from must outlive the queue */
-  Resource m_resource;
+  /**
+   * owned by value, what it allocates from must outlive the queue
+   *
+   * @note no_unique_address lets an empty resource, a mem::ResourceRef for
+   *  instance, share its address with another member rather than costing a
+   *  byte of its own
+   */
+  [[no_unique_address]] Resource m_resource;
 };
 
 } // namespace pf::containers

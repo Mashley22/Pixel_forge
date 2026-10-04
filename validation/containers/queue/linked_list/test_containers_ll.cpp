@@ -37,8 +37,16 @@ class CountingResource {
 public:
   static constexpr bool is_noexcept = true;
 
+  /** a resource reporting itself null, it never manages a block */
+  CountingResource() noexcept = default;
+
   CountingResource(AllocStats& stats, std::size_t id = 0) noexcept
     : m_stats(&stats), m_id(id) {}
+
+  [[nodiscard]] bool
+  is_null() const noexcept {
+    return m_stats == nullptr;
+  }
 
   [[nodiscard]] Buffer
   allocate(std::size_t size, std::size_t alignment = alignof(std::max_align_t)) {
@@ -64,7 +72,7 @@ public:
   }
 
 private:
-  AllocStats* m_stats;
+  AllocStats* m_stats{nullptr};
   std::size_t m_id;
 };
 
@@ -341,6 +349,60 @@ PF_TEST_CASE("works with a std memory resource adapter",
     REQUIRE(queue.pop() == i);
   }
   REQUIRE(queue.empty());
+}
+
+PF_TEST_CASE("works with a resource reference", "[containers][containers::LLQueue]") {
+  using RefQueue = LLQueue<std::uint32_t, mem::ResourceRef<CountingResource>>;
+
+  static_assert(mem::Resource_c<mem::ResourceRef<CountingResource>>);
+  // a reference mirrors the noexcept-ness of the resource it refers to
+  static_assert(mem::is_noexcept_resource<mem::ResourceRef<CountingResource>>::value);
+  static_assert(!mem::is_noexcept_resource<mem::ResourceRef<ExhaustedResource>>::value);
+
+  SECTION("nodes go through the referenced resource") {
+    AllocStats stats;
+    CountingResource resource(stats, 3);
+    RefQueue queue{mem::ResourceRef<CountingResource>(resource)};
+
+    queue.emplace(1);
+    queue.emplace(2);
+
+    // the referenced resource, not the reference, owns the blocks
+    REQUIRE(stats.live_blocks == 2);
+    REQUIRE(queue.pop() == 1);
+    REQUIRE(stats.live_blocks == 1);
+    REQUIRE(queue.pop_unchecked() == 2);
+    REQUIRE(stats.live_blocks == 0);
+
+    REQUIRE(&queue.resource().get() == &resource);
+  }
+
+  SECTION("a null resource is rejected") {
+    CountingResource null_resource;
+
+    auto makeQueueFromNull = [&] { IntQueue queue{null_resource}; };
+    auto makeQueueFromNullRef = [&] {
+      RefQueue queue{mem::ResourceRef<CountingResource>(null_resource)};
+    };
+
+#ifdef PIXELFORGE_REQUIRE_THROWS_ON_FAILURE
+    REQUIRE_PF_REQUIRE_FAIL(makeQueueFromNull());
+    REQUIRE_PF_REQUIRE_FAIL(makeQueueFromNullRef());
+#else
+    static_cast<void>(makeQueueFromNull);
+    static_cast<void>(makeQueueFromNullRef);
+#endif
+  }
+
+  SECTION("a resource that cannot report nullness is referenced fine") {
+    AllocStats stats;
+    ExhaustedResource resource(stats);
+    LLQueue<std::uint32_t, mem::ResourceRef<ExhaustedResource>> queue{
+        mem::ResourceRef<ExhaustedResource>(resource)};
+
+    REQUIRE(!queue.try_push(1));
+    REQUIRE(stats.allocations == 1);
+  }
 }
 
 PF_TEST_CASE("empty error handling", "[containers][containers::LLQueue]") {
