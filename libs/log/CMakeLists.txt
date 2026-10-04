@@ -25,14 +25,18 @@ if(PIXELFORGE_TEST)
   endif()
 endif()
 
+set(PixelForge_logging_sources
+  modules/record.cppm
+  modules/backends/console.cppm
+  logging.cppm
+)
+
 if(PIXELFORGE_ENABLE_FAST_LOG_BACKEND)
-  target_cxx_modules_public(PixelForge_logging
+  list(INSERT PixelForge_logging_sources 0
     modules/backends/fast_backend.cppm
   )
 endif()
 
 target_cxx_modules_public(PixelForge_logging
-  modules/record.cppm
-  modules/backends/console.cppm
-  logging.cppm
+  ${PixelForge_logging_sources}
 )

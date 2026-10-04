@@ -21,8 +21,14 @@ export namespace pf::log {
  */
 class FastBackend {
 
+<<<<<<< Updated upstream
   using clock = std::chrono::system_clock;
   using size_type = std::size_t;
+=======
+  using size_type = std::size_t;
+
+  using Clock = std::chrono::system_clock;
+>>>>>>> Stashed changes
 
   using time_point_t = clock::time_point;
 
