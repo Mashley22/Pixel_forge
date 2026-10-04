@@ -191,7 +191,8 @@ public:
     }
   }
 
-  void deallocate(const Buffer& buffer) PF_NOEXCEPT {
+  void
+  deallocate(const Buffer& buffer) PF_NOEXCEPT {
     PF_REQUIRE(buffer.size <= block_size());
     deallocate(buffer.data);
   }
@@ -362,13 +363,15 @@ public:
   }
 
   [[nodiscard]] Buffer
-  allocate(std::size_t bytes, std::size_t alignment = alignof(std::max_align_t)) PF_NOEXCEPT {
+  allocate(std::size_t bytes,
+           std::size_t alignment = alignof(std::max_align_t)) PF_NOEXCEPT {
     PF_REQUIRE(bytes <= block_size());
     PF_REQUIRE(alignment <= m_alignment);
     return allocate();
   }
 
-  void deallocate(const Buffer& buffer) PF_NOEXCEPT {
+  void
+  deallocate(const Buffer& buffer) PF_NOEXCEPT {
     PF_REQUIRE(buffer.size <= block_size());
     deallocate(buffer.data);
   }

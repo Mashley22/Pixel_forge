@@ -16,14 +16,14 @@ import PixelForge.core;
 
 #define TRAITS                                          \
   struct Traits {                                       \
-    using value_type = T;                                \
-    using size_type = std::size_t;                       \
-    using difference_type = std::ptrdiff_t;              \
-    using reference = value_type&;                       \
-    using const_reference = const value_type&;            \
+    using value_type = T;                               \
+    using size_type = std::size_t;                      \
+    using difference_type = std::ptrdiff_t;             \
+    using reference = value_type&;                      \
+    using const_reference = const value_type&;          \
     using pointer = T*;                                 \
-    using const_pointer = const T*;                      \
-    using storage_type = Node;                           \
+    using const_pointer = const T*;                     \
+    using storage_type = Node;                          \
                                                         \
     static constexpr bool is_nothrow_copy_construct_v = \
         std::is_nothrow_copy_constructible_v<T>;        \
@@ -271,7 +271,7 @@ private:
     ~Skeleton() PF_NOEXCEPT = default;
 
     Skeleton(const ObjectStorage<storage_type>& storage) PF_NOEXCEPT : m_front(storage),
-                                                                      m_back(storage) {}
+                                                                       m_back(storage) {}
 
     [[nodiscard]] bool
     empty() const PF_NOEXCEPT {
@@ -348,9 +348,9 @@ private:
   };
 
 public:
-  //NOLINTNEXTLINE
+  // NOLINTNEXTLINE
   using SPSC = Skeleton<SpFront, SpBack>;
-  //NOLINTNEXTLINE
+  // NOLINTNEXTLINE
   using MPSC = Skeleton<SpFront, MpBack>;
 };
 
@@ -371,7 +371,7 @@ export namespace adapters {
  *
  */
 template <typename T>
-//NOLINTNEXTLINE
+// NOLINTNEXTLINE
 using SPSCLLQueue = detail::ConcurrentLLQueue<T>::SPSC;
 
 /**
@@ -387,7 +387,7 @@ using SPSCLLQueue = detail::ConcurrentLLQueue<T>::SPSC;
  *
  */
 template <typename T>
-//NOLINTNEXTLINE
+// NOLINTNEXTLINE
 using MPSCLLQueue = detail::ConcurrentLLQueue<T>::MPSC;
 }
 

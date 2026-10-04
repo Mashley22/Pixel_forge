@@ -54,16 +54,14 @@ class FastBackend {
   };
 
   class Collector {
-    public:
-      static constexpr size_type block_size = 
+  public:
+    static constexpr size_type block_size =
 #ifdef PIXELFORGE_FAST_LOG_BACKEND_COLLECTOR_POOL_BLOCK_SIZE
         PIXELFORGE_FAST_LOG_BACKEND_COLLECTOR_POOL_BLOCK_SIZE;
 #else
         2048;
 #endif
   };
-
-
 };
 
 }

@@ -146,7 +146,8 @@ private:
       (ValT < 0) ? static_cast<unsigned_t>(-static_cast<unsigned_t>(ValT))
                  : static_cast<unsigned_t>(ValT);
 
-  static constexpr auto uint_arr = UintToStr<unsigned_t, magnitude, BaseT, TDigitSet>::arr;
+  static constexpr auto uint_arr =
+      UintToStr<unsigned_t, magnitude, BaseT, TDigitSet>::arr;
 
   [[nodiscard]]
   static consteval std::size_t
