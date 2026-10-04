@@ -17,8 +17,8 @@ if(PIXELFORGE_TEST)
   # system-header code (or at end-of-TU under -O0), so it cannot be scoped
   # with pragmas from module purview; disable it just for this file.
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set_source_files_properties(modules/backends/console.cppm PROPERTIES
-      COMPILE_OPTIONS "-Wno-strict-overflow"
+    target_compile_options(PixelForge_logging PRIVATE
+      -fno-strict-overflow
     )
   endif()
 endif()
