@@ -24,6 +24,11 @@ memzero(void* dest, std::size_t count) PF_NOEXCEPT {
 }
 
 constexpr void
+memzero(Buffer& buffer) PF_NOEXCEPT {
+  memzero(buffer.data, buffer.size);
+}
+
+constexpr void
 memzero(std::span<char> buf) PF_NOEXCEPT {
   PF_REQUIRE(buf.data() != nullptr);
   PF_REQUIRE(buf.size() != 0);
