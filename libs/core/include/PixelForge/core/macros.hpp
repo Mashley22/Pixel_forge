@@ -127,4 +127,12 @@ public:                                                         \
     }                                          \
   } while (0)
 
+#define PF_DELETE_COPY_CONSTRUCTOR(__type) \
+  __type(const __type&) = delete;          \
+  __type& operator=(const __type&) = delete\
+
+#define PF_DELETE_MOVE_CONSTRUCTOR(__type) \
+  __type(__type&&) = delete;               \
+  __type& operator=(__type&&) = delete     \
+
 #endif /* PIXELFORGE_CORE_MACROS_HPP */
