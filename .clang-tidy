@@ -15,6 +15,7 @@ Checks: >
   -misc-non-private-member-variables-in-classes,
   -misc-use-internal-linkage,
   cppcoreguidelines-*,
+  -cppcoreguidelines-avoid-non-const-global-variables,
   -cppcoreguidelines-macro-to-enum,
   -cppcoreguidelines-macro-usage,
   -cppcoreguidelines-noexcept-move-operations,
