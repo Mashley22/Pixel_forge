@@ -32,6 +32,8 @@ set(PixelForge_logging_sources
 if(PIXELFORGE_ENABLE_FAST_LOG_BACKEND)
   list(INSERT PixelForge_logging_sources 0
     modules/backends/fast_backend.cppm
+    modules/backends/fast_backend/types.cppm
+    modules/backends/fast_backend/collector.cppm
   )
 endif()
 
