@@ -388,7 +388,7 @@ public:
                       capacity());
     m_free_head = std::construct_at(pointer_cast<Link*>(ptr), Link{.next = m_free_head});
   }
-  
+
   const std::byte*
   data() const PF_NOEXCEPT {
     return m_data;

@@ -8,6 +8,7 @@ Checks: >
   -*,
   bugprone-*,
   -bugprone-easily-swappable-parameters,
+  -bugprone-macro-parentheses,
   performance-*,
   -performance-noexcept-move-constructor,
   misc-*,
