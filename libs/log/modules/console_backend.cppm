@@ -66,7 +66,7 @@ public:
    * cannot interleave within each other's lines. Records may still
    * interleave at line granularity, and between std::cout and std::cerr.
    */
-  static void
+  void
   log(const Record& record) PF_NOEXCEPT {
     std::array<char, line_buf_size> buf{};
 

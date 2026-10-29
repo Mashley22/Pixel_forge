@@ -36,6 +36,7 @@ add_library(PixelForge_core OBJECT)
 add_library(PixelForge_containers OBJECT)
 add_library(PixelForge_logging OBJECT)
 add_library(PixelForge_mem OBJECT)
+add_library(PixelForge_log_backends OBJECT)
 
 include(options/build.cmake)
 include(options/log.cmake)

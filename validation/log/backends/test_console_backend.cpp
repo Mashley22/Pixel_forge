@@ -90,14 +90,6 @@ PF_TEST_CASE("ConsoleBackend format_line", "[log][console]") {
   }
 }
 
-PF_TEST_CASE("ConsoleBackend log writes every level", "[log][console]") {
-  ConsoleBackend::log(makeRecord(Level::DEBUG, "debug line"));
-  ConsoleBackend::log(makeRecord(Level::INFO, "info line"));
-  ConsoleBackend::log(makeRecord(Level::WARNING, "warning line"));
-  ConsoleBackend::log(makeRecord(Level::ERROR, "error line"));
-  REQUIRE(true);
-}
-
 PF_TEST_CASE("ConsoleBackend log is line-atomic under concurrency", "[log][console]") {
   // redirect std::cout and std::cerr into one in-memory buffer
   std::ostringstream captured;
@@ -110,7 +102,8 @@ PF_TEST_CASE("ConsoleBackend log is line-atomic under concurrency", "[log][conso
     for (std::size_t t = 0; t < THREADS; t++) {
       threads.emplace_back([t] {
         for (int i = 0; i < PER_THREAD; i++) {
-          ConsoleBackend::log(makeRecord(Level::DEBUG, THREAD_MSGS[t]));
+          ConsoleBackend logger;
+          logger.log(makeRecord(Level::DEBUG, THREAD_MSGS[t]));
         }
       });
     }

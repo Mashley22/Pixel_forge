@@ -69,8 +69,8 @@ constexpr std::string_view default_format =
     "[{:%Y-%m-%d %H:%M:%S}] [{:>3}] [thread-{:02X}] {}";
 
 template <class LoggerBackend>
-concept Backend_c = requires(const Record& record) {
-  { LoggerBackend::log(record) } -> std::same_as<void>;
+concept Backend_c = requires(LoggerBackend& logger, const Record& record) {
+  { logger.log(record) } -> std::same_as<void>;
 };
 
 }
