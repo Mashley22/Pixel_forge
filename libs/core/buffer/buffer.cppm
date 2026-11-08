@@ -50,15 +50,20 @@ public:
   }
 };
 
-struct Buffer {
-  using pointer = std::byte*;
+template<typename TVal>
+requires std::same_as<TVal, std::byte> ||
+std::same_as<TVal, const std::byte>
+struct BasicBuffer {
+  using value_type = TVal;
+  using pointer = TVal*;
+  using char_t = std::conditional_t<std::same_as<value_type, std::byte>, char, const char>;
   using size_type = std::size_t;
   pointer data{nullptr};
   size_type size{0};
 
-  static constexpr Buffer
+  static constexpr BasicBuffer
   null() {
-    return Buffer{.data = nullptr, .size = 0};
+    return BasicBuffer{.data = nullptr, .size = 0};
   }
 
   [[nodiscard]] constexpr bool
@@ -66,14 +71,28 @@ struct Buffer {
     return data == nullptr;
   }
 
-  static constexpr Buffer
+  static constexpr BasicBuffer
   from(pointer ptr, size_type sze) PF_NOEXCEPT {
-    return Buffer{.data = ptr, .size = sze};
+    return BasicBuffer{.data = ptr, .size = sze};
   }
 
-  static constexpr Buffer
-  from(std::span<std::byte> buf) PF_NOEXCEPT {
-    return Buffer{.data = buf.data(), .size = buf.size()};
+  static constexpr BasicBuffer
+  from(std::span<TVal> buf) PF_NOEXCEPT {
+    return BasicBuffer{.data = buf.data(), .size = buf.size()};
+  }
+
+  static constexpr BasicBuffer
+  from(std::span<char_t> buf) PF_NOEXCEPT {
+    return BasicBuffer{.data = pointer_cast<pointer>(buf.data()), .size = buf.size()};
+  }
+
+  template <typename Other>
+  requires std::convertible_to<value_type*, Other*>  
+  operator BasicBuffer<Other>() const noexcept {
+      return BasicBuffer<Other>{
+        .data = data,
+        .size = size
+      };
   }
 
   struct Error : public Exception {
@@ -183,6 +202,9 @@ struct Buffer {
   }
 };
 
+using Buffer = BasicBuffer<std::byte>; //NOLINT
+using BufferView = BasicBuffer<const std::byte>; //NOLINT
+
 /**
  *@brief Copies memory from a source buffer to a destination buffer
  *        (host-to-host, non-overlapping).
@@ -195,8 +217,8 @@ struct Buffer {
  *@param src Source buffer
  *@return The destination buffer, for convenient chaining
  */
-[[nodiscard]] Buffer
-memcpy_host(Buffer dst, Buffer src) PF_NOEXCEPT {
+Buffer
+memcpy_host(const Buffer& dst, const BufferView& src) PF_NOEXCEPT {
   PF_REQUIRE(dst.data != nullptr, "memcpy_host: destination buffer is null");
   PF_REQUIRE(src.data != nullptr, "memcpy_host: source buffer is null");
   PF_REQUIRE(dst.size >= src.size,
