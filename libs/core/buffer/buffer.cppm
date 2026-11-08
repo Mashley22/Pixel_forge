@@ -3,6 +3,7 @@ module;
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -181,5 +182,28 @@ struct Buffer {
                       ErrPolicyOptional<ObjectStorage<T>>>(num_objs);
   }
 };
+
+/**
+ *@brief Copies memory from a source buffer to a destination buffer
+ *        (host-to-host, non-overlapping).
+ *
+ *        Behaves like std::memcpy: the source and destination regions
+ *        must not overlap. The destination buffer must be at least as
+ *        large as the source buffer.
+ *
+ *@param dst Destination buffer
+ *@param src Source buffer
+ *@return The destination buffer, for convenient chaining
+ */
+[[nodiscard]] Buffer
+memcpy_host(Buffer dst, Buffer src) PF_NOEXCEPT {
+  PF_REQUIRE(dst.data != nullptr, "memcpy_host: destination buffer is null");
+  PF_REQUIRE(src.data != nullptr, "memcpy_host: source buffer is null");
+  PF_REQUIRE(dst.size >= src.size,
+             "memcpy_host: destination buffer is smaller than source buffer");
+  
+  std::memcpy(dst.data, src.data, src.size);
+  return dst;
+}
 
 }

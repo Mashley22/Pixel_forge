@@ -1,5 +1,6 @@
 #include <array>
 #include <cstddef>
+#include <cstring>
 #include <span>
 
 #include <catch2/catch_test_macros.hpp>
@@ -53,8 +54,7 @@ PF_TEST_CASE("as_objects", "[core][Buffer][ObjectStorage]") {
     constexpr std::size_t tooManyObjs = 10000;
     static_assert(tooManyObjs * sizeof(int) > storage.size());
     REQUIRE_THROWS_AS(buf.as_objects<int>(tooManyObjs), Buffer::SizeError);
-
-    try {
+try {
       [[maybe_unused]] auto _ = buf.as_objects<int>(tooManyObjs);
       REQUIRE(false);
     } catch (const Buffer::SizeError& e) {
@@ -131,6 +131,58 @@ PF_TEST_CASE("try_as_objects", "[core][Buffer][ObjectStorage]") {
     constexpr std::size_t tooManyObjects = 1000;
     static_assert(tooManyObjects * sizeof(int) > storage.size());
     REQUIRE(!buf.try_as_objects<int>(tooManyObjects).has_value());
+  }
+}
+
+PF_TEST_CASE("memcpy_host", "[core][Buffer]") {
+  alignas(std::max_align_t) std::array<std::byte, 64> src_storage{};
+  alignas(std::max_align_t) std::array<std::byte, 64> dst_storage{};
+
+  // Fill source with a known pattern
+  for (std::size_t i = 0; i < src_storage.size(); ++i) {
+    src_storage[i] = static_cast<std::byte>(i);
+  }
+
+  SECTION("basic copy") {
+    Buffer src{.data = src_storage.data(), .size = src_storage.size()};
+    Buffer dst{.data = dst_storage.data(), .size = dst_storage.size()};
+
+    Buffer result = memcpy_host(dst, src);
+
+    REQUIRE(result.data == dst.data);
+    REQUIRE(result.size == dst.size);
+    REQUIRE(std::memcmp(dst_storage.data(), src_storage.data(), src_storage.size()) == 0);
+  }
+
+  SECTION("partial copy - destination larger than source") {
+    Buffer src{.data = src_storage.data(), .size = 16};
+    Buffer dst{.data = dst_storage.data(), .size = dst_storage.size()};
+
+    Buffer result = memcpy_host(dst, src);
+
+    REQUIRE(result.data == dst.data);
+    REQUIRE(std::memcmp(dst_storage.data(), src_storage.data(), 16) == 0);
+  }
+
+  SECTION("null destination throws") {
+    Buffer src{.data = src_storage.data(), .size = src_storage.size()};
+    Buffer dst{.data = nullptr, .size = dst_storage.size()};
+
+    REQUIRE_THROWS_AS(memcpy_host(dst, src), RequireFail);
+  }
+
+  SECTION("null source throws") {
+    Buffer src{.data = nullptr, .size = src_storage.size()};
+    Buffer dst{.data = dst_storage.data(), .size = dst_storage.size()};
+
+    REQUIRE_THROWS_AS(memcpy_host(dst, src), RequireFail);
+  }
+
+  SECTION("destination too small throws") {
+    Buffer src{.data = src_storage.data(), .size = src_storage.size()};
+    Buffer dst{.data = dst_storage.data(), .size = 16};
+
+    REQUIRE_THROWS_AS(memcpy_host(dst, src), RequireFail);
   }
 }
 
