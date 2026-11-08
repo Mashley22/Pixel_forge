@@ -102,6 +102,17 @@ public:
     return new_payload->header.size;
   }
 
+  PF_PURE_FUNC [[nodiscard]]
+  constexpr size_type
+  max_remaining_payload_capacity() const PF_NOEXCEPT {
+    const auto start = pointer_cast<std::uintptr_t>(this);
+
+    const std::size_t used_capacity =
+        pointer_cast<std::uintptr_t>(last_payload()->end()) - start;
+
+    return block_size - used_capacity;
+  }
+
 private:
   alignas(alignof(Payload)) Block* m_next{nullptr};
 
@@ -127,16 +138,6 @@ private:
     return next_payload;
   }
 
-  PF_PURE_FUNC [[nodiscard]]
-  constexpr size_type
-  max_remaining_payload_capacity() const PF_NOEXCEPT {
-    const auto start = pointer_cast<std::uintptr_t>(this);
-
-    const std::size_t used_capacity =
-        pointer_cast<std::uintptr_t>(last_payload()->end()) - start;
-
-    return block_size - used_capacity;
-  }
 };
 
 }
