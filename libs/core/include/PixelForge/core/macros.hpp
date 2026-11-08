@@ -136,7 +136,7 @@ public:                                                         \
   __type& operator=(__type&&) = delete
 
 #ifdef PIXELFORGE_TEST
-#define PF_TEST_EXPORT export 
+#define PF_TEST_EXPORT export
 #else
 #define PF_TEST_EXPORT
 #endif

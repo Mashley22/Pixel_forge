@@ -97,14 +97,9 @@ public:
         .is_last = true,
     };
 
-
-    memcpy_host(
-      Buffer::from(new_payload->data()),
-      BufferView {
-        .data = pointer_cast<const std::byte*>(record.msg.data()),
-        .size = new_payload->header.size
-      }
-    );
+    memcpy_host(Buffer::from(new_payload->data()),
+                BufferView{.data = pointer_cast<const std::byte*>(record.msg.data()),
+                           .size = new_payload->header.size});
 
     return new_payload->header.size;
   }
@@ -144,7 +139,6 @@ private:
     }
     return next_payload;
   }
-
 };
 
 }

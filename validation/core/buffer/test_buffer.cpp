@@ -54,7 +54,7 @@ PF_TEST_CASE("as_objects", "[core][Buffer][ObjectStorage]") {
     constexpr std::size_t tooManyObjs = 10000;
     static_assert(tooManyObjs * sizeof(int) > storage.size());
     REQUIRE_THROWS_AS(buf.as_objects<int>(tooManyObjs), Buffer::SizeError);
-try {
+    try {
       [[maybe_unused]] auto _ = buf.as_objects<int>(tooManyObjs);
       REQUIRE(false);
     } catch (const Buffer::SizeError& e) {

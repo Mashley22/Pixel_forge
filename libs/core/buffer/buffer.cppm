@@ -50,13 +50,13 @@ public:
   }
 };
 
-template<typename TVal>
-requires std::same_as<TVal, std::byte> ||
-std::same_as<TVal, const std::byte>
+template <typename TVal>
+  requires std::same_as<TVal, std::byte> || std::same_as<TVal, const std::byte>
 struct BasicBuffer {
   using value_type = TVal;
   using pointer = TVal*;
-  using char_t = std::conditional_t<std::same_as<value_type, std::byte>, char, const char>;
+  using char_t =
+      std::conditional_t<std::same_as<value_type, std::byte>, char, const char>;
   using size_type = std::size_t;
   pointer data{nullptr};
   size_type size{0};
@@ -87,12 +87,9 @@ struct BasicBuffer {
   }
 
   template <typename Other>
-  requires std::convertible_to<value_type*, Other*>  
+    requires std::convertible_to<value_type*, Other*>
   operator BasicBuffer<Other>() const noexcept {
-      return BasicBuffer<Other>{
-        .data = data,
-        .size = size
-      };
+    return BasicBuffer<Other>{.data = data, .size = size};
   }
 
   struct Error : public Exception {
@@ -202,8 +199,8 @@ struct BasicBuffer {
   }
 };
 
-using Buffer = BasicBuffer<std::byte>; //NOLINT
-using BufferView = BasicBuffer<const std::byte>; //NOLINT
+using Buffer = BasicBuffer<std::byte>;           // NOLINT
+using BufferView = BasicBuffer<const std::byte>; // NOLINT
 
 /**
  *@brief Copies memory from a source buffer to a destination buffer
@@ -223,7 +220,7 @@ memcpy_host(const Buffer& dst, const BufferView& src) PF_NOEXCEPT {
   PF_REQUIRE(src.data != nullptr, "memcpy_host: source buffer is null");
   PF_REQUIRE(dst.size >= src.size,
              "memcpy_host: destination buffer is smaller than source buffer");
-  
+
   std::memcpy(dst.data, src.data, src.size);
   return dst;
 }
