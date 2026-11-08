@@ -6,12 +6,12 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.logging:backend.fast.types;
+export module PixelForge.logging.backends.fast:types;
 
 import PixelForge.core;
 import PixelForge.containers;
 import PixelForge.mem;
-import :record;
+import PixelForge.logging;
 
 namespace pf::log::fast_backend {
 
@@ -26,6 +26,7 @@ export constexpr std::size_t block_size = PIXELFORGE_FAST_LOG_BACKEND_BLOCK_SIZE
 
 static_assert(sizeof(time_point_t) == sizeof(std::uint64_t));
 
+PF_TEST_EXPORT
 struct Header {
   time_point_t time{};
   std::uint32_t id{};
@@ -37,6 +38,7 @@ struct Header {
 static_assert(sizeof(Header) == 2 * sizeof(time_point_t));
 static_assert(alignof(Header) == alignof(time_point_t));
 
+PF_TEST_EXPORT
 struct Payload {
   Header header;
 
@@ -63,6 +65,7 @@ struct Payload {
   }
 };
 
+PF_TEST_EXPORT
 struct Block {
 public:
   PF_PURE_FUNC

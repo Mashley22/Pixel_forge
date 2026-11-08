@@ -4,11 +4,11 @@ module;
 
 #include <PixelForge/core/macros.hpp>
 
-export module PixelForge.logging:backend.fast.collector;
+export module PixelForge.logging.backends.fast:collector;
 
 import PixelForge.core;
 import PixelForge.mem;
-import :backend.fast.types;
+import :types;
 
 namespace pf::log::fast_backend {
 

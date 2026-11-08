@@ -135,4 +135,10 @@ public:                                                         \
   __type(__type&&) = delete;               \
   __type& operator=(__type&&) = delete
 
+#ifdef PIXELFORGE_TEST
+#define PF_TEST_EXPORT export 
+#else
+#define PF_TEST_EXPORT
+#endif
+
 #endif /* PIXELFORGE_CORE_MACROS_HPP */

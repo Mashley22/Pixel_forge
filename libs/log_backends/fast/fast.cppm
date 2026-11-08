@@ -1,6 +1,9 @@
 module;
 
-export module PixelForge.logging:backend.fast;
+export module PixelForge.logging.backends.fast;
+
+export import :types;
+export import :collector;
 
 /**
  *@brief A fast logger backend. Each thread owns its own logging instance
