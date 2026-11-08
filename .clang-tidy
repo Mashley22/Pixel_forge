@@ -9,6 +9,7 @@ Checks: >
   bugprone-*,
   -bugprone-easily-swappable-parameters,
   -bugprone-macro-parentheses,
+  -bugprone-suspicious-stringview-data-usage,
   performance-*,
   -performance-noexcept-move-constructor,
   misc-*,
