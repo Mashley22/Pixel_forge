@@ -40,7 +40,7 @@ static_assert(alignof(Header) == alignof(time_point_t));
 
 PF_TEST_EXPORT
 struct Payload : public Header {
-  
+
   constexpr Payload() = default;
   constexpr Payload(const Header& header) : Header(header) {}
 
@@ -71,11 +71,10 @@ struct Payload : public Header {
     return next_loc();
   }
 
-  [[nodiscard]] constexpr Payload* 
+  [[nodiscard]] constexpr Payload*
   next_loc() const PF_NOEXCEPT {
     return pointer_cast<Payload*>(mem::align(end(), alignof(Payload)));
   }
-
 };
 
 PF_TEST_EXPORT
@@ -104,14 +103,13 @@ public:
     if (remaining < record.msg.size() && remaining < iota) {
       return 0;
     }
-    
+
     Payload* new_payload{};
 
     if (is_empty()) {
       new_payload = &m_first;
     } else {
-      new_payload =
-          std::construct_at(last_payload()->next_loc());
+      new_payload = std::construct_at(last_payload()->next_loc());
       last_payload()->is_last = false;
     }
 
@@ -141,7 +139,7 @@ public:
     return block_size - used_capacity;
   }
 
-  PF_PURE_FUNC [[nodiscard]] 
+  PF_PURE_FUNC [[nodiscard]]
   constexpr const Payload*
   first() const PF_NOEXCEPT {
     return &m_first;
@@ -150,15 +148,11 @@ public:
 private:
   alignas(alignof(Payload)) Block* m_next{nullptr};
 
-  static constexpr Header initial_header = {
-    .size = 0,
-    .is_last = true
-  };
-  
+  static constexpr Header initial_header = {.size = 0, .is_last = true};
+
   Payload m_first{initial_header};
 
 private:
-
   PF_PURE_FUNC [[nodiscard]]
   constexpr const Payload*
   last_payload() const PF_NOEXCEPT {
@@ -179,8 +173,8 @@ private:
     return next_payload;
   }
 
-  PF_PURE_FUNC [[nodiscard]] 
-  constexpr bool 
+  PF_PURE_FUNC [[nodiscard]]
+  constexpr bool
   is_empty() const PF_NOEXCEPT {
     return m_first.size == 0;
   }
