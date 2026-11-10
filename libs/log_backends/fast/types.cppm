@@ -39,30 +39,43 @@ static_assert(sizeof(Header) == 2 * sizeof(time_point_t));
 static_assert(alignof(Header) == alignof(time_point_t));
 
 PF_TEST_EXPORT
-struct Payload {
-  Header header;
+struct Payload : public Header {
+  
+  constexpr Payload() = default;
+  constexpr Payload(const Header& header) : Header(header) {}
+
+  PF_DELETE_COPY_CONSTRUCTOR(Payload);
+  PF_DELETE_MOVE_CONSTRUCTOR(Payload);
+
+  constexpr ~Payload() = default;
 
   [[nodiscard]] constexpr std::span<const char>
   data() const PF_NOEXCEPT {
-    return std::span<const char>(pointer_cast<const char*>(this + 1), header.size);
+    return std::span<const char>(pointer_cast<const char*>(this + 1), Header::size);
   }
 
   [[nodiscard]] constexpr std::span<char>
   data() PF_NOEXCEPT {
-    return std::span<char>(pointer_cast<char*>(this + 1), header.size);
+    return std::span<char>(pointer_cast<char*>(this + 1), Header::size);
   }
 
   // points one beyond the end of the payload
   [[nodiscard]] constexpr char*
   end() const PF_NOEXCEPT {
-    return pointer_cast<char*>(pointer_cast<std::uintptr_t>(this + 1) + header.size);
+    return pointer_cast<char*>(pointer_cast<std::uintptr_t>(this + 1) + Header::size);
   }
 
-  [[nodiscard]] constexpr Payload&
+  [[nodiscard]] constexpr Payload*
   next() const PF_NOEXCEPT {
-    PF_REQUIRE(!header.is_last);
-    return *std::launder(pointer_cast<Payload*>(end()));
+    PF_REQUIRE(!Header::is_last);
+    return next_loc();
   }
+
+  [[nodiscard]] constexpr Payload* 
+  next_loc() const PF_NOEXCEPT {
+    return pointer_cast<Payload*>(mem::align(end(), alignof(Payload)));
+  }
+
 };
 
 PF_TEST_EXPORT
@@ -74,34 +87,47 @@ public:
     return m_next;
   }
 
+  PF_PURE_FUNC
+  Block*&
+  next() PF_NOEXCEPT {
+    return m_next;
+  }
+
   // returns the number of payload bytes recorded
   PF_PURE_FUNC
   [[nodiscard]] constexpr size_type
-  add_record(std::uint32_t id, const Record& record) {
+  add_record(const Record& record) {
+    PF_REQUIRE(record.msg.size() > 0);
     constexpr size_type iota = 64;
     const size_type remaining = max_remaining_payload_capacity();
 
     if (remaining < record.msg.size() && remaining < iota) {
       return 0;
     }
+    
+    Payload* new_payload{};
 
-    last_payload()->header.is_last = false;
+    if (is_empty()) {
+      new_payload = &m_first;
+    } else {
+      new_payload =
+          std::construct_at(last_payload()->next_loc());
+      last_payload()->is_last = false;
+    }
 
-    Payload* new_payload =
-        std::construct_at(pointer_cast<Payload*>(last_payload()->end()));
-    new_payload->header = Header{
+    *static_cast<Header*>(new_payload) = Header{
         .time = record.time,
-        .id = id,
-        .size = static_cast<std::uint16_t>(std::max(iota, record.msg.size())),
+        .id = record.id,
+        .size = static_cast<std::uint16_t>(std::min(record.msg.size(), remaining)),
         .level = record.level,
         .is_last = true,
     };
 
     memcpy_host(Buffer::from(new_payload->data()),
                 BufferView{.data = pointer_cast<const std::byte*>(record.msg.data()),
-                           .size = new_payload->header.size});
+                           .size = new_payload->size});
 
-    return new_payload->header.size;
+    return new_payload->size;
   }
 
   PF_PURE_FUNC [[nodiscard]]
@@ -115,17 +141,30 @@ public:
     return block_size - used_capacity;
   }
 
+  PF_PURE_FUNC [[nodiscard]] 
+  constexpr const Payload*
+  first() const PF_NOEXCEPT {
+    return &m_first;
+  }
+
 private:
   alignas(alignof(Payload)) Block* m_next{nullptr};
 
-  Payload m_first{.header = {.is_last = true}};
+  static constexpr Header initial_header = {
+    .size = 0,
+    .is_last = true
+  };
+  
+  Payload m_first{initial_header};
+
+private:
 
   PF_PURE_FUNC [[nodiscard]]
   constexpr const Payload*
   last_payload() const PF_NOEXCEPT {
     const Payload* next_payload = &m_first;
-    while (!next_payload->header.is_last) {
-      next_payload = &next_payload->next();
+    while (!next_payload->is_last) {
+      next_payload = next_payload->next();
     }
     return next_payload;
   }
@@ -134,10 +173,16 @@ private:
   constexpr Payload*
   last_payload() PF_NOEXCEPT {
     Payload* next_payload = &m_first;
-    while (!next_payload->header.is_last) {
-      next_payload = &next_payload->next();
+    while (!next_payload->is_last) {
+      next_payload = next_payload->next();
     }
     return next_payload;
+  }
+
+  PF_PURE_FUNC [[nodiscard]] 
+  constexpr bool 
+  is_empty() const PF_NOEXCEPT {
+    return m_first.size == 0;
   }
 };
 
