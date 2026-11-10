@@ -214,14 +214,20 @@ using BufferView = BasicBuffer<const std::byte>; // NOLINT
  *@param src Source buffer
  *@return The destination buffer, for convenient chaining
  */
-Buffer
+constexpr Buffer
 memcpy_host(const Buffer& dst, const BufferView& src) PF_NOEXCEPT {
   PF_REQUIRE(dst.data != nullptr, "memcpy_host: destination buffer is null");
   PF_REQUIRE(src.data != nullptr, "memcpy_host: source buffer is null");
   PF_REQUIRE(dst.size >= src.size,
              "memcpy_host: destination buffer is smaller than source buffer");
 
-  std::memcpy(dst.data, src.data, src.size);
+  if (std::is_constant_evaluated()) {
+    for (std::size_t i = 0; i < src.size; i++) {
+      dst.data[i] = src.data[i];
+    }
+  } else {
+    PF_REQUIRE(dst.data == std::memcpy(dst.data, src.data, src.size));
+  }
   return dst;
 }
 
